@@ -1,0 +1,62 @@
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "cleanUrls": true,
+    "trailingSlashBehavior": "REMOVE",
+    "redirects": [],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=31536000"
+          }
+        ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=3600"
+          }
+        ]
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "starpage-ed409",
+          "appId": "1:246255479274:android:341fbd17995cbd2e862a93",
+          "fileOutput": "android/app/google-services.json"
+        }
+      }
+    },
+    "dart": {
+      "lib/firebase_options.dart": {
+        "projectId": "starpage-ed409",
+        "configurations": {
+          "android": "1:246255479274:android:341fbd17995cbd2e862a93",
+          "ios": "1:246255479274:ios:b2795341afca41b6862a93",
+          "macos": "1:246255479274:ios:b2795341afca41b6862a93",
+          "web": "1:246255479274:web:32a8b3b80a82c59d862a93",
+          "windows": "1:246255479274:web:6cc6cd1ae9d67bb4862a93"
+        }
+      }
+    }
+  }
+}

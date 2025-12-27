@@ -1,0 +1,108 @@
+name: Security & Performance Checks
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+
+jobs:
+  dependency-check:
+    name: Check Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.4'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Check for outdated packages
+        run: flutter pub outdated
+
+      - name: Check for security vulnerabilities
+        run: |
+          dart pub global activate pana
+          pana --no-pub-check
+
+  build-size-check:
+    name: Monitor Build Size
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Web
+        run: flutter build web --release
+
+      - name: Check build size
+        run: |
+          MAIN_SIZE=$(stat -c%s "build/web/main.dart.js" 2>/dev/null || echo "0")
+          echo "📦 Web Build Size Report"
+          echo "========================"
+          du -sh build/web/
+          du -sh build/web/* | sort -h
+          
+          # Convert to MB
+          MAIN_SIZE_MB=$(echo "scale=2; $MAIN_SIZE / 1048576" | bc)
+          echo ""
+          echo "main.dart.js: ${MAIN_SIZE_MB} MB"
+          
+          # Warn if over 5 MB
+          if (( $(echo "$MAIN_SIZE_MB > 5" | bc -l) )); then
+            echo "⚠️  Warning: main.dart.js is larger than 5 MB"
+          fi
+
+  lighthouse-check:
+    name: Lighthouse Performance
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Web
+        run: flutter build web --release
+
+      - name: Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          runs: 3
+          configPath: './lighthouserc.json'
+        continue-on-error: true

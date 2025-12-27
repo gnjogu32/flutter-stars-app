@@ -1,0 +1,101 @@
+name: Android Deploy to Play Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Release track'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+  push:
+    branches:
+      - main
+    paths:
+      - 'pubspec.yaml'
+      - 'android/app/build.gradle.kts'
+
+env:
+  FLUTTER_VERSION: '3.10.4'
+
+jobs:
+  deploy-play-store:
+    name: Deploy to Google Play (${{ github.event.inputs.track || 'auto' }})
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
+          packageName: com.starpage.app
+          releaseFiles: 'build/app/outputs/app-release.aab'
+          track: ${{ github.event.inputs.track || 'internal' }}
+          status: completed
+          whatsNewDirectory: 'whats-new'
+          mappingFile: 'build/app/outputs/mapping.txt'
+
+      - name: Create Release Notes
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            
+            // Get version from pubspec.yaml
+            const pubspec = fs.readFileSync('pubspec.yaml', 'utf8');
+            const versionMatch = pubspec.match(/version:\s+(.+)/);
+            const version = versionMatch ? versionMatch[1] : 'unknown';
+            
+            // Create release
+            github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `android-v${version}`,
+              name: `Android Release ${version}`,
+              body: `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.track || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`,
+              draft: false,
+              prerelease: ${{ github.event.inputs.track != 'production' }}
+            })
+
+      - name: Post Deployment Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const track = '${{ github.event.inputs.track || 'internal' }}';
+            console.log(`${status} Android Deployment to ${track} track: ${{ job.status }}`);

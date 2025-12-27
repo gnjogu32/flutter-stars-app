@@ -1,0 +1,114 @@
+name: Android Build & Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  FLUTTER_VERSION: '3.10.4'
+
+jobs:
+  android-build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build APK
+        run: flutter build apk --release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-release.apk
+          retention-days: 30
+
+      - name: Get APK size
+        run: |
+          APK_PATH="build/app/outputs/flutter-release.apk"
+          if [ -f "$APK_PATH" ]; then
+            APK_SIZE=$(stat -c%s "$APK_PATH" | numfmt --to=iec)
+            echo "📦 APK Size: $APK_SIZE"
+          fi
+
+  android-bundle:
+    name: Build App Bundle (for Play Store)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload App Bundle artifact
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: android-app-bundle
+          path: build/app/outputs/app-release.aab
+          retention-days: 30
+
+      - name: Get Bundle size
+        run: |
+          BUNDLE_PATH="build/app/outputs/app-release.aab"
+          if [ -f "$BUNDLE_PATH" ]; then
+            BUNDLE_SIZE=$(stat -c%s "$BUNDLE_PATH" | numfmt --to=iec)
+            echo "📦 App Bundle Size: $BUNDLE_SIZE"
+          fi
