@@ -40,28 +40,10 @@ android {
 
     signingConfigs {
         create("release") {
-            // Try to load from key.properties
-            val keystorePropertiesFile = rootProject.file("key.properties")
-            if (keystorePropertiesFile.exists()) {
-                val keystoreProperties = Properties()
-                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-                storeFile = file(keystoreProperties.getProperty("storeFile") ?: "../starpage-keystore.jks")
-                storePassword = keystoreProperties.getProperty("storePassword")
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
-            } else if (System.getenv("KEYSTORE_PASSWORD") != null) {
-                // Use environment variables (CI/CD)
-                storeFile = file("../starpage-keystore.jks")
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS") ?: "starpage"
-                keyPassword = System.getenv("KEY_PASSWORD")
-            } else {
-                // Fallback to debug signing
-                storeFile = File(System.getProperty("user.home"), ".android/debug.keystore")
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
-            }
+            storeFile = file("starpage-keystore.jks")
+            storePassword = "starpage123!"
+            keyAlias = "starpage"
+            keyPassword = "starpage123!"
         }
     }
 
