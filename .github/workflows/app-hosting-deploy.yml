@@ -1,0 +1,101 @@
+name: Deploy to Firebase App Hosting
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          cache: true
+          cache-key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+          cache-path: ${{ runner.tool_cache }}/flutter
+
+      - name: Get dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build Flutter web (Release)
+        run: |
+          flutter build web \
+            --release \
+            --tree-shake-icons \
+            --dart-define=FLUTTER_WEB_USE_SKIA=false
+        env:
+          FLUTTER_BUILD_MODE: release
+
+      - name: Set deployment channel
+        id: deploy-channel
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "channel=pr-${{ github.event.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "channel=live" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Firebase App Hosting
+        run: |
+          gcloud firebase app-hosting backends deploy \
+            --source=. \
+            --backend=flutter-stars-web \
+            --project=starpage-ed409 \
+            --location=us-central1
+        env:
+          GCLOUD_PROJECT: starpage-ed409
+
+      - name: Comment on PR with deployment link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Deployed to App Hosting!\n\n🔗 Preview: https://${{ steps.deploy-channel.outputs.channel }}--flutter-stars-web-${{ secrets.FIREBASE_PROJECT_ID }}.web.app`
+            })
+
+      - name: Post deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            console.log(`${status} Deployment Status: ${{ job.status }}`);

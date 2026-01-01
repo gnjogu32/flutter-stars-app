@@ -15,7 +15,7 @@ plugins {
 android {
     namespace = "com.starpage.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion removed to let Gradle auto-select
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

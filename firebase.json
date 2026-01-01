@@ -4,7 +4,9 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "Dockerfile",
+      ".dockerignore"
     ],
     "rewrites": [
       {
@@ -35,6 +37,17 @@
         ]
       }
     ]
+  },
+  "apphosting": {
+    "servingConfig": {
+      "app": "flutter-stars-web",
+      "defaultTrafficPolicy": [
+        {
+          "rolloutPercent": 100,
+          "pin": "canary"
+        }
+      ]
+    }
   },
   "flutter": {
     "platforms": {

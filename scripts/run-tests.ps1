@@ -39,7 +39,7 @@ function Write-Success {
     Write-Host "✓ $Message" -ForegroundColor Green
 }
 
-function Write-Error {
+function Write-ErrorMsg {
     param([string]$Message)
     Write-Host "✗ $Message" -ForegroundColor Red
 }
@@ -48,7 +48,7 @@ Write-Header "Running Starpage Tests"
 
 Write-Step "Checking dependencies..."
 if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) {
-    Write-Error "Flutter not found"
+    Write-ErrorMsg "Flutter not found"
     exit 1
 }
 Write-Success "Flutter found"
@@ -77,7 +77,7 @@ if ($CoverageReport) {
         }
     }
     else {
-        Write-Error "Tests failed!"
+        Write-ErrorMsg "Tests failed!"
         exit 1
     }
 }
@@ -91,7 +91,7 @@ else {
         Write-Success "All tests passed!"
     }
     else {
-        Write-Error "Some tests failed!"
+        Write-ErrorMsg "Some tests failed!"
         exit 1
     }
 }
