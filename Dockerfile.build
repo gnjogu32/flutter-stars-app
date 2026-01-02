@@ -1,0 +1,31 @@
+# Build stage - Compile Flutter APK
+FROM google/cloud-builders/docker AS flutter-builder
+
+# Install Flutter and dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    unzip \
+    openjdk-17-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Flutter SDK
+ENV PATH="/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}"
+RUN git clone --depth 1 --branch stable https://github.com/flutter/flutter.git /root/flutter
+
+# Copy app files
+WORKDIR /app
+COPY . .
+
+# Run Flutter pub get
+RUN flutter pub get
+
+# Build release APK
+RUN flutter build apk --release \
+    && flutter build appbundle --release
+
+# Output stage
+FROM google/cloud-builders/docker
+COPY --from=flutter-builder /app/build/app/outputs/ /app/outputs/
+WORKDIR /app

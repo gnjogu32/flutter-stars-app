@@ -1,0 +1,57 @@
+steps:
+  # Step 1: Build the Flutter APK
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-apk'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/flutter-stars-app:$SHORT_SHA'
+      - '-f'
+      - 'Dockerfile.build'
+      - '.'
+    waitFor: ['-']
+
+  # Step 2: Push the image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/flutter-stars-app:$SHORT_SHA'
+    waitFor: ['build-apk']
+
+  # Step 3: Deploy to Cloud Run (optional - for Firebase Functions or web preview)
+  - name: 'gcr.io/cloud-builders/run'
+    id: 'deploy-cloud-run'
+    args:
+      - 'deploy'
+      - 'flutter-stars-app'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/flutter-stars-app:$SHORT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+    waitFor: ['push-image']
+
+# Store APK artifacts
+artifacts:
+  objects:
+    location: 'gs://$_ARTIFACT_BUCKET/apk/$SHORT_SHA'
+    paths:
+      - 'build/app/outputs/flutter-app-release.apk'
+      - 'build/app/outputs/app-release.aab'
+
+# Build configuration
+timeout: '3600s'
+machineType: 'N1_HIGHCPU_8'
+
+# Substitution variables
+substitutions:
+  _ARTIFACT_BUCKET: '${PROJECT_ID}-flutter-artifacts'
+  _FLUTTER_VERSION: '3.24.0'
+
+# Enable Docker caching for faster builds
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY

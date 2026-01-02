@@ -12,6 +12,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Load key.properties if it exists
+val keyPropertiesFile = rootProject.file("key.properties")
+val keyProperties = Properties()
+if (keyPropertiesFile.exists()) {
+    keyProperties.load(FileInputStream(keyPropertiesFile))
+}
+
 android {
     namespace = "com.starpage.app"
     compileSdk = flutter.compileSdkVersion
@@ -40,10 +47,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("starpage-keystore.jks")
-            storePassword = "starpage123!"
-            keyAlias = "starpage"
-            keyPassword = "starpage123!"
+            storeFile = file("../starpage-keystore.jks")
+            storePassword = keyProperties.getProperty("storePassword") ?: System.getenv("KEYSTORE_PASSWORD") ?: "DEBUG"
+            keyAlias = keyProperties.getProperty("keyAlias") ?: "starpage"
+            keyPassword = keyProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD") ?: "DEBUG"
         }
     }
 

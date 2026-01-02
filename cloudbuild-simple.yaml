@@ -1,0 +1,88 @@
+# Cloud Build configuration for Flutter Stars App
+# Builds Flutter APK and App Bundle for deployment
+
+steps:
+  # Step 1: Install Flutter SDK
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'install-flutter'
+    env:
+      - 'FLUTTER_HOME=/root/flutter'
+      - 'PATH=/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        git clone --depth 1 --branch stable https://github.com/flutter/flutter.git /root/flutter
+        export PATH="/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}"
+        flutter doctor
+
+  # Step 2: Get dependencies
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'get-dependencies'
+    env:
+      - 'FLUTTER_HOME=/root/flutter'
+      - 'PATH=/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        export PATH="/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}"
+        flutter pub get
+
+  # Step 3: Build APK
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'build-apk'
+    env:
+      - 'FLUTTER_HOME=/root/flutter'
+      - 'PATH=/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}'
+      - 'KEYSTORE_PASSWORD=${_KEYSTORE_PASSWORD}'
+      - 'KEY_PASSWORD=${_KEY_PASSWORD}'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        export PATH="/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}"
+        flutter build apk --release
+    waitFor: ['get-dependencies']
+
+  # Step 4: Build App Bundle
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'build-bundle'
+    env:
+      - 'FLUTTER_HOME=/root/flutter'
+      - 'PATH=/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}'
+      - 'KEYSTORE_PASSWORD=${_KEYSTORE_PASSWORD}'
+      - 'KEY_PASSWORD=${_KEY_PASSWORD}'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        export PATH="/root/flutter/bin:/root/flutter/bin/cache/dart-sdk/bin:${PATH}"
+        flutter build appbundle --release
+    waitFor: ['get-dependencies']
+
+# Define build artifacts
+artifacts:
+  objects:
+    location: 'gs://${_ARTIFACT_BUCKET}/flutter-builds/$BUILD_ID'
+    paths:
+      - 'build/app/outputs/**/*.apk'
+      - 'build/app/outputs/**/*.aab'
+
+# Build settings
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  
+timeout: '3600s'
+
+# Substitution variables (set these in Cloud Build trigger)
+substitutions:
+  _ARTIFACT_BUCKET: '${PROJECT_ID}-flutter-artifacts'
+  _KEYSTORE_PASSWORD: 'CHANGE_ME'  # Set via Cloud Build trigger secret
+  _KEY_PASSWORD: 'CHANGE_ME'       # Set via Cloud Build trigger secret
+
+# Images to be pushed to Container Registry (optional)
+images:
+  - 'gcr.io/$PROJECT_ID/flutter-stars-app:${SHORT_SHA}'
+  - 'gcr.io/$PROJECT_ID/flutter-stars-app:latest'
