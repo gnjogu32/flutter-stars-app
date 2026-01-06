@@ -1,22 +1,8 @@
 {
   "indexes": [
     {
-      "collectionGroup": "users",
-      "queryScope": "Collection",
-      "fields": [
-        {
-          "fieldPath": "displayName",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "posts",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "talent",
@@ -30,32 +16,12 @@
     },
     {
       "collectionGroup": "posts",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "authorId",
           "order": "ASCENDING"
         },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "userNotifications",
-      "queryScope": "Collection",
-      "fields": [
-        {
-          "fieldPath": "isRead",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "userNotifications",
-      "queryScope": "Collection",
-      "fields": [
         {
           "fieldPath": "createdAt",
           "order": "DESCENDING"

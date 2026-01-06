@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import '../models/user_model.dart';
 import 'notification_service.dart';
@@ -137,7 +138,7 @@ class UserService {
       await storageRef.delete();
     } catch (e) {
       // Silently fail if image doesn't exist
-      print('Error deleting old profile image: $e');
+      if (kDebugMode) print('Error deleting old profile image: $e');
     }
   }
 

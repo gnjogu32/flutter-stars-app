@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/message_model.dart';
 import '../models/user_model.dart';
@@ -50,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
         });
       }
     } catch (e) {
-      print('Error loading current user: $e');
+      if (kDebugMode) print('Error loading current user: $e');
     }
   }
 
@@ -61,7 +62,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _auth.currentUser?.uid ?? '',
       );
     } catch (e) {
-      print('Error marking messages as read: $e');
+      if (kDebugMode) print('Error marking messages as read: $e');
     }
   }
 
@@ -86,9 +87,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _messageController.clear();
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
+      }
     } finally {
       setState(() => _isSending = false);
     }

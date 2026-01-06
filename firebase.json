@@ -38,6 +38,9 @@
       }
     ]
   },
+  "firestore": {
+    "indexes": "firestore.indexes.json"
+  },
   "apphosting": {
     "servingConfig": {
       "app": "flutter-stars-web",

@@ -104,7 +104,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   ) {
     Color backgroundColor = notification.isRead
         ? Colors.transparent
-        : Colors.blue.withOpacity(0.1);
+        : Colors.blue.withValues(alpha: 0.1);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -145,6 +145,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               ),
         onTap: () async {
+          final context_ = context;
           // Mark as read
           if (!notification.isRead) {
             await _notificationService.markAsRead(
@@ -154,19 +155,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           // Navigate based on notification type
-          if (notification.type == 'follow') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) =>
-                    ProfileScreen(userId: notification.triggeredBy),
-              ),
-            );
-          } else if (notification.type == 'like_post' ||
-              notification.type == 'comment') {
-            // Navigate to post (would need to add post screen navigation)
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Post: ${notification.postId}')),
-            );
+          if (mounted) {
+            if (notification.type == 'follow') {
+              // ignore: use_build_context_synchronously
+              Navigator.of(context_).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ProfileScreen(userId: notification.triggeredBy),
+                ),
+              );
+            } else if (notification.type == 'like_post' ||
+                notification.type == 'comment') {
+              // Navigate to post (would need to add post screen navigation)
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context_).showSnackBar(
+                SnackBar(content: Text('Post: ${notification.postId}')),
+              );
+            }
           }
         },
         onLongPress: () {
@@ -192,13 +197,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               leading: const Icon(Icons.delete),
               title: const Text('Delete'),
               onTap: () async {
-                Navigator.pop(context);
+                final context_ = context;
+                Navigator.pop(context_);
                 await _notificationService.deleteNotification(
                   currentUserId,
                   notification.notificationId,
                 );
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  // ignore: use_build_context_synchronously
+                  ScaffoldMessenger.of(context_).showSnackBar(
                     const SnackBar(content: Text('Notification deleted')),
                   );
                 }

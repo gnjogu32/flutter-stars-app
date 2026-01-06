@@ -22,7 +22,7 @@ if (keyPropertiesFile.exists()) {
 android {
     namespace = "com.starpage.app"
     compileSdk = flutter.compileSdkVersion
-    // ndkVersion removed to let Gradle auto-select
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -48,9 +48,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../starpage-keystore.jks")
-            storePassword = keyProperties.getProperty("storePassword") ?: System.getenv("KEYSTORE_PASSWORD") ?: "DEBUG"
-            keyAlias = keyProperties.getProperty("keyAlias") ?: "starpage"
-            keyPassword = keyProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD") ?: "DEBUG"
+            storePassword = "starpage123!"
+            keyAlias = "starpage"
+            keyPassword = "starpage123!"
         }
     }
 

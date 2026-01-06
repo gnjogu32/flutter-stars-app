@@ -2,5 +2,6 @@
     "terminal.integrated.sendKeybindingsToShell": true,
     "terminal.integrated.commandsToSkipShell": [
         ""
-    ]
+    ],
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

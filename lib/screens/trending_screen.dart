@@ -260,7 +260,7 @@ class _TrendingScreenState extends State<TrendingScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.9),
+                color: Colors.orange.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
