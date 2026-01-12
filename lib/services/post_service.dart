@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/post_model.dart';
 
 class PostService {
@@ -23,7 +25,16 @@ class PostService {
         final fileName =
             'posts/$authorId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
         final ref = _storage.ref().child(fileName);
-        await ref.putFile(imageFile);
+
+        if (kIsWeb) {
+          // For web platform, read file as bytes
+          final Uint8List fileBytes = await imageFile.readAsBytes();
+          await ref.putData(fileBytes);
+        } else {
+          // For native platforms (iOS, Android, etc.)
+          await ref.putFile(imageFile);
+        }
+
         final url = await ref.getDownloadURL();
         imageUrls.add(url);
       }

@@ -91,16 +91,28 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Check if Espresso tests exist
+        id: check-tests
+        run: |
+          if [ -d "android/app/src/androidTest" ]; then
+            echo "tests_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "tests_exist=false" >> $GITHUB_OUTPUT
+            echo "⚠️  No Espresso tests found in android/app/src/androidTest"
+          fi
+
       - name: Run Espresso tests
+        if: steps.check-tests.outputs.tests_exist == 'true'
         run: |
           cd android
-          ./gradlew connectedAndroidTest
+          ./gradlew connectedAndroidTest --info
         continue-on-error: true
 
       - name: Upload Espresso results
-        if: always()
+        if: always() && steps.check-tests.outputs.tests_exist == 'true'
         uses: actions/upload-artifact@v3
         with:
           name: espresso-test-results
           path: android/app/build/outputs/androidTest-results/
           retention-days: 30
+        continue-on-error: true

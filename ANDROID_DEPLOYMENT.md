@@ -7,7 +7,7 @@ Your Starpage app is now configured for Android deployment with production-ready
 
 ### ✅ Package Name
 - **Old:** `com.example.flutter_stars_app`
-- **New:** `com.starpage.app`
+- **New:** `org.starpage.app`
 - Unique identifier for your app on Google Play
 
 ### ✅ App Name

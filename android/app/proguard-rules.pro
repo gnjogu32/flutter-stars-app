@@ -14,7 +14,7 @@
 -keep class com.google.cloud.firestore.** { *; }
 
 # Keep application classes
--keep class com.starpage.app.** { *; }
+-keep class org.starpage.app.** { *; }
 
 # Keep model classes (Dart-generated)
 -keep class ** extends com.google.protobuf.GeneratedMessage { *; }

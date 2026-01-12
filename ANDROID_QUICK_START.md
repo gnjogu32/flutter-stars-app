@@ -311,7 +311,7 @@ flutter build appbundle --release
 adb devices                                          # List devices
 adb install build/app/outputs/flutter-release.apk  # Install APK
 flutter run --release                              # Run release
-adb uninstall com.starpage.app                      # Uninstall
+adb uninstall org.starpage.app                      # Uninstall
 ```
 
 ### View Logs

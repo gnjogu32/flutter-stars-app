@@ -20,7 +20,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.starpage.app"
+    namespace = "org.starpage.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
@@ -36,7 +36,7 @@ android {
 
     defaultConfig {
         // Application ID for Starpage
-        applicationId = "com.starpage.app"
+        applicationId = "org.starpage.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

@@ -441,7 +441,7 @@ Causes:
 Solution:
 ```
 # Add to android/app/proguard-rules.pro
--keep class com.starpage.** { *; }
+-keep class org.starpage.** { *; }
 -keep class io.flutter.** { *; }
 -keep class androidx.** { *; }
 ```
@@ -499,7 +499,7 @@ flutter run --release                         # Run release build
 # Device Management
 adb devices                                    # List devices
 adb install build/app/outputs/flutter-release.apk  # Install APK
-adb uninstall com.starpage.app                # Uninstall app
+adb uninstall org.starpage.app                # Uninstall app
 
 # Debugging
 adb logcat | Select-String "starpage"         # View app logs

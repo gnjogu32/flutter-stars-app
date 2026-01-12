@@ -5,7 +5,7 @@
 - [ ] Google Play Developer Account ($25 one-time fee)
 - [ ] Release APK built: `build/app/outputs/flutter-apk/app-release.apk` ✅
 - [ ] App signing keystore configured ✅
-- [ ] App ID configured: `com.starpage.app`
+- [ ] App ID configured: `org.starpage.app`
 
 ---
 

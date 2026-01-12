@@ -95,7 +95,7 @@ You have the right to:
 - **Opt-out**: Unsubscribe from marketing emails
 - **Withdraw consent**: Revoke permissions for data use
 
-To exercise these rights, contact: **privacy@starpage.app**
+To exercise these rights, contact: **privacy@starpage.org**
 
 ---
 
@@ -104,7 +104,7 @@ To exercise these rights, contact: **privacy@starpage.app**
 - Starpage is not intended for users under 13 years old
 - We do not knowingly collect data from children under 13
 - If we discover such data, we delete it immediately
-- Parents/guardians concerned should contact: **privacy@starpage.app**
+- Parents/guardians concerned should contact: **privacy@starpage.org**
 
 ---
 
@@ -135,7 +135,7 @@ If you're a California resident, you have:
 - Right to opt-out: Opt-out of data sales/sharing
 - Right to non-discrimination: No discrimination for exercising rights
 
-Submit requests to: **privacy@starpage.app**
+Submit requests to: **privacy@starpage.org**
 
 ---
 
@@ -151,7 +151,7 @@ If you're an EU resident, you have:
 - Right to object: Oppose certain processing
 - Right to withdraw consent: Revoke permissions
 
-**EU Data Protection Officer**: **dpo@starpage.app**
+**EU Data Protection Officer**: **dpo@starpage.org**
 
 ---
 
@@ -167,7 +167,7 @@ We may update this policy occasionally. Changes are effective when posted. Conti
 
 For privacy questions or requests:
 
-**Email**: privacy@starpage.app  
+**Email**: privacy@starpage.org  
 **Mail**: Starpage, Inc.  
          Privacy Department  
          [Your Address]  
@@ -180,7 +180,7 @@ For privacy questions or requests:
 
 If you believe we've violated your privacy rights:
 
-1. Contact us first: privacy@starpage.app
+1. Contact us first: privacy@starpage.org
 2. If unresolved, file complaint with your data protection authority
 3. **California**: California Attorney General
 4. **EU**: Your country's data protection authority

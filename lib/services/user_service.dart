@@ -117,8 +117,19 @@ class UserService {
           .child('profile_images')
           .child(fileName);
 
-      final UploadTask uploadTask = storageRef.putFile(imageFile);
-      final TaskSnapshot snapshot = await uploadTask;
+      late TaskSnapshot snapshot;
+
+      if (kIsWeb) {
+        // For web platform, read file as bytes
+        final Uint8List fileBytes = await imageFile.readAsBytes();
+        final UploadTask uploadTask = storageRef.putData(fileBytes);
+        snapshot = await uploadTask;
+      } else {
+        // For native platforms (iOS, Android, etc.)
+        final UploadTask uploadTask = storageRef.putFile(imageFile);
+        snapshot = await uploadTask;
+      }
+
       final String downloadUrl = await snapshot.ref.getDownloadURL();
 
       return downloadUrl;

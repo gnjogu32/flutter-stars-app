@@ -17,6 +17,7 @@
     "cleanUrls": true,
     "trailingSlashBehavior": "REMOVE",
     "redirects": [],
+    "errorPage": "/404.html",
     "headers": [
       {
         "source": "**/*.@(js|css)",
@@ -33,6 +34,19 @@
           {
             "key": "Cache-Control",
             "value": "max-age=3600"
+          }
+        ]
+      },
+      {
+        "source": "/privacy.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=86400"
+          },
+          {
+            "key": "Content-Type",
+            "value": "text/html; charset=utf-8"
           }
         ]
       }

@@ -202,7 +202,7 @@ flutter build apk --target-platform=android-arm64  # ARM64 only
 ```powershell
 adb devices                              # List devices
 adb install <path-to-apk>              # Install APK
-adb uninstall com.starpage.app          # Uninstall app
+adb uninstall org.starpage.app          # Uninstall app
 adb logcat | Select-String "starpage"   # View app logs
 ```
 
@@ -416,6 +416,6 @@ Everything is in place for professional Android testing and deployment of your S
 
 **Created:** December 2025  
 **Starpage Version:** 1.0.0+1  
-**Package:** com.starpage.app  
+**Package:** org.starpage.app  
 **Min Android Version:** 5.0+ (API 21)  
 **Target Android Version:** 14+ (API 34)

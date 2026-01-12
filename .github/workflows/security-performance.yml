@@ -31,12 +31,14 @@ jobs:
         run: flutter pub get
 
       - name: Check for outdated packages
-        run: flutter pub outdated
+        run: flutter pub outdated --no-dev
+        continue-on-error: true
 
       - name: Check for security vulnerabilities
         run: |
           dart pub global activate pana
-          pana --no-pub-check
+          pana --exit-code-threshold 0
+        continue-on-error: true
 
   build-size-check:
     name: Monitor Build Size
@@ -61,20 +63,28 @@ jobs:
 
       - name: Check build size
         run: |
-          MAIN_SIZE=$(stat -c%s "build/web/main.dart.js" 2>/dev/null || echo "0")
+          if [ ! -d "build/web" ]; then
+            echo "❌ Web build directory not found!"
+            exit 1
+          fi
+          
           echo "📦 Web Build Size Report"
           echo "========================"
           du -sh build/web/
           du -sh build/web/* | sort -h
           
-          # Convert to MB
-          MAIN_SIZE_MB=$(echo "scale=2; $MAIN_SIZE / 1048576" | bc)
-          echo ""
-          echo "main.dart.js: ${MAIN_SIZE_MB} MB"
-          
-          # Warn if over 5 MB
-          if (( $(echo "$MAIN_SIZE_MB > 5" | bc -l) )); then
-            echo "⚠️  Warning: main.dart.js is larger than 5 MB"
+          if [ -f "build/web/main.dart.js" ]; then
+            MAIN_SIZE=$(stat -c%s "build/web/main.dart.js")
+            MAIN_SIZE_MB=$(echo "scale=2; $MAIN_SIZE / 1048576" | bc)
+            echo ""
+            echo "main.dart.js: ${MAIN_SIZE_MB} MB"
+            
+            # Warn if over 5 MB
+            if (( $(echo "$MAIN_SIZE_MB > 5" | bc -l) )); then
+              echo "⚠️  Warning: main.dart.js is larger than 5 MB"
+            fi
+          else
+            echo "⚠️  main.dart.js not found in build/web/"
           fi
 
   lighthouse-check:

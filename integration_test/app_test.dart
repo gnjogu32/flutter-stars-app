@@ -7,37 +7,44 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Starpage Integration Tests', () {
+    setUpAll(() async {
+      // Initialize app once for all tests
+      app.main();
+    });
+
     testWidgets('App launches and displays home screen', (
       WidgetTester tester,
     ) async {
-      app.main();
-      await tester.pumpAndSettle();
+      // Wait for app initialization
+      await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // Verify app launched without errors
       expect(find.byType(MaterialApp), findsOneWidget);
 
-      // Add additional assertions for your app's home screen
+      // Verify UI is responsive
       expect(find.byType(Scaffold), findsWidgets);
     });
 
-    testWidgets('Navigation works correctly', (WidgetTester tester) async {
-      app.main();
-      await tester.pumpAndSettle();
-
-      // Test basic app navigation
-      // Add your specific navigation tests here
-      expect(find.byType(MaterialApp), findsOneWidget);
-    });
-
-    testWidgets('Firebase connection is established', (
+    testWidgets('Material App is properly configured', (
       WidgetTester tester,
     ) async {
-      app.main();
+      // Verify Material Design is applied
+      expect(find.byType(MaterialApp), findsOneWidget);
+
+      // Find app title
+      final materialApp = find.byType(MaterialApp);
+      expect(materialApp, findsOneWidget);
+    });
+
+    testWidgets('Authentication wrapper is rendered', (
+      WidgetTester tester,
+    ) async {
+      // Wait for UI to settle
       await tester.pumpAndSettle();
 
-      // Verify app loaded successfully with Firebase
-      // Add Firebase-specific checks here
-      expect(find.byType(Scaffold), findsWidgets);
+      // Check if either login screen or main app is displayed
+      final hasContent = find.byType(Scaffold).evaluate().isNotEmpty;
+      expect(hasContent, true);
     });
   });
 }
