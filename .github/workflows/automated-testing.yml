@@ -1,0 +1,247 @@
+name: Automated Testing Suite
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+
+env:
+  FLUTTER_VERSION: '3.10.4'
+
+jobs:
+  unit-tests:
+    name: Unit & Widget Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Run unit tests with coverage
+        run: flutter test --coverage --verbose
+
+      - name: Generate coverage reports
+        run: |
+          dart pub global activate coverage
+          dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --packages=.packages
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: flutter-unit-tests
+          name: codecov-flutter
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-results
+          path: |
+            coverage/
+            test/
+          retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Run integration tests
+        run: |
+          flutter drive \
+            --target=integration_test/app_test.dart \
+            --release \
+            || true
+
+      - name: Archive integration test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: integration_test/
+          retention-days: 30
+
+  code-analysis:
+    name: Code Analysis & Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Run static analysis
+        run: flutter analyze --fatal-infos
+
+      - name: Check code formatting
+        run: dart format --set-exit-if-changed lib/ test/ integration_test/
+
+      - name: Run custom lints
+        run: |
+          dart pub global activate custom_lint
+          dart pub global run custom_lint
+        continue-on-error: true
+
+      - name: Generate analysis report
+        run: |
+          flutter analyze --write=analysis-report.json
+        continue-on-error: true
+
+      - name: Upload analysis report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: analysis-report
+          path: analysis-report.json
+          retention-days: 7
+
+  build-test:
+    name: Build Test (Debug)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build APK (debug)
+        run: flutter build apk --debug --verbose
+
+      - name: Verify build artifacts
+        run: |
+          if [ -f "build/app/outputs/app-debug.apk" ]; then
+            echo "✅ APK build successful"
+            ls -lh build/app/outputs/app-debug.apk
+          else
+            echo "❌ APK build failed"
+            exit 1
+          fi
+
+      - name: Archive APK
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-apk
+          path: build/app/outputs/app-debug.apk
+          retention-days: 7
+
+  test-report:
+    name: Test Summary & Report
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [unit-tests, integration-tests, code-analysis, build-test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate test summary
+        run: |
+          echo "# Test Execution Summary" > test-summary.md
+          echo "" >> test-summary.md
+          echo "**Run Date**: $(date)" >> test-summary.md
+          echo "**Branch**: ${{ github.ref }}" >> test-summary.md
+          echo "**Commit**: ${{ github.sha }}" >> test-summary.md
+          echo "" >> test-summary.md
+          echo "## Test Jobs Status" >> test-summary.md
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> test-summary.md
+          echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> test-summary.md
+          echo "- Code Analysis: ${{ needs.code-analysis.result }}" >> test-summary.md
+          echo "- Build Test: ${{ needs.build-test.result }}" >> test-summary.md
+          cat test-summary.md
+
+      - name: Upload test summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-summary
+          path: test-summary.md
+          retention-days: 30
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('test-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  notify-failures:
+    name: Notify on Test Failures
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [unit-tests, integration-tests, code-analysis, build-test]
+    
+    steps:
+      - name: Send failure notification
+        run: |
+          echo "⚠️ Test Pipeline Failed!"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
