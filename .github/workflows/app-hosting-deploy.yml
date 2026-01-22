@@ -64,8 +64,11 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+        env:
+          WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+          WIF_SERVICE_ACCOUNT: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -89,7 +92,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `✅ Deployed to App Hosting!\n\n🔗 Preview: https://${{ steps.deploy-channel.outputs.channel }}--flutter-stars-web-${{ secrets.FIREBASE_PROJECT_ID }}.web.app`
+              body: `✅ Deployed to App Hosting!\n\n🔗 Preview: https://${{ steps.deploy-channel.outputs.channel }}--flutter-stars-web-starpage-ed409.web.app`
             })
 
       - name: Post deployment status

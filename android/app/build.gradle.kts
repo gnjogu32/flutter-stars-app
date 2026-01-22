@@ -48,9 +48,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../starpage-keystore.jks")
-            storePassword = "starpage123!"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: keyProperties.getProperty("storePassword", "")
             keyAlias = "starpage"
-            keyPassword = "starpage123!"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: keyProperties.getProperty("keyPassword", "")
         }
     }
 

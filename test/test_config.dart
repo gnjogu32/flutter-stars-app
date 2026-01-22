@@ -5,6 +5,7 @@
 /// - `flutter test --coverage` - with coverage report
 /// - `flutter test test/widgets/` - specific directory
 /// - `flutter test --verbose` - with detailed output
+library;
 
 const String testFlutterVersion = '3.10.4';
 const String testAndroidMinSdk = '21';
