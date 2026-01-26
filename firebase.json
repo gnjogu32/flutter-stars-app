@@ -53,8 +53,15 @@
     ]
   },
   "firestore": {
-    "indexes": "firestore.indexes.json"
+    "indexes": "firestore.indexes.json",
+    "rules": "firestore.rules"
   },
+  "storage": [
+    {
+      "bucket": "starpage-ed409.appspot.com",
+      "rules": "storage.rules"
+    }
+  ],
   "apphosting": {
     "servingConfig": {
       "app": "flutter-stars-web",
