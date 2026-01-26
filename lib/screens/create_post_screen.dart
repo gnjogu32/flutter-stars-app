@@ -112,7 +112,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // Get user data
       final userData = await _userService.getUser(currentUser.uid);
       if (userData == null) {
-        throw Exception('Your user profile could not be found. Please update your profile and try again.');
+        throw Exception(
+          'Your user profile could not be found. Please update your profile and try again.',
+        );
       }
 
       // Validate content
@@ -138,14 +140,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           _selectedImages.clear();
           _selectedTalent = null;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Post created successfully! 🎉'),
             duration: Duration(seconds: 2),
           ),
         );
-        
+
         // Return to home screen
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
@@ -155,7 +157,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       }
     } catch (e) {
       String errorMessage = 'Error creating post';
-      
+
       // Provide user-friendly error messages
       if (e.toString().contains('Failed to upload image')) {
         errorMessage = '$e - Check your internet connection';
@@ -168,7 +170,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       } else {
         errorMessage = e.toString();
       }
-      
+
       if (mounted) {
         setState(() {
           _errorMessage = errorMessage;
