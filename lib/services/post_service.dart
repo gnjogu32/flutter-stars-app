@@ -19,24 +19,34 @@ class PostService {
     required String? talent,
   }) async {
     try {
+      // Validate input
+      if (content.isEmpty && imageFiles.isEmpty) {
+        throw Exception('Post must have either content or images');
+      }
+
       // Upload images to Firebase Storage
       List<String> imageUrls = [];
-      for (File imageFile in imageFiles) {
-        final fileName =
-            'posts/$authorId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
-        final ref = _storage.ref().child(fileName);
+      for (int i = 0; i < imageFiles.length; i++) {
+        try {
+          final imageFile = imageFiles[i];
+          final fileName =
+              'posts/$authorId/${DateTime.now().millisecondsSinceEpoch}_${i}_${imageFile.path.split('/').last}';
+          final ref = _storage.ref().child(fileName);
 
-        if (kIsWeb) {
-          // For web platform, read file as bytes
-          final Uint8List fileBytes = await imageFile.readAsBytes();
-          await ref.putData(fileBytes);
-        } else {
-          // For native platforms (iOS, Android, etc.)
-          await ref.putFile(imageFile);
+          if (kIsWeb) {
+            // For web platform, read file as bytes
+            final Uint8List fileBytes = await imageFile.readAsBytes();
+            await ref.putData(fileBytes);
+          } else {
+            // For native platforms (iOS, Android, etc.)
+            await ref.putFile(imageFile);
+          }
+
+          final url = await ref.getDownloadURL();
+          imageUrls.add(url);
+        } catch (e) {
+          throw Exception('Failed to upload image ${i + 1}: $e');
         }
-
-        final url = await ref.getDownloadURL();
-        imageUrls.add(url);
       }
 
       // Create post document
@@ -56,7 +66,11 @@ class PostService {
       );
 
       // Save post to Firestore
-      await _firestore.collection('posts').doc(postId).set(post.toJson());
+      try {
+        await _firestore.collection('posts').doc(postId).set(post.toJson());
+      } catch (e) {
+        throw Exception('Failed to save post to database: $e');
+      }
     } catch (e) {
       rethrow;
     }

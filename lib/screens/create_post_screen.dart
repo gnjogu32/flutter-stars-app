@@ -89,6 +89,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _createPost() async {
+    // Validation
     if (_contentController.text.trim().isEmpty && _selectedImages.isEmpty) {
       setState(() {
         _errorMessage = 'Please add content or images to your post';
@@ -102,42 +103,83 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
 
     try {
+      // Check authentication
       final currentUser = _authService.currentUser;
       if (currentUser == null) {
-        throw Exception('User not authenticated');
+        throw Exception('You must be logged in to create a post');
       }
 
       // Get user data
       final userData = await _userService.getUser(currentUser.uid);
       if (userData == null) {
-        throw Exception('User profile not found');
+        throw Exception('Your user profile could not be found. Please update your profile and try again.');
       }
 
-      // Create post
+      // Validate content
+      final trimmedContent = _contentController.text.trim();
+      if (trimmedContent.isEmpty && _selectedImages.isEmpty) {
+        throw Exception('Post must have either text content or images');
+      }
+
+      // Create post with better error handling
       await _postService.createPost(
         authorId: currentUser.uid,
         authorName: userData.displayName,
         authorImageUrl: userData.profileImageUrl,
-        content: _contentController.text.trim(),
-        imageFiles: _selectedImages,
+        content: trimmedContent,
+        imageFiles: List.from(_selectedImages),
         talent: _selectedTalent,
       );
 
-      // Show success message and go back
+      // Clear form and show success
       if (mounted) {
+        _contentController.clear();
+        setState(() {
+          _selectedImages.clear();
+          _selectedTalent = null;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post created successfully!')),
+          const SnackBar(
+            content: Text('Post created successfully! 🎉'),
+            duration: Duration(seconds: 2),
+          ),
         );
-        Navigator.of(context).pop();
+        
+        // Return to home screen
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        });
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error creating post: $e';
-      });
+      String errorMessage = 'Error creating post';
+      
+      // Provide user-friendly error messages
+      if (e.toString().contains('Failed to upload image')) {
+        errorMessage = '$e - Check your internet connection';
+      } else if (e.toString().contains('Failed to save post')) {
+        errorMessage = 'Could not save post - check permissions';
+      } else if (e.toString().contains('not authenticated')) {
+        errorMessage = 'Please log in again to create a post';
+      } else if (e.toString().contains('profile not found')) {
+        errorMessage = 'Please complete your profile first';
+      } else {
+        errorMessage = e.toString();
+      }
+      
+      if (mounted) {
+        setState(() {
+          _errorMessage = errorMessage;
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
