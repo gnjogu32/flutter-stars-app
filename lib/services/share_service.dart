@@ -12,7 +12,7 @@ Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talen
 
 Shared from Starpage ⭐''';
 
-    await Share.share(text, subject: 'Trending Post from Starpage');
+    await SharePlus.instance.share(ShareParams(text: text));
   }
 
   /// Share post via WhatsApp
@@ -26,7 +26,7 @@ Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talen
 Shared from Starpage ⭐''';
 
     try {
-      await Share.share(text);
+      await SharePlus.instance.share(ShareParams(text: text));
     } catch (e) {
       throw Exception('Failed to share via WhatsApp: $e');
     }
@@ -40,7 +40,7 @@ Shared from Starpage ⭐''';
     final twitterUrl = 'https://twitter.com/intent/tweet?text=$encodedText';
 
     try {
-      await Share.share(twitterUrl);
+      await SharePlus.instance.share(ShareParams(text: twitterUrl));
     } catch (e) {
       throw Exception('Failed to share via Twitter: $e');
     }
@@ -56,7 +56,7 @@ ${post.content}
 
 Shared from Starpage ⭐''';
 
-    await Share.share(text);
+    await SharePlus.instance.share(ShareParams(text: text));
   }
 
   /// Get share statistics
