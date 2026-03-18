@@ -75,6 +75,7 @@ class _TrendingScreenState extends State<TrendingScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 itemCount: talents.length,
                 itemBuilder: (context, index) {
+                  final theme = Theme.of(context);
                   final talent = talents[index];
                   final isSelected = _selectedCategory == talent;
                   return Padding(
@@ -87,10 +88,12 @@ class _TrendingScreenState extends State<TrendingScreen>
                           _selectedCategory = talent;
                         });
                       },
-                      backgroundColor: Colors.grey[200],
-                      selectedColor: Colors.orange,
+                      backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                      selectedColor: theme.colorScheme.primary,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
+                        color: isSelected
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurface,
                         fontWeight: isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -260,7 +263,7 @@ class _TrendingScreenState extends State<TrendingScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.9),
+                color: Colors.orange.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

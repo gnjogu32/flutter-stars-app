@@ -3,5 +3,5 @@
     "terminal.integrated.commandsToSkipShell": [
         ""
     ],
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "automatic"
 }

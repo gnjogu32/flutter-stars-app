@@ -8,8 +8,12 @@ class CommentModel {
   final String? authorImageUrl;
   final String content;
   final List<String> likes;
+  final String parentId;
+  final String? replyToName;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isEdited;
+  final DateTime? editedAt;
 
   CommentModel({
     required this.commentId,
@@ -19,8 +23,12 @@ class CommentModel {
     this.authorImageUrl,
     required this.content,
     this.likes = const [],
+    this.parentId = '',
+    this.replyToName,
     required this.createdAt,
     required this.updatedAt,
+    this.isEdited = false,
+    this.editedAt,
   });
 
   // Convert CommentModel to JSON for Firestore
@@ -33,8 +41,12 @@ class CommentModel {
       'authorImageUrl': authorImageUrl,
       'content': content,
       'likes': likes,
+      'parentId': parentId,
+      'replyToName': replyToName,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'isEdited': isEdited,
+      'editedAt': editedAt,
     };
   }
 
@@ -48,6 +60,8 @@ class CommentModel {
       authorImageUrl: json['authorImageUrl'],
       content: json['content'] ?? '',
       likes: List<String>.from(json['likes'] ?? []),
+      parentId: json['parentId'] ?? '',
+      replyToName: json['replyToName'],
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -58,6 +72,12 @@ class CommentModel {
           : DateTime.parse(
               json['updatedAt'] ?? DateTime.now().toIso8601String(),
             ),
+      isEdited: json['isEdited'] ?? false,
+      editedAt: json['editedAt'] is Timestamp
+          ? (json['editedAt'] as Timestamp).toDate()
+          : json['editedAt'] != null
+          ? DateTime.parse(json['editedAt'])
+          : null,
     );
   }
 
@@ -70,8 +90,12 @@ class CommentModel {
     String? authorImageUrl,
     String? content,
     List<String>? likes,
+    String? parentId,
+    String? replyToName,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isEdited,
+    DateTime? editedAt,
   }) {
     return CommentModel(
       commentId: commentId ?? this.commentId,
@@ -81,8 +105,12 @@ class CommentModel {
       authorImageUrl: authorImageUrl ?? this.authorImageUrl,
       content: content ?? this.content,
       likes: likes ?? this.likes,
+      parentId: parentId ?? this.parentId,
+      replyToName: replyToName ?? this.replyToName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isEdited: isEdited ?? this.isEdited,
+      editedAt: editedAt ?? this.editedAt,
     );
   }
 

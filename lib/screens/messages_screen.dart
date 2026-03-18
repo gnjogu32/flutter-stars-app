@@ -18,6 +18,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  final Set<String> _deletingConversationIds = <String>{};
 
   @override
   void dispose() {
@@ -47,11 +48,73 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
+  Future<void> _confirmAndDeleteConversation(
+    ConversationModel conversation,
+  ) async {
+    if (_deletingConversationIds.contains(conversation.conversationId)) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete chat'),
+        content: Text(
+          'Delete your conversation with ${conversation.otherUserName ?? 'this user'}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _deletingConversationIds.add(conversation.conversationId);
+    });
+
+    try {
+      await _chatService.deleteConversation(conversation.conversationId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Chat deleted')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _deletingConversationIds.remove(conversation.conversationId);
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
-      return const Center(child: Text('Not authenticated'));
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Messages'),
+          centerTitle: true,
+          elevation: 0,
+        ),
+        body: _LoginPromptBody(
+          icon: Icons.mail_outline_rounded,
+          message: 'Log in to send and receive messages.',
+        ),
+      );
     }
 
     return Scaffold(
@@ -160,8 +223,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
     BuildContext context,
     ConversationModel conversation,
   ) {
+    final isDeleting = _deletingConversationIds.contains(
+      conversation.conversationId,
+    );
+
     return AnimationUtils.scaleButtonAnimation(
-      onTap: () => _navigateToChat(conversation),
+      onTap: isDeleting ? () {} : () => _navigateToChat(conversation),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Card(
@@ -206,9 +273,45 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      timeago.format(conversation.lastMessageTime),
-                      style: Theme.of(context).textTheme.labelSmall,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          timeago.format(conversation.lastMessageTime),
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        PopupMenuButton<String>(
+                          icon: isDeleting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.more_vert, size: 18),
+                          onSelected: (value) {
+                            if (value == 'delete') {
+                              _confirmAndDeleteConversation(conversation);
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Delete chat',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     if (conversation.unreadCount > 0)
                       Padding(
@@ -237,6 +340,58 @@ class _MessagesScreenState extends State<MessagesScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Reusable login prompt shown in place of screens that need authentication.
+class _LoginPromptBody extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  const _LoginPromptBody({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 36,
+              backgroundColor: cs.primaryContainer,
+              child: Icon(icon, size: 40, color: cs.primary),
+            ),
+            const SizedBox(height: 20),
+            Text(message, textAlign: TextAlign.center, style: tt.bodyLarge),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: 200,
+              child: FilledButton(
+                onPressed: () => Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).pushNamed('/login'),
+                child: const Text('Log In'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 200,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).pushNamed('/signup'),
+                child: const Text('Create Account'),
+              ),
+            ),
+          ],
         ),
       ),
     );

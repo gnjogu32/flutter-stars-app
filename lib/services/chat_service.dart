@@ -27,6 +27,27 @@ class ChatService {
       final conversationId = _getConversationId(senderId, recipientId);
       final messageId = _firestore.collection('messages').doc().id;
       final now = DateTime.now();
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
+
+      // Ensure conversation exists before writing message.
+      // Important: do not rewrite participantIds on existing legacy docs.
+      final existingConversation = await conversationRef.get();
+      if (!existingConversation.exists) {
+        final sortedParticipants = ([senderId, recipientId]..sort());
+        await conversationRef.set({
+          'conversationId': conversationId,
+          'participantIds': sortedParticipants,
+          'lastMessage': '',
+          'lastSenderId': '',
+          'lastMessageTime': now,
+          'otherUserName': recipientName,
+          'otherUserImageUrl': recipientImageUrl,
+          'createdAt': now,
+          'updatedAt': now,
+        }, SetOptions(merge: true));
+      }
 
       final message = MessageModel(
         messageId: messageId,
@@ -39,22 +60,18 @@ class ChatService {
       );
 
       // Save message
-      await _firestore
-          .collection('conversations')
-          .doc(conversationId)
+      await conversationRef
           .collection('messages')
           .doc(messageId)
           .set(message.toJson());
 
       // Update conversation metadata for both users
-      await _firestore.collection('conversations').doc(conversationId).set({
-        'conversationId': conversationId,
-        'participantIds': [senderId, recipientId],
+      await conversationRef.set({
         'lastMessage': content,
         'lastSenderId': senderId,
         'lastMessageTime': now,
         'updatedAt': now,
-      });
+      }, SetOptions(merge: true));
 
       // Create message notification for recipient
       final notificationService = NotificationService();
@@ -90,7 +107,7 @@ class ChatService {
   // Get conversations for a user
   Stream<List<ConversationModel>> getConversationsStream(String userId) {
     return _firestore
-        .collectionGroup('conversations')
+        .collection('conversations')
         .where('participantIds', arrayContains: userId)
         .orderBy('lastMessageTime', descending: true)
         .snapshots()
@@ -154,6 +171,33 @@ class ChatService {
     }
   }
 
+  // Delete an entire conversation (including its messages)
+  Future<void> deleteConversation(String conversationId) async {
+    try {
+      final messagesRef = _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages');
+
+      while (true) {
+        final snapshot = await messagesRef.limit(400).get();
+        if (snapshot.docs.isEmpty) break;
+
+        final batch = _firestore.batch();
+        for (final doc in snapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+
+        if (snapshot.docs.length < 400) break;
+      }
+
+      await _firestore.collection('conversations').doc(conversationId).delete();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Search conversations
   Future<List<ConversationModel>> searchConversations(
     String userId,
@@ -165,7 +209,7 @@ class ChatService {
       }
 
       final querySnapshot = await _firestore
-          .collectionGroup('conversations')
+          .collection('conversations')
           .where('participantIds', arrayContains: userId)
           .get();
 
@@ -189,7 +233,7 @@ class ChatService {
     try {
       int totalUnread = 0;
       final querySnapshot = await _firestore
-          .collectionGroup('conversations')
+          .collection('conversations')
           .where('participantIds', arrayContains: userId)
           .get();
 
@@ -227,18 +271,34 @@ class ChatService {
       }
 
       final conversationId = _getConversationId(currentUserId, targetUserId);
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
+      final existingConversation = await conversationRef.get();
 
-      // Create conversation document if it doesn't exist
-      await _firestore.collection('conversations').doc(conversationId).set({
-        'conversationId': conversationId,
-        'participantIds': [currentUserId, targetUserId],
-        'lastMessage': '',
-        'lastSenderId': '',
-        'lastMessageTime': DateTime.now(),
-        'otherUserName': targetUserName,
-        'otherUserImageUrl': targetUserImageUrl,
-        'createdAt': DateTime.now(),
-      }, SetOptions(merge: true));
+      if (existingConversation.exists) {
+        // Existing conversation may have legacy participantIds order.
+        // Do not rewrite participants to avoid update-rule denial.
+        await conversationRef.set({
+          'lastMessageTime': DateTime.now(),
+          'updatedAt': DateTime.now(),
+          'otherUserName': targetUserName,
+          'otherUserImageUrl': targetUserImageUrl,
+        }, SetOptions(merge: true));
+      } else {
+        final sortedIds = ([currentUserId, targetUserId]..sort());
+        await conversationRef.set({
+          'conversationId': conversationId,
+          'participantIds': sortedIds,
+          'lastMessage': '',
+          'lastSenderId': '',
+          'lastMessageTime': DateTime.now(),
+          'otherUserName': targetUserName,
+          'otherUserImageUrl': targetUserImageUrl,
+          'createdAt': DateTime.now(),
+          'updatedAt': DateTime.now(),
+        }, SetOptions(merge: true));
+      }
 
       return conversationId;
     } catch (e) {

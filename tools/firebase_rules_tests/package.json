@@ -1,0 +1,12 @@
+{
+  "name": "firebase-rules-tests",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^3.0.0",
+    "firebase": "^10.12.5"
+  }
+}

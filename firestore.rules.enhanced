@@ -18,6 +18,31 @@ service cloud.firestore {
     function validateString(field, minLen, maxLen) {
       return field is string && field.size() >= minLen && field.size() <= maxLen;
     }
+
+    // Allow a user to add/remove only themselves from another user's followers list
+    function isFollowersOnlySelfUpdate(userId) {
+      return isAuthenticated() &&
+             request.auth.uid != userId &&
+             request.resource.data.diff(resource.data).changedKeys().hasOnly(['followers']) &&
+             request.resource.data.followers is list;
+    }
+
+    // Allow authenticated users to interact with posts (like / comment count updates)
+    function isPostInteractionUpdate() {
+      return isAuthenticated() &&
+             request.resource.data.diff(resource.data).changedKeys().hasOnly(['likes', 'commentCount', 'repostCount', 'videoViewCount']) &&
+             (!('likes' in request.resource.data) || request.resource.data.likes is list) &&
+             (!('commentCount' in request.resource.data) || request.resource.data.commentCount is int) &&
+             (!('repostCount' in request.resource.data) || request.resource.data.repostCount is int) &&
+             (!('videoViewCount' in request.resource.data) || request.resource.data.videoViewCount is int);
+    }
+
+    // Allow authenticated users to like/unlike comments
+    function isCommentLikeUpdate() {
+      return isAuthenticated() &&
+             request.resource.data.diff(resource.data).changedKeys().hasOnly(['likes']) &&
+             request.resource.data.likes is list;
+    }
     
     // Users collection with validation
     match /users/{userId} {
@@ -26,10 +51,11 @@ service cloud.firestore {
                        validateString(request.resource.data.displayName, 1, 50) &&
                        validateString(request.resource.data.email, 5, 100) &&
                        request.resource.data.createdAt is timestamp;
-      allow update: if isOwner(userId) &&
-                       (!('displayName' in request.resource.data) || validateString(request.resource.data.displayName, 1, 50)) &&
-                       (!('bio' in request.resource.data) || validateString(request.resource.data.bio, 0, 500)) &&
-                       request.resource.data.email == resource.data.email; // Email cannot be changed
+      allow update: if (isOwner(userId) &&
+                        (!('displayName' in request.resource.data) || validateString(request.resource.data.displayName, 1, 50)) &&
+                        (!('bio' in request.resource.data) || validateString(request.resource.data.bio, 0, 500)) &&
+                        request.resource.data.email == resource.data.email) ||
+                       isFollowersOnlySelfUpdate(userId); // Email cannot be changed
       
       // Notifications sub-collection
       match /userNotifications/{notificationId} {
@@ -54,7 +80,8 @@ service cloud.firestore {
                        (!('mediaUrls' in request.resource.data) || request.resource.data.mediaUrls is list);
       allow update: if (resource.data.authorId == request.auth.uid || isAdmin()) &&
                        request.resource.data.authorId == resource.data.authorId && // Cannot change author
-                       request.resource.data.createdAt == resource.data.createdAt; // Cannot change creation date
+                       request.resource.data.createdAt == resource.data.createdAt // Cannot change creation date
+                       || isPostInteractionUpdate();
       allow delete: if resource.data.authorId == request.auth.uid || isAdmin();
     }
     
@@ -69,7 +96,8 @@ service cloud.firestore {
       allow update: if (resource.data.authorId == request.auth.uid || isAdmin()) &&
                        request.resource.data.authorId == resource.data.authorId &&
                        request.resource.data.postId == resource.data.postId &&
-                       request.resource.data.createdAt == resource.data.createdAt;
+                       request.resource.data.createdAt == resource.data.createdAt
+                       || isCommentLikeUpdate();
       allow delete: if resource.data.authorId == request.auth.uid || isAdmin();
     }
     
@@ -85,6 +113,8 @@ service cloud.firestore {
       allow update: if isAuthenticated() && 
                        (request.auth.uid in resource.data.participantIds) &&
                        request.resource.data.participantIds == resource.data.participantIds; // Cannot change participants
+      allow delete: if isAuthenticated() &&
+                       (request.auth.uid in resource.data.participantIds);
       
       // Messages sub-collection with validation
       match /messages/{messageId} {
@@ -93,8 +123,10 @@ service cloud.firestore {
         allow create: if isAuthenticated() && 
                         request.auth.uid == request.resource.data.senderId &&
                         validateString(request.resource.data.content, 1, 5000) &&
-                        request.resource.data.createdAt is timestamp &&
+                        ((request.resource.data.sentAt is timestamp) || (request.resource.data.createdAt is timestamp)) &&
                         request.resource.data.senderId in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        allow delete: if isAuthenticated() &&
+                        (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
       }
     }
     
@@ -102,10 +134,15 @@ service cloud.firestore {
     match /notifications/{userId}/userNotifications/{notificationId} {
       allow read: if isOwner(userId);
       allow create: if isAuthenticated() &&
-                       validateString(request.resource.data.title, 1, 100) &&
+                       request.resource.data.userId == userId &&
+                       request.resource.data.triggeredBy == request.auth.uid &&
+                       validateString(request.resource.data.type, 1, 50) &&
+                       validateString(request.resource.data.content, 1, 500) &&
+                       validateString(request.resource.data.triggeredByName, 1, 100) &&
                        request.resource.data.createdAt is timestamp;
       allow update: if isOwner(userId) &&
-                       request.resource.data.keys().hasOnly(['isRead', 'readAt']);
+                       request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead', 'readAt']);
+      allow delete: if isOwner(userId);
     }
     
     // Default deny for anything else

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
+import '../services/user_service.dart';
+import '../utils/auth_guard.dart';
+import 'profile_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -117,9 +121,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         }
 
         var users = snapshot.data!.docs
-            .map(
-              (doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>),
-            )
+            .map((doc) => UserModel.fromFirestoreDoc(doc))
             .toList();
 
         // Apply search filter
@@ -145,29 +147,154 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Widget _buildUserCard(UserModel user) {
+    return _UserCard(user: user);
+  }
+}
+
+// ── Per-user card with inline follow state ─────────────────────────────────
+class _UserCard extends StatefulWidget {
+  final UserModel user;
+  const _UserCard({required this.user});
+
+  @override
+  State<_UserCard> createState() => _UserCardState();
+}
+
+class _UserCardState extends State<_UserCard> {
+  final _auth = FirebaseAuth.instance;
+  final _userService = UserService();
+  bool _isFollowing = false;
+  bool _isFollowLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFollowState();
+  }
+
+  Future<void> _checkFollowState() async {
+    final currentUid = _auth.currentUser?.uid;
+    if (currentUid == null || currentUid == widget.user.uid) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUid)
+          .get();
+      if (doc.exists && mounted) {
+        final following = List<String>.from(
+          (doc.data()! as Map)['following'] ?? [],
+        );
+        setState(() => _isFollowing = following.contains(widget.user.uid));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFollow() async {
+    final currentUid = _auth.currentUser?.uid;
+    if (_isFollowLoading) return;
+    if (currentUid == null) {
+      await AuthGuard.show(context);
+      return;
+    }
+    setState(() => _isFollowLoading = true);
+    try {
+      if (_isFollowing) {
+        await _userService.unfollowUser(currentUid, widget.user.uid);
+      } else {
+        await _userService.followUser(currentUid, widget.user.uid);
+      }
+      if (mounted) {
+        setState(() {
+          _isFollowing = !_isFollowing;
+          _isFollowLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFollowLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUid = _auth.currentUser?.uid;
+    final isOwnProfile = currentUid == widget.user.uid;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundImage: user.profileImageUrl != null
-              ? NetworkImage(user.profileImageUrl!)
+          backgroundImage: widget.user.profileImageUrl != null
+              ? NetworkImage(widget.user.profileImageUrl!)
               : null,
-          child: user.profileImageUrl == null ? const Icon(Icons.person) : null,
+          child: widget.user.profileImageUrl == null
+              ? const Icon(Icons.person)
+              : null,
         ),
-        title: Text(user.displayName),
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                widget.user.displayName,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (!isOwnProfile) ...[
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 26,
+                child: OutlinedButton(
+                  onPressed: _isFollowLoading ? null : _toggleFollow,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    side: BorderSide(
+                      color: _isFollowing
+                          ? Colors.grey.shade400
+                          : Theme.of(context).colorScheme.primary,
+                    ),
+                    foregroundColor: _isFollowing ? Colors.grey.shade600 : null,
+                  ),
+                  child: _isFollowLoading
+                      ? SizedBox(
+                          width: 10,
+                          height: 10,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        )
+                      : Text(_isFollowing ? 'Following' : 'Follow'),
+                ),
+              ),
+            ],
+          ],
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (user.talent != null) Text('${user.talent}'),
-            if (user.bio != null) Text(user.bio!),
+            if (widget.user.talent != null) Text(widget.user.talent!),
+            if (widget.user.bio != null) Text(widget.user.bio!),
           ],
         ),
         trailing: ElevatedButton(
           onPressed: () {
-            // Navigate to user profile
-            Navigator.of(
-              context,
-            ).pushNamed('/user-profile', arguments: user.uid);
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(userId: widget.user.uid),
+              ),
+            );
           },
           child: const Text('View'),
         ),

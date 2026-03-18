@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../models/user_model.dart';
 import 'notification_service.dart';
 
@@ -18,7 +19,7 @@ class UserService {
           .get();
 
       if (doc.exists) {
-        return UserModel.fromJson(doc.data() as Map<String, dynamic>);
+        return UserModel.fromFirestoreDoc(doc);
       }
 
       return null;
@@ -34,9 +35,7 @@ class UserService {
           .collection('users')
           .get();
 
-      return query.docs
-          .map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
+      return query.docs.map((doc) => UserModel.fromFirestoreDoc(doc)).toList();
     } catch (e) {
       rethrow;
     }
@@ -52,7 +51,7 @@ class UserService {
           .get();
 
       return querySnapshot.docs
-          .map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>))
+          .map((doc) => UserModel.fromFirestoreDoc(doc))
           .toList();
     } catch (e) {
       rethrow;
@@ -67,9 +66,7 @@ class UserService {
           .where('talent', isEqualTo: talent)
           .get();
 
-      return query.docs
-          .map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
+      return query.docs.map((doc) => UserModel.fromFirestoreDoc(doc)).toList();
     } catch (e) {
       rethrow;
     }
@@ -108,13 +105,41 @@ class UserService {
     }
   }
 
-  // Upload profile image to Firebase Storage
+  // Upload profile image from pre-loaded bytes (prevents cache file deletion)
+  Future<String?> uploadProfileImageFromBytes(
+    String userId,
+    XFile imageFile,
+    Uint8List imageBytes,
+  ) async {
+    try {
+      final String fileName = 'profile_$userId.jpg';
+      final Reference storageRef = _storage
+          .ref()
+          .child('users')
+          .child(userId)
+          .child('avatar')
+          .child(fileName);
+
+      // Use pre-loaded bytes to avoid cache file deletion
+      final UploadTask uploadTask = storageRef.putData(imageBytes);
+      final TaskSnapshot snapshot = await uploadTask;
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      return downloadUrl;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Upload profile image to Firebase Storage (legacy method)
   Future<String?> uploadProfileImage(String userId, File imageFile) async {
     try {
       final String fileName = 'profile_$userId.jpg';
       final Reference storageRef = _storage
           .ref()
-          .child('profile_images')
+          .child('users')
+          .child(userId)
+          .child('avatar')
           .child(fileName);
 
       late TaskSnapshot snapshot;
@@ -144,7 +169,9 @@ class UserService {
       final String fileName = 'profile_$userId.jpg';
       final Reference storageRef = _storage
           .ref()
-          .child('profile_images')
+          .child('users')
+          .child(userId)
+          .child('avatar')
           .child(fileName);
       await storageRef.delete();
     } catch (e) {
@@ -160,13 +187,16 @@ class UserService {
     String? bio,
     String? profileImageUrl,
     String? talent,
+    bool clearProfileImage = false,
   }) async {
     try {
       final Map<String, dynamic> updateData = {};
 
       if (displayName != null) updateData['displayName'] = displayName;
       if (bio != null) updateData['bio'] = bio;
-      if (profileImageUrl != null) {
+      if (clearProfileImage) {
+        updateData['profileImageUrl'] = FieldValue.delete();
+      } else if (profileImageUrl != null) {
         updateData['profileImageUrl'] = profileImageUrl;
       }
       if (talent != null) updateData['talent'] = talent;

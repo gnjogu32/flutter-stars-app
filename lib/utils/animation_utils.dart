@@ -99,16 +99,7 @@ class _ScaleButtonAnimationWidgetState
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) {
-        _controller.forward();
-      },
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () {
-        _controller.reverse();
-      },
+      onTap: widget.onTap,
       child: ScaleTransition(scale: _scaleAnimation, child: widget.child),
     );
   }
@@ -234,7 +225,7 @@ class _StaggeredListAnimationWidgetState
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: widget.itemCount,
-      physics: const BouncingScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       itemBuilder: (context, index) {
         final delay = Duration(milliseconds: widget.delayBetweenItems * index);
         return _SlideUpAnimationWidget(

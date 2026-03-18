@@ -176,7 +176,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,
                       ),
-                      fillColor: Colors.grey.shade100,
+                      fillColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       filled: true,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -204,11 +206,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(MessageModel message) {
     final isCurrentUser = message.senderId == _auth.currentUser?.uid;
+    final theme = Theme.of(context);
     final alignment = isCurrentUser
         ? Alignment.centerRight
         : Alignment.centerLeft;
-    final bgColor = isCurrentUser ? Colors.blue : Colors.grey.shade300;
-    final textColor = isCurrentUser ? Colors.white : Colors.black;
+    final bgColor = isCurrentUser
+        ? theme.colorScheme.primary
+        : theme.colorScheme.surfaceContainerHighest;
+    final textColor = isCurrentUser
+        ? theme.colorScheme.onPrimary
+        : theme.colorScheme.onSurface;
 
     return Padding(
       padding: EdgeInsets.only(

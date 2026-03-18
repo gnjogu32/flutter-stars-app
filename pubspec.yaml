@@ -40,6 +40,7 @@ dependencies:
   firebase_auth: ^6.1.4
   cloud_firestore: ^6.1.2
   firebase_storage: ^13.0.6
+  firebase_app_check: ^0.4.1+4
   
   # State management and providers
   provider: ^6.1.5+1
@@ -47,11 +48,23 @@ dependencies:
   # Image handling
   image_picker: ^1.1.2
   cached_network_image: ^3.4.1
+  permission_handler: ^11.3.1
+  
+  # Push notifications
+  firebase_messaging: 16.1.1
+  flutter_local_notifications: ^17.2.4
+
+  # Media players
+  video_player: ^2.10.2
+  just_audio: ^0.9.40
   
   # Other utilities
   intl: ^0.20.2
   timeago: ^3.6.1
   share_plus: ^12.0.1
+  gal: ^2.3.2
+  file_picker: ^10.3.10
+  wakelock_plus: ^1.4.0
 
 dev_dependencies:
   flutter_test:

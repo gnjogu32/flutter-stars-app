@@ -13,6 +13,8 @@ class CommentService {
     required String? authorImageUrl,
     required String content,
     required String postAuthorId,
+    String parentId = '',
+    String? replyToName,
   }) async {
     try {
       final commentId = _firestore.collection('comments').doc().id;
@@ -25,6 +27,8 @@ class CommentService {
         authorName: authorName,
         authorImageUrl: authorImageUrl,
         content: content,
+        parentId: parentId,
+        replyToName: replyToName,
         createdAt: now,
         updatedAt: now,
       );
@@ -61,18 +65,36 @@ class CommentService {
     }
   }
 
-  // Get comments for a post
+  // Get comments for a post with pagination
   Stream<List<CommentModel>> getCommentsByPost(String postId) {
     return _firestore
         .collection('comments')
         .where('postId', isEqualTo: postId)
+        .where('parentId', isEqualTo: '')
         .orderBy('createdAt', descending: true)
+        .limit(50)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => CommentModel.fromJson(doc.data()))
               .toList(),
         );
+  }
+
+  // Get replies for a comment with limit (client-side sorting)
+  Stream<List<CommentModel>> getReplies(String parentCommentId) {
+    return _firestore
+        .collection('comments')
+        .where('parentId', isEqualTo: parentCommentId)
+        .limit(30)
+        .snapshots()
+        .map((snapshot) {
+          final replies = snapshot.docs
+              .map((doc) => CommentModel.fromJson(doc.data()))
+              .toList();
+          replies.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return replies;
+        });
   }
 
   // Get single comment
@@ -88,15 +110,28 @@ class CommentService {
     }
   }
 
-  // Update comment
+  // Update comment (author only)
   Future<void> updateComment({
     required String commentId,
     required String content,
+    required String authorId,
   }) async {
     try {
+      final doc = await _firestore.collection('comments').doc(commentId).get();
+      if (!doc.exists) {
+        throw Exception('Comment not found');
+      }
+
+      final currentAuthorId = doc.data()?['authorId'];
+      if (currentAuthorId != authorId) {
+        throw Exception('Only comment author can edit');
+      }
+
       await _firestore.collection('comments').doc(commentId).update({
         'content': content,
         'updatedAt': DateTime.now(),
+        'isEdited': true,
+        'editedAt': DateTime.now(),
       });
     } catch (e) {
       rethrow;
@@ -109,8 +144,17 @@ class CommentService {
     required String postId,
   }) async {
     try {
-      // Delete comment document
-      await _firestore.collection('comments').doc(commentId).delete();
+      // Delete all replies first, then the comment itself
+      final repliesSnap = await _firestore
+          .collection('comments')
+          .where('parentId', isEqualTo: commentId)
+          .get();
+      final batch = _firestore.batch();
+      for (final doc in repliesSnap.docs) {
+        batch.delete(doc.reference);
+      }
+      batch.delete(_firestore.collection('comments').doc(commentId));
+      await batch.commit();
 
       // Decrement post's comment count
       await _firestore.collection('posts').doc(postId).update({

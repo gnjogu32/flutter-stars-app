@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gal/gal.dart';
 import '../models/user_model.dart';
 import '../models/post_model.dart';
 import '../services/auth_service.dart';
+import '../services/chat_service.dart';
 import '../services/user_service.dart';
 import '../utils/animation_utils.dart';
 import '../widgets/post_widget.dart';
@@ -22,6 +25,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ChatService _chatService = ChatService();
   final UserService _userService = UserService();
   bool _isFollowing = false;
   bool _isLoadingFollow = false;
@@ -32,13 +36,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _checkFollowStatus();
   }
 
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _checkFollowStatus();
+    }
+  }
+
   Future<void> _checkFollowStatus() async {
     if (_auth.currentUser?.uid == null) return;
+
+    final effectiveUserId = widget.userId.isEmpty
+        ? (_auth.currentUser?.uid ?? '')
+        : widget.userId;
+
+    if (effectiveUserId.isEmpty || effectiveUserId == _auth.currentUser?.uid) {
+      if (mounted) {
+        setState(() {
+          _isFollowing = false;
+        });
+      }
+      return;
+    }
+
     try {
       final currentUser = await _userService.getUser(_auth.currentUser!.uid);
-      if (currentUser != null) {
+      if (currentUser != null && mounted) {
         setState(() {
-          _isFollowing = currentUser.following.contains(widget.userId);
+          _isFollowing = currentUser.following.contains(effectiveUserId);
         });
       }
     } catch (e) {
@@ -48,6 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _toggleFollow(UserModel user) async {
     if (_auth.currentUser?.uid == null) return;
+    if (_auth.currentUser!.uid == user.uid) return;
 
     setState(() {
       _isLoadingFollow = true;
@@ -70,38 +97,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      setState(() {
-        _isLoadingFollow = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingFollow = false;
+        });
+      }
     }
   }
 
-  void _navigateToChat(UserModel user) {
+  Future<void> _navigateToChat(UserModel user) async {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null) return;
 
-    final conversationId = _generateConversationId(currentUserId, user.uid);
+    if (user.uid.isEmpty || user.uid == currentUserId) return;
+
+    try {
+      final conversationId = await _chatService.startConversation(
+        currentUserId: currentUserId,
+        targetUserId: user.uid,
+        targetUserName: user.displayName,
+        targetUserImageUrl: user.profileImageUrl,
+      );
+
+      if (!mounted) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            conversationId: conversationId,
+            otherUserId: user.uid,
+            otherUserName: user.displayName,
+            otherUserImageUrl: user.profileImageUrl,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error opening chat: $e')));
+    }
+  }
+
+  void _openProfilePhotoViewer(
+    String? imageUrl,
+    String displayName,
+    bool canSaveImage,
+  ) {
+    if (imageUrl == null || imageUrl.isEmpty) return;
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ChatScreen(
-          conversationId: conversationId,
-          otherUserId: user.uid,
-          otherUserName: user.displayName,
-          otherUserImageUrl: user.profileImageUrl,
+        builder: (context) => _ProfilePhotoViewer(
+          imageUrl: imageUrl,
+          displayName: displayName,
+          canSaveImage: canSaveImage,
         ),
       ),
     );
   }
 
-  String _generateConversationId(String userId1, String userId2) {
-    final ids = [userId1, userId2]..sort();
-    return '${ids[0]}_${ids[1]}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isOwnProfile = widget.userId == _auth.currentUser?.uid;
+    // If userId is empty, use current user's ID
+    final effectiveUserId = widget.userId.isEmpty
+        ? (_auth.currentUser?.uid ?? '')
+        : widget.userId;
+
+    final isOwnProfile = effectiveUserId == _auth.currentUser?.uid;
+
+    // Debug output
+    if (kDebugMode) {
+      print('ProfileScreen - widget.userId: "${widget.userId}"');
+      print('ProfileScreen - effectiveUserId: "$effectiveUserId"');
+      print('ProfileScreen - currentUser?.uid: "${_auth.currentUser?.uid}"');
+      print('ProfileScreen - isOwnProfile: $isOwnProfile');
+    }
+
+    // If still no user ID, show loading or auth error
+    if (effectiveUserId.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Profile'),
+          centerTitle: true,
+          elevation: 0,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Loading profile...',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('Please wait while we load your profile.'),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -121,23 +218,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: SingleChildScrollView(
         child: StreamBuilder<DocumentSnapshot>(
-          stream: _firestore.collection('users').doc(widget.userId).snapshots(),
+          stream: _firestore
+              .collection('users')
+              .doc(effectiveUserId)
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Error: ${snapshot.error}'),
+                  ],
+                ),
+              );
             }
 
             if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const Center(child: Text('User not found'));
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.person_off, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('User not found'),
+                  ],
+                ),
+              );
             }
 
-            final user = UserModel.fromJson(
-              snapshot.data!.data() as Map<String, dynamic>,
-            );
+            final user = UserModel.fromFirestoreDoc(snapshot.data!);
 
             return Column(
               children: [
@@ -165,14 +285,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             AnimatedScale(
               duration: const Duration(milliseconds: 300),
               scale: 1.0,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundImage: user.profileImageUrl != null
-                    ? NetworkImage(user.profileImageUrl!)
-                    : null,
-                child: user.profileImageUrl == null
-                    ? const Icon(Icons.person, size: 50)
-                    : null,
+              child: GestureDetector(
+                onTap:
+                    user.profileImageUrl == null ||
+                        user.profileImageUrl!.isEmpty
+                    ? null
+                    : () => _openProfilePhotoViewer(
+                        user.profileImageUrl,
+                        user.displayName,
+                        isOwnProfile,
+                      ),
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundImage: user.profileImageUrl != null
+                      ? NetworkImage(user.profileImageUrl!)
+                      : null,
+                  child: user.profileImageUrl == null
+                      ? const Icon(Icons.person, size: 50)
+                      : null,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -200,25 +331,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             const SizedBox(height: 16),
-            // Stats
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStat('Posts', user.followers.length),
-                _buildStat('Followers', user.followerCount),
-                _buildStat('Following', user.followingCount),
-              ],
+            // Stats - Get post count from stream
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('posts')
+                  .where('authorId', isEqualTo: user.uid)
+                  .snapshots(),
+              builder: (context, postSnapshot) {
+                final postCount = postSnapshot.hasData
+                    ? postSnapshot.data!.docs.length
+                    : 0;
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStat('Posts', postCount),
+                    _buildStat('Followers', user.followerCount),
+                    _buildStat('Following', user.followingCount),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             // Edit Profile / Follow Button & Message Button
             if (isOwnProfile)
               SizedBox(
                 width: double.infinity,
+                height: 45,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pushNamed('/edit-profile');
                   },
-                  child: const Text('Edit Profile'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text(
+                    'Edit Profile',
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
               )
             else
@@ -226,6 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   SizedBox(
                     width: double.infinity,
+                    height: 45,
                     child: ElevatedButton(
                       onPressed: _isLoadingFollow
                           ? null
@@ -234,6 +384,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundColor: _isFollowing
                             ? Colors.grey[300]
                             : Theme.of(context).colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: _isLoadingFollow
                           ? const SizedBox(
@@ -244,6 +395,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           : Text(
                               _isFollowing ? 'Following' : 'Follow',
                               style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                                 color: _isFollowing
                                     ? Colors.black
                                     : Colors.white,
@@ -251,13 +404,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
+                    height: 45,
                     child: OutlinedButton.icon(
                       onPressed: () => _navigateToChat(user),
                       icon: const Icon(Icons.mail),
-                      label: const Text('Message'),
+                      label: const Text(
+                        'Message',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                     ),
                   ),
                 ],
@@ -336,13 +496,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              AuthService().logout();
+            onPressed: () async {
+              final navigator = Navigator.of(this.context);
               Navigator.pop(context);
+
+              // Navigate immediately — logout (token cleanup + signOut) runs in background
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+              AuthService().logout().ignore();
             },
             child: const Text('Logout'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfilePhotoViewer extends StatefulWidget {
+  final String imageUrl;
+  final String displayName;
+  final bool canSaveImage;
+
+  const _ProfilePhotoViewer({
+    required this.imageUrl,
+    required this.displayName,
+    required this.canSaveImage,
+  });
+
+  @override
+  State<_ProfilePhotoViewer> createState() => _ProfilePhotoViewerState();
+}
+
+class _ProfilePhotoViewerState extends State<_ProfilePhotoViewer> {
+  bool _isSaving = false;
+
+  Future<void> _saveProfilePhoto() async {
+    setState(() => _isSaving = true);
+    try {
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(widget.imageUrl));
+      final response = await request.close();
+      final bytes = await consolidateHttpClientResponseBytes(response);
+      await Gal.putImageBytes(bytes, album: 'Starpage');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo saved ✓')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          widget.displayName,
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          if (widget.canSaveImage)
+            IconButton(
+              tooltip: 'Save profile photo',
+              onPressed: _isSaving ? null : _saveProfilePhoto,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.download, color: Colors.white),
+            ),
+        ],
+      ),
+      body: InteractiveViewer(
+        minScale: 0.8,
+        maxScale: 4.0,
+        child: Center(
+          child: Image.network(
+            widget.imageUrl,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const Center(child: CircularProgressIndicator());
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                child: Icon(
+                  Icons.broken_image,
+                  color: Colors.white54,
+                  size: 56,
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }

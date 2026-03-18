@@ -20,7 +20,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
-      return const Center(child: Text('Not authenticated'));
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Notifications'),
+          centerTitle: true,
+          elevation: 0,
+        ),
+        body: _LoginPromptBody(
+          icon: Icons.notifications_outlined,
+          message: 'Log in to see your notifications.',
+        ),
+      );
     }
 
     return Scaffold(
@@ -165,7 +175,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               );
             } else if (notification.type == 'like_post' ||
-                notification.type == 'comment') {
+                notification.type == 'comment' ||
+                notification.type == 'mention_followers') {
               // Navigate to post (would need to add post screen navigation)
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context_).showSnackBar(
@@ -232,5 +243,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } else {
       return '${dateTime.month}/${dateTime.day}/${dateTime.year}';
     }
+  }
+}
+
+/// Reusable login prompt shown in place of screens that need authentication.
+class _LoginPromptBody extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  const _LoginPromptBody({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 36,
+              backgroundColor: cs.primaryContainer,
+              child: Icon(icon, size: 40, color: cs.primary),
+            ),
+            const SizedBox(height: 20),
+            Text(message, textAlign: TextAlign.center, style: tt.bodyLarge),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: 200,
+              child: FilledButton(
+                onPressed: () => Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).pushNamed('/login'),
+                child: const Text('Log In'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 200,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).pushNamed('/signup'),
+                child: const Text('Create Account'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

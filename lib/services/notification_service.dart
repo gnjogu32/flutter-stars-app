@@ -4,6 +4,11 @@ import '../models/notification_model.dart';
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  static final RegExp _followersMentionPattern = RegExp(
+    r'(^|\s)@followers\b',
+    caseSensitive: false,
+  );
+
   // Create a new notification
   Future<void> createNotification({
     required String userId,
@@ -42,6 +47,98 @@ class NotificationService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  bool containsFollowersMention(String text) {
+    return _followersMentionPattern.hasMatch(text);
+  }
+
+  Future<void> saveFcmToken(String userId, String token) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'fcmToken': token,
+        'fcmTokenUpdatedAt': DateTime.now(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> clearFcmToken(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'fcmToken': FieldValue.delete(),
+        'fcmTokenUpdatedAt': FieldValue.delete(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<int> notifyFollowersMention({
+    required String authorId,
+    required String authorName,
+    String? authorImageUrl,
+    required String content,
+    String? postId,
+    String? commentId,
+    String type = 'mention_followers',
+  }) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(authorId).get();
+      if (!userDoc.exists) return 0;
+
+      final userData = userDoc.data();
+      final followerIds = List<String>.from(
+        userData?['followers'] ?? const [],
+      ).where((id) => id.trim().isNotEmpty && id != authorId).toSet().toList();
+
+      if (followerIds.isEmpty) return 0;
+
+      final preview = _buildContentPreview(content);
+      final message = preview.isEmpty
+          ? '$authorName mentioned @followers'
+          : '$authorName mentioned @followers: "$preview"';
+
+      final now = DateTime.now();
+      var sentCount = 0;
+
+      for (final recipientId in followerIds) {
+        final notificationId = _firestore.collection('notifications').doc().id;
+        final notification = NotificationModel(
+          notificationId: notificationId,
+          userId: recipientId,
+          triggeredBy: authorId,
+          triggeredByName: authorName,
+          triggeredByImageUrl: authorImageUrl,
+          type: type,
+          postId: postId,
+          commentId: commentId,
+          content: message,
+          isRead: false,
+          createdAt: now,
+        );
+
+        await _firestore
+            .collection('notifications')
+            .doc(recipientId)
+            .collection('userNotifications')
+            .doc(notificationId)
+            .set(notification.toJson());
+        sentCount += 1;
+      }
+
+      return sentCount;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  String _buildContentPreview(String content) {
+    final normalized = content.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.isEmpty) return '';
+    if (normalized.length <= 120) return normalized;
+    return '${normalized.substring(0, 117)}...';
   }
 
   // Get notifications for a user

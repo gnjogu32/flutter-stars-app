@@ -27,6 +27,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
   bool _isPosting = false;
+  CommentModel? _replyingTo;
 
   @override
   void dispose() {
@@ -59,6 +60,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       }
 
       // Add comment
+      // Add comment or reply
       await _commentService.addComment(
         postId: widget.postId,
         authorId: currentUser.uid,
@@ -66,10 +68,13 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         authorImageUrl: userData.profileImageUrl,
         content: _commentController.text.trim(),
         postAuthorId: widget.postAuthorId,
+        parentId: _replyingTo?.commentId ?? '',
+        replyToName: _replyingTo?.authorName,
       );
 
       _commentController.clear();
       if (mounted) {
+        setState(() => _replyingTo = null);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Comment posted!')));
@@ -115,9 +120,10 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       minChildSize: 0.3,
       maxChildSize: 0.9,
       builder: (context, scrollController) {
+        final theme = Theme.of(context);
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: Column(
@@ -129,9 +135,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   horizontal: 16,
                 ),
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200),
-                  ),
+                  border: Border(bottom: BorderSide(color: theme.dividerColor)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -182,6 +186,10 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           currentUserId: widget.currentUserId,
                           onDelete: () =>
                               _deleteComment(comments[index].commentId),
+                          onReply: (comment) {
+                            setState(() => _replyingTo = comment);
+                            _commentController.clear();
+                          },
                         );
                       },
                     );
@@ -189,36 +197,68 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 ),
               ),
               // Add comment field
+              // Add comment/reply field
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                  border: Border(top: BorderSide(color: theme.dividerColor)),
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _commentController,
-                        decoration: InputDecoration(
-                          hintText: 'Add a comment...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                          fillColor: Colors.grey.shade100,
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                    if (_replyingTo != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Replying to ${_replyingTo!.authorName}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => setState(() => _replyingTo = null),
+                              child: const Icon(Icons.close, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _commentController,
+                            decoration: InputDecoration(
+                              hintText: _replyingTo != null
+                                  ? 'Reply to ${_replyingTo!.authorName}...'
+                                  : 'Add a comment...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              fillColor:
+                                  theme.colorScheme.surfaceContainerHighest,
+                              filled: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            maxLines: null,
                           ),
                         ),
-                        maxLines: null,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: _isPosting ? null : _postComment,
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.send),
+                          onPressed: _isPosting ? null : _postComment,
+                        ),
+                      ],
                     ),
                   ],
                 ),

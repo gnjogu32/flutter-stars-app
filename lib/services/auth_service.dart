@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import 'push_notification_service.dart';
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -41,6 +42,8 @@ class AuthService {
           .doc(user.uid)
           .set(newUser.toJson());
 
+      await PushNotificationService.syncTokenForCurrentUser();
+
       return newUser;
     } catch (e) {
       rethrow;
@@ -65,7 +68,8 @@ class AuthService {
           .get();
 
       if (doc.exists) {
-        return UserModel.fromJson(doc.data() as Map<String, dynamic>);
+        await PushNotificationService.syncTokenForCurrentUser();
+        return UserModel.fromFirestoreDoc(doc);
       }
 
       return null;
@@ -77,6 +81,8 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     try {
+      // Fire token cleanup in background — don't block sign-out on network calls
+      PushNotificationService.clearToken().ignore();
       await _firebaseAuth.signOut();
     } catch (e) {
       rethrow;
@@ -92,7 +98,7 @@ class AuthService {
           .get();
 
       if (doc.exists) {
-        return UserModel.fromJson(doc.data() as Map<String, dynamic>);
+        return UserModel.fromFirestoreDoc(doc);
       }
 
       return null;
