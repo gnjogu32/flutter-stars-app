@@ -9,7 +9,7 @@
 ┌──────────────────────────────────────────────────────────┐
 │                    YOUR APP                              │
 │              flutter_stars_app v1.0.0+1                  │
-│            (org.starpage.app on Android)                 │
+│            (starpage.com on Android)                 │
 └──────────────────────────────────────────────────────────┘
                             ↓
         ┌───────────────────┬───────────────────┐
@@ -462,6 +462,6 @@ READY TO DEPLOY YOUR APP! 🚀
 ---
 
 **Created:** December 2025  
-**For:** Starpage (org.starpage.app)  
+**For:** Starpage (starpage.com)  
 **Version:** 1.0.0+1  
 **Status:** ✅ Complete Setup

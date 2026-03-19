@@ -1,4 +1,4 @@
-package org.starpage.app
+package starpage.com
 
 import io.flutter.embedding.android.FlutterActivity
 

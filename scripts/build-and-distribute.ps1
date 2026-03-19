@@ -31,7 +31,9 @@ param(
     
     [switch]$SkipAnalyze,
     
-    [string]$ApkPath = "build/app/outputs/flutter-apk/app-release.apk"
+    [string]$ApkPath = "build/app/outputs/flutter-apk/app-release.apk",
+
+    [string]$ProjectId = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -99,10 +101,22 @@ try {
         Write-Error-Custom "Firebase CLI not found. Install with: npm install -g firebase-tools"
     }
     
-    # Verify authentication
-    firebase projects:list 2>&1 | Out-Null
+    # Verify authentication (projects:list can fail for users without project-list permissions)
+    firebase login:list 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Error-Custom "Not authenticated with Firebase. Run: firebase login"
+    }
+
+    # Resolve project ID from .firebaserc when not provided.
+    if ([string]::IsNullOrWhiteSpace($ProjectId) -and (Test-Path ".firebaserc")) {
+        try {
+            $firebaserc = Get-Content ".firebaserc" -Raw | ConvertFrom-Json
+            if ($firebaserc.projects.default) {
+                $ProjectId = $firebaserc.projects.default
+            }
+        } catch {
+            # If parsing fails, continue without forcing --project.
+        }
     }
     
     Write-Status "Starting Firebase distribution..."
@@ -110,10 +124,18 @@ try {
     Write-Host "  Testers: $Testers"
     Write-Host "  Release Notes: $ReleaseNotes"
     
-    firebase appdistribution:distribute $ApkPath `
-        --app="$AppId" `
-        --release-notes="$ReleaseNotes" `
-        --testers="$Testers"
+    $distArgs = @(
+        "appdistribution:distribute",
+        $ApkPath,
+        "--app=$AppId",
+        "--release-notes=$ReleaseNotes",
+        "--testers=$Testers",
+        "--non-interactive"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
+        $distArgs += "--project=$ProjectId"
+    }
+    firebase @distArgs
     
     if ($LASTEXITCODE -ne 0) {
         Write-Error-Custom "Firebase distribution failed"

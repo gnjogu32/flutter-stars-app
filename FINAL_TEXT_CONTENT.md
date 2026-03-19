@@ -72,7 +72,7 @@ Our mission: Create a space where creativity meets community, where your voice m
 📞 SUPPORT & FEEDBACK
 Have feedback or issues? We'd love to hear from you!
 Email: support@starpage.app
-Privacy: privacy@starpage.org
+Privacy: privacy@starpage.app
 
 VERSION: 1.0.0
 Last Updated: January 2026
@@ -308,7 +308,7 @@ You can:
 
 ### 7.2 How to Exercise Rights:
 
-Email: privacy@starpage.org
+Email: privacy@starpage.app
 Include: Account email and specific request
 
 Response time: 30 days
@@ -338,7 +338,7 @@ Response time: 30 days
 
 **If Child Data Collected:**
 - We delete it immediately upon discovery
-- Contact privacy@starpage.org to report
+- Contact privacy@starpage.app to report
 
 ---
 
@@ -406,7 +406,7 @@ We may update this Privacy Policy occasionally. We'll notify you of significant 
 
 **Questions or Concerns?**
 
-Email: privacy@starpage.org
+Email: privacy@starpage.app
 
 Mailing Address:
 Starpage Inc.

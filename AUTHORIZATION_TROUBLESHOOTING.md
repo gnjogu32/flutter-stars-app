@@ -36,8 +36,8 @@ match /conversations/{conversationId} {
 
 ```bash
 # Restart app to reload rules
-adb shell pm clear org.starpage.app
-adb shell am start -n org.starpage.app/.MainActivity
+adb shell pm clear starpage.com
+adb shell am start -n starpage.com/.MainActivity
 ```
 
 ### Error 2: "Permission Denied" in Firestore Operations
@@ -204,7 +204,7 @@ firebase use starpage-ed409
 ### Step 4: Monitor Real-time Logs
 ```bash
 # Watch app logs during operation
-adb logcat org.starpage.app:V *:S
+adb logcat starpage.com:V *:S
 
 # Look for Firestore errors like:
 # - "Permission denied"
@@ -216,7 +216,7 @@ adb logcat org.starpage.app:V *:S
 ```bash
 # Clear all caches
 flutter clean
-adb shell pm clear org.starpage.app
+adb shell pm clear starpage.com
 
 # Rebuild
 flutter build apk --release
@@ -281,7 +281,7 @@ User performs action (e.g., send message)
 ```
 ✅ Solution 1: Log out and log back in
 ✅ Solution 2: Restart app (force close + reopen)
-✅ Solution 3: Clear app cache: adb shell pm clear org.starpage.app
+✅ Solution 3: Clear app cache: adb shell pm clear starpage.com
 ✅ Solution 4: Check Rules are deployed: firebase deploy --only firestore:rules
 ```
 
@@ -366,5 +366,6 @@ User performs action (e.g., send message)
 If you still see "Not Authorized" errors:
 1. Check you're logged in (Profile tab)
 2. Restart app (force close and reopen)
-3. Clear cache: `adb shell pm clear org.starpage.app`
+3. Clear cache: `adb shell pm clear starpage.com`
 4. Check rules deployed: `firebase deploy --only firestore:rules`
+

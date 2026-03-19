@@ -55,7 +55,7 @@ Join the Starpage community today and start connecting with millions of creators
 ABOUT US:
 Starpage is dedicated to creating a platform where creativity meets community. We believe everyone has something valuable to share.
 
-For privacy questions or feedback: privacy@starpage.org
+For privacy questions or feedback: privacy@starpage.app
 
 Version: 1.0.0
 ```
@@ -295,7 +295,7 @@ Users can:
 - Download their data
 - Opt-out of analytics
 
-To exercise rights: privacy@starpage.org
+To exercise rights: privacy@starpage.app
 
 ## 6. CHILDREN'S PRIVACY
 [If applicable to your app]
@@ -305,7 +305,7 @@ To exercise rights: privacy@starpage.org
 
 ## 7. CONTACT US
 Questions about this privacy policy?
-Email: privacy@starpage.org
+Email: privacy@starpage.app
 Address: [Your Business Address]
 
 ## 8. POLICY UPDATES

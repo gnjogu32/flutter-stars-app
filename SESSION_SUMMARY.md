@@ -65,7 +65,7 @@
 | [firestore.indexes.json](firestore.indexes.json) | Query performance indexes |
 | [firebase.json](firebase.json) | Firebase configuration |
 | [PROFILE_PICTURE_UPLOAD.md](PROFILE_PICTURE_UPLOAD.md) | Upload feature guide |
-| Android package structure | Fixed org.starpage.app path |
+| Android package structure | Fixed starpage.com path |
 
 ---
 
@@ -155,3 +155,4 @@ For issues or questions:
 
 **Build Date**: January 26, 2026  
 **Status**: 🟢 PRODUCTION READY
+

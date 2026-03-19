@@ -1,7 +1,7 @@
-# Firebase Hosting Custom Domain Setup - starpage.org
+# Firebase Hosting Custom Domain Setup - starpage.com
 
 **Project**: Starpage App  
-**Domain**: starpage.org  
+**Domain**: starpage.com  
 **Firebase Project**: starpage-ed409  
 **Current Setup**: Firebase Hosting configured in firebase.json
 
@@ -10,7 +10,7 @@
 ## 🎯 What This Guide Covers
 
 This guide will help you:
-1. Connect your domain `starpage.org` to Firebase Hosting
+1. Connect your domain `starpage.com` to Firebase Hosting
 2. Verify domain ownership via DNS
 3. Enable SSL/HTTPS automatically
 4. Deploy your web app to the custom domain
@@ -23,7 +23,7 @@ This guide will help you:
 
 - ✅ Firebase project created (`starpage-ed409`)
 - ✅ Firebase Hosting enabled
-- Domain ownership or access: `starpage.org`
+- ✅ Domain ownership or access: `starpage.com`
 - ✅ Access to domain registrar (where domain is registered)
 - ✅ Firebase CLI installed locally
 - ✅ Flutter web build ready
@@ -57,7 +57,7 @@ firebase projects:list
 ### Step 2: Connect Domain
 
 1. Click **Connect Domain** button (or **Add custom domain**)
-2. Enter your domain: `starpage.org`
+2. Enter your domain: `starpage.com`
 3. Click **Continue**
 4. Firebase verifies domain availability
 
@@ -68,7 +68,7 @@ Firebase will show you two options:
 #### Option A: Verify with DNS Records (Recommended)
 ```
 Type: TXT
-Name: _acmechallenge.starpage.org
+Name: _acmechallenge.starpage.com
 Value: [Long string Firebase provides]
 TTL: 3600 (or default)
 ```
@@ -84,7 +84,7 @@ Upload HTML file to your hosting (less common for custom domains)
 
 ### Where to Find Your Domain Registrar
 
-Your domain `starpage.org` is registered at one of these:
+Your domain `starpage.com` is registered at one of these:
 - GoDaddy
 - Namecheap
 - Google Domains
@@ -98,7 +98,7 @@ Your domain `starpage.org` is registered at one of these:
 
 #### For Google Domains
 1. Go to: https://domains.google.com
-2. Click your domain: `starpage.org`
+2. Click your domain: `starpage.com`
 3. Left menu → **DNS**
 4. Scroll to **Custom records**
 5. Click **+ Create Record**
@@ -112,7 +112,7 @@ Your domain `starpage.org` is registered at one of these:
 #### For Namecheap
 1. Go to: https://www.namecheap.com/dashboard
 2. Click **Domain List**
-3. Click **Manage** for `starpage.org`
+3. Click **Manage** for `starpage.com`
 4. Go to **Advanced DNS** tab
 5. Click **+ Add Record**
 6. Select Type: **TXT Record**
@@ -123,7 +123,7 @@ Your domain `starpage.org` is registered at one of these:
 
 #### For GoDaddy
 1. Go to: https://www.godaddy.com/domains
-2. Select `starpage.org`
+2. Select `starpage.com`
 3. Click **Manage DNS**
 4. Click **+ Add** → **TXT**
 5. Name: **_acmechallenge**
@@ -137,7 +137,7 @@ Your domain `starpage.org` is registered at one of these:
 3. Go to **DNS** section
 4. Click **+ Add record**
 5. Type: **TXT**
-6. Name: **_acmechallenge.starpage.org**
+6. Name: **_acmechallenge.starpage.com**
 7. Content: [Paste Firebase provided value]
 8. TTL: **3600** (or Auto)
 9. Click **Save**
@@ -145,7 +145,7 @@ Your domain `starpage.org` is registered at one of these:
 #### For AWS Route 53
 1. Go to: https://console.aws.amazon.com/route53
 2. Click **Hosted zones**
-3. Select `starpage.org`
+3. Select `starpage.com`
 4. Click **Create record**
 5. Record type: **TXT**
 6. Record name: **_acmechallenge**
@@ -192,7 +192,7 @@ Firebase provides you with:
 
 ### Add A Record (IPv4)
 
-**Name**: `starpage.org` (or @ symbol)  
+**Name**: `starpage.com` (or @ symbol)  
 **Type**: **A**  
 **Value**: [Firebase provided IPv4 address]  
 **TTL**: **3600**
@@ -276,7 +276,7 @@ flutter build web --release
 firebase deploy --project starpage-ed409
 
 # 3. Deployment completes
-# Result: Your app available at https://starpage.org
+# Result: Your app available at https://starpage.com
 ```
 
 ### Deploy Using GitHub Actions
@@ -290,7 +290,7 @@ git push origin main
 # GitHub Actions automatically:
 # 1. Builds Flutter web
 # 2. Deploys to Firebase Hosting
-# 3. Available at https://starpage.org in ~2-3 minutes
+# 3. Available at https://starpage.com in ~2-3 minutes
 ```
 
 ---
@@ -309,7 +309,7 @@ git push origin main
 
 **In browser:**
 ```
-https://starpage.org
+https://starpage.com
 ```
 
 **Expected result:**
@@ -322,7 +322,7 @@ https://starpage.org
 **Command line:**
 ```powershell
 # Test SSL certificate
-curl -I https://starpage.org
+curl -I https://starpage.com
 
 # Should show: HTTP/2 200 or HTTP/1.1 200
 # And SSL certificate info
@@ -334,7 +334,7 @@ curl -I https://starpage.org
 
 ### Optional: Redirect www subdomain
 
-If users visit `www.starpage.org`, redirect to main domain:
+If users visit `www.starpage.com`, redirect to main domain:
 
 **Firebase Console → Hosting:**
 1. Click your domain
@@ -366,7 +366,7 @@ This routes all requests to `index.html` for SPA routing.
 ## Part 10: Complete Setup Checklist
 
 ### Domain Registration
-- [ ] Domain `starpage.org` registered
+- [ ] Domain `starpage.com` registered
 - [ ] Registrar account accessible
 - [ ] DNS management available
 
@@ -386,7 +386,7 @@ This routes all requests to `index.html` for SPA routing.
 ### Deployment
 - [ ] Flutter web builds successfully
 - [ ] Deployed to Firebase Hosting
-- [ ] Available at `https://starpage.org`
+- [ ] Available at `https://starpage.com`
 
 ### Verification
 - [ ] Domain loads in browser
@@ -405,7 +405,7 @@ This routes all requests to `index.html` for SPA routing.
 **Solution**:
 ```powershell
 # Check DNS propagation
-nslookup starpage.org
+nslookup starpage.com
 
 # Should show: Firebase IP address
 # If showing old IP: Wait 24-48 hours for propagation
@@ -488,10 +488,10 @@ firebase deploy --project starpage-ed409
 
 ### Set Up Subdomain (Optional)
 
-To use subdomain like `app.starpage.org`:
+To use subdomain like `app.starpage.com`:
 
 1. In Firebase Console → Add another domain
-2. Enter: `app.starpage.org`
+2. Enter: `app.starpage.com`
 3. Repeat DNS verification
 4. Can serve different content per subdomain
 
@@ -592,7 +592,7 @@ firebase serve --project starpage-ed409
 
 2. **In Firebase Console**
    - Click "Connect Domain"
-   - Enter: `starpage.org`
+   - Enter: `starpage.com`
    - Note the TXT record
 
 3. **Add DNS Records**
@@ -609,11 +609,11 @@ firebase serve --project starpage-ed409
    - Or push to main branch (auto-deploys)
 
 6. **Verify**
-   - Visit: `https://starpage.org`
+   - Visit: `https://starpage.com`
    - Check green lock icon
    - Test functionality
 
 ---
 
-**Your domain `starpage.org` will be live on Firebase Hosting within 30 minutes!**
+**Your domain `starpage.com` will be live on Firebase Hosting within 30 minutes!**
 

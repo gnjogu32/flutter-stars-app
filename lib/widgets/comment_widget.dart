@@ -82,9 +82,10 @@ class _CommentWidgetState extends State<CommentWidget> {
 
   void _editComment() {
     final controller = TextEditingController(text: widget.comment.content);
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Comment'),
         content: TextField(
           controller: controller,
@@ -96,14 +97,14 @@ class _CommentWidgetState extends State<CommentWidget> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               if (controller.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Comment cannot be empty')),
                 );
                 return;
@@ -116,15 +117,13 @@ class _CommentWidgetState extends State<CommentWidget> {
                   authorId: widget.currentUserId,
                 );
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('Comment updated')),
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               }
               controller.dispose();

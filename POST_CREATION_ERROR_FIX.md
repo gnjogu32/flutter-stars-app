@@ -143,16 +143,16 @@ flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 # Clear app data to reset state
-adb shell pm clear org.starpage.app
+adb shell pm clear starpage.com
 
 # Restart app
-adb shell am start -n org.starpage.app/.MainActivity
+adb shell am start -n starpage.com/.MainActivity
 ```
 
 ### Monitor Device Logs
 ```powershell
 # Open new terminal, watch live logs
-adb logcat org.starpage.app:V *:S
+adb logcat starpage.com:V *:S
 
 # Try creating a post - look for error messages
 ```
@@ -245,7 +245,7 @@ If error persists after checking all above:
    - Storage → Rules deployed?
    - Authentication → Can sign in?
 3. **Try on different device**: Isolate if device-specific
-4. **Clear app cache**: `adb shell pm clear org.starpage.app`
+4. **Clear app cache**: `adb shell pm clear starpage.com`
 5. **Rebuild app**: `flutter clean && flutter build apk --release`
 
 ---
@@ -253,3 +253,4 @@ If error persists after checking all above:
 **Last Updated**: January 26, 2026  
 **Version**: 1.0.0  
 **Status**: ✅ Enhanced Error Handling Active
+

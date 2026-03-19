@@ -140,7 +140,7 @@ firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.ap
 - [x] Google Play Developer Account ($25 fee, already paid)
 - [x] Release APK built and signed ✅
 - [x] Keystore configured (`android/key.properties`)
-- [x] App ID: `org.starpage.app`
+- [x] App ID: `starpage.com`
 - [x] GitHub Actions workflow ready (`.github/workflows/android-deploy-playstore.yml`)
 
 ### Current Configuration
@@ -156,7 +156,7 @@ firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.ap
 #### Step 1: Create App Listing (Already Done)
 ✅ App created in Google Play Console
 - App name: **Starpage**
-- Package name: **org.starpage.app**
+- Package name: **starpage.com**
 - App type: **Free**
 
 #### Step 2: Complete Store Listing
@@ -561,4 +561,5 @@ Your app has professional distribution channels configured:
 **Last Updated**: January 26, 2026
 **App Version**: 1.0.0
 **Firebase Project**: starpage-ed409
-**Package Name**: org.starpage.app
+**Package Name**: starpage.com
+

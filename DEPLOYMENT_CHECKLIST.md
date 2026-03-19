@@ -79,7 +79,7 @@
 
 **App Info**
 - [ ] App name: "Starpage"
-- [ ] App ID: "org.starpage.app"
+- [ ] App ID: "starpage.com"
 - [ ] Version: "1.0.0"
 - [ ] Build number: Updated
 

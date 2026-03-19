@@ -61,7 +61,7 @@
 **Project**: Starpage Social Media App
 **Version**: 1.0.0
 **Build Number**: 1
-**Package**: org.starpage.app
+**Package**: starpage.com
 
 **Completed**:
 - ✅ Text content written
@@ -130,3 +130,4 @@ Before submission, prepare these:
 6. Submit for review
 
 **Good luck! 🎉**
+

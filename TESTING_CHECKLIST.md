@@ -516,7 +516,7 @@ adb shell setprop net.change 1
 ### Debug Artifacts
 ```powershell
 # Verify no debug symbols
-adb shell am dump-heap org.starpage.app /data/app_heap.dump
+adb shell am dump-heap starpage.com /data/app_heap.dump
 ```
 
 - [ ] No debug logs in console
@@ -640,11 +640,11 @@ flutter test --coverage
 # Device Management
 adb devices
 adb install build/app/outputs/flutter-release.apk
-adb uninstall org.starpage.app
+adb uninstall starpage.com
 
 # Debugging
 adb logcat | Select-String "starpage"
-adb shell dumpsys meminfo org.starpage.app
+adb shell dumpsys meminfo starpage.com
 ```
 
 ---

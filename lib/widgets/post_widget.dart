@@ -254,7 +254,7 @@ class _PostWidgetState extends State<PostWidget> {
               enabled: !_isReposting,
               onTap: () {
                 Navigator.pop(context);
-                _repostToFeed();
+                _confirmRepost();
               },
             ),
             ListTile(
@@ -286,9 +286,7 @@ class _PostWidgetState extends State<PostWidget> {
               title: const Text('Copy to Clipboard'),
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Copied to clipboard!')),
-                );
+                _confirmCopyToClipboard();
               },
             ),
           ],
@@ -404,6 +402,63 @@ class _PostWidgetState extends State<PostWidget> {
             context,
           ).showSnackBar(SnackBar(content: Text('Error deleting post: $e')));
         }
+      }
+    }
+  }
+
+  Future<void> _confirmRepost() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Repost'),
+        content: const Text(
+          'Are you sure you want to repost this to your feed?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.blue),
+            child: const Text('Repost'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _repostToFeed();
+    }
+  }
+
+  Future<void> _confirmCopyToClipboard() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Copy to Clipboard'),
+        content: const Text('Are you sure you want to copy this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.blue),
+            child: const Text('Copy'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ShareService.copyToClipboard(widget.post);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Copied to clipboard!')));
       }
     }
   }

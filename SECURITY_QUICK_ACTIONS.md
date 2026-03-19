@@ -86,7 +86,7 @@ firebase deploy --only storage --project starpage-ed409
    - iOS: `AIzaSyCcne8lCBS7X5FXGPC8CksGdHyFnUbEsM4`
 
 3. Restrict each key:
-   - **Android Key:** Application restrictions → Android apps → Add `org.starpage.app`
+   - **Android Key:** Application restrictions → Android apps → Add `starpage.com`
    - **Web Key:** Website restrictions → Add your domains
    - **iOS Key:** iOS apps → Add bundle ID `com.example.flutterStarsApp`
 
@@ -229,3 +229,4 @@ Mark items as you complete them:
 **Next Review:** April 27, 2026
 
 **For full details, see:** [SECURITY_PERFORMANCE_AUDIT.md](SECURITY_PERFORMANCE_AUDIT.md)
+

@@ -20,14 +20,14 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "org.starpage.app"
+    namespace = "starpage.com"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
+           isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -37,7 +37,7 @@ android {
 
     defaultConfig {
         // Application ID for Starpage
-        applicationId = "org.starpage.app"
+        applicationId = "starpage.com"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -49,9 +49,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../starpage-keystore.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: keyProperties.getProperty("storePassword", "")
+            storePassword = "starpage123!"
             keyAlias = "starpage"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: keyProperties.getProperty("keyPassword", "")
+            keyPassword = "starpage123!"
         }
     }
 
@@ -73,5 +73,5 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }

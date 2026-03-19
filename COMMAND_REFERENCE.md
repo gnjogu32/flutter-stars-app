@@ -286,6 +286,18 @@ flutter build apk --release
 Test-Path build/app/outputs/flutter-apk/app-release.apk
 ```
 
+### Fix VS Code Java/Gradle Init Cache Error
+
+```powershell
+.\scripts\fix-redhat-java-gradle-init.ps1
+```
+
+Then in VS Code run:
+
+```
+Java: Clean Java Language Server Workspace
+```
+
 ### Check Workflow Status
 
 ```

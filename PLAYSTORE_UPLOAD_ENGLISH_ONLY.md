@@ -161,7 +161,7 @@ Our mission: Create a space where creativity meets community, where your voice m
 📞 SUPPORT & FEEDBACK
 Have feedback or issues? We'd love to hear from you!
 Email: support@starpage.app
-Privacy: privacy@starpage.org
+Privacy: privacy@starpage.app
 
 VERSION: 1.0.0
 ```

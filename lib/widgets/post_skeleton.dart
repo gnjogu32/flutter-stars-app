@@ -152,7 +152,7 @@ class PostFeedSkeleton extends StatelessWidget {
     return ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
       itemCount: count,
-      itemBuilder: (_, __) => const PostSkeleton(),
+      itemBuilder: (_, _) => const PostSkeleton(),
     );
   }
 }

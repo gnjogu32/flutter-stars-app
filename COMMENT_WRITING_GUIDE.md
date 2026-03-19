@@ -40,7 +40,7 @@ match /comments/{commentId} {
 ### Issue 3: Outdated App Cache
 **Symptom**: Still getting permission errors  
 **Fix**:
-1. Uninstall app: `adb uninstall org.starpage.app`
+1. Uninstall app: `adb uninstall starpage.com`
 2. Clear app cache: Settings → Apps → Starpage → Storage → Clear Cache
 3. Reinstall fresh APK
 
@@ -173,11 +173,11 @@ flutter build apk --release
 firebase deploy --only firestore:rules
 
 # 4. Reinstall
-adb uninstall org.starpage.app
+adb uninstall starpage.com
 adb install build/app/outputs/flutter-apk/app-release.apk
 
 # 5. Test
-adb shell am start -n org.starpage.app/.MainActivity
+adb shell am start -n starpage.com/.MainActivity
 ```
 
 ---
@@ -194,3 +194,4 @@ If comments still don't work:
 
 **Status**: ✅ Comments fully configured and deployed  
 **Last Updated**: January 26, 2026
+

@@ -98,7 +98,7 @@ The first public release of Starpage - a social media platform where creative ta
 **Database**: Google Cloud Firestore  
 **Storage**: Firebase Cloud Storage  
 **Authentication**: Firebase Auth  
-**Package Name**: org.starpage.app  
+**Package Name**: starpage.com  
 **Min Android SDK**: 21  
 **Target Android SDK**: 34
 
@@ -232,3 +232,4 @@ For updates, follow us on Starpage or visit [starpage.app](https://starpage-ed40
 ---
 
 *Last Updated: January 26, 2026*
+

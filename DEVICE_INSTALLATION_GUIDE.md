@@ -6,7 +6,7 @@
 **APK**: app-release.apk (v1.0.0+1)  
 **Installation**: ✅ Successful  
 **App Launch**: ✅ Running  
-**Process**: org.starpage.app (PID: 3940)
+**Process**: starpage.com (PID: 3940)
 
 ---
 
@@ -157,7 +157,7 @@ Expected: Message appears in Messages tab
 Device ID: R92XB05DJ2X
 Model: Samsung
 OS: Android (API level varies by device)
-App Package: org.starpage.app
+App Package: starpage.com
 Version: 1.0.0
 Build: 1
 Installation Size: ~50MB
@@ -182,13 +182,13 @@ Installation Size: ~50MB
 ### App Won't Launch
 ```bash
 # Clear app cache
-adb shell pm clear org.starpage.app
+adb shell pm clear starpage.com
 
 # Try launching again
-adb shell am start -n org.starpage.app/.MainActivity
+adb shell am start -n starpage.com/.MainActivity
 
 # Check logs
-adb logcat org.starpage.app:V *:S
+adb logcat starpage.com:V *:S
 ```
 
 ### App Crashes on Login
@@ -249,16 +249,16 @@ If issues persist:
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 # Uninstall
-adb uninstall org.starpage.app
+adb uninstall starpage.com
 
 # Clear cache
-adb shell pm clear org.starpage.app
+adb shell pm clear starpage.com
 
 # View logs
-adb logcat org.starpage.app:V *:S
+adb logcat starpage.com:V *:S
 
 # Get app info
-adb shell dumpsys package org.starpage.app
+adb shell dumpsys package starpage.com
 
 # Get device info
 adb shell getprop ro.build.version.release
@@ -281,8 +281,8 @@ adb shell getprop ro.product.model
 
 ### If App Won't Work:
 1. Check device is connected: `adb devices`
-2. Check logs: `adb logcat -c && adb logcat org.starpage.app:V *:S`
-3. Clear cache: `adb shell pm clear org.starpage.app`
+2. Check logs: `adb logcat -c && adb logcat starpage.com:V *:S`
+3. Clear cache: `adb shell pm clear starpage.com`
 4. Reinstall: `adb install -r build/app/outputs/flutter-apk/app-release.apk`
 5. Restart device if needed
 
@@ -311,3 +311,4 @@ Your Starpage v1.0.0 app is now installed and running on your device!
 **Version**: 1.0.0+1  
 **Device**: R92XB05DJ2X  
 **Status**: ✅ Ready for Testing
+

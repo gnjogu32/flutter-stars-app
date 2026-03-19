@@ -25,7 +25,9 @@ param(
     
     [string]$ReleaseNotes = "New build distribution",
     
-    [string]$ApkPath = "build/app/outputs/flutter-apk/app-release.apk"
+    [string]$ApkPath = "build/app/outputs/flutter-apk/app-release.apk",
+
+    [string]$ProjectId = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -62,11 +64,23 @@ try {
     
     Write-Status "Firebase CLI version: $firebaseCli"
     
-    # Verify authentication
+    # Verify authentication (projects:list can fail for users without project-list permissions)
     Write-Status "Checking Firebase authentication..."
-    firebase projects:list 2>&1 | Out-Null
+    firebase login:list 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Error-Custom "Not authenticated with Firebase. Run: firebase login"
+    }
+
+    # Resolve project ID from .firebaserc when not provided.
+    if ([string]::IsNullOrWhiteSpace($ProjectId) -and (Test-Path ".firebaserc")) {
+        try {
+            $firebaserc = Get-Content ".firebaserc" -Raw | ConvertFrom-Json
+            if ($firebaserc.projects.default) {
+                $ProjectId = $firebaserc.projects.default
+            }
+        } catch {
+            # If parsing fails, continue without forcing --project.
+        }
     }
     
     Write-Status "Authentication verified"
@@ -79,10 +93,18 @@ try {
     Write-Status ""
     
     # Execute distribution
-    firebase appdistribution:distribute $ApkPath `
-        --app="$AppId" `
-        --release-notes="$ReleaseNotes" `
-        --testers="$Testers"
+    $distArgs = @(
+        "appdistribution:distribute",
+        $ApkPath,
+        "--app=$AppId",
+        "--release-notes=$ReleaseNotes",
+        "--testers=$Testers",
+        "--non-interactive"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
+        $distArgs += "--project=$ProjectId"
+    }
+    firebase @distArgs
     
     if ($LASTEXITCODE -eq 0) {
         Write-Status "Distribution successful!" "Green"
