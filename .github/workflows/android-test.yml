@@ -13,12 +13,12 @@ on:
     - cron: '0 3 * * *'  # Daily at 3 AM UTC
 
 env:
-  FLUTTER_VERSION: '3.10.4'
+  FLUTTER_VERSION: '3.38.5'
 
 jobs:
   android-test:
     name: Run Android Integration Tests
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     
     strategy:
       matrix:
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: android-test-results-api-${{ matrix.api-level }}
           path: build/
@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload Espresso results
         if: always() && steps.check-tests.outputs.tests_exist == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: espresso-test-results
           path: android/app/build/outputs/androidTest-results/

@@ -7,7 +7,7 @@ on:
       - develop
 
 env:
-  FLUTTER_VERSION: '3.10.4'
+  FLUTTER_VERSION: '3.38.5'
 
 jobs:
   preview-deploy:
@@ -42,7 +42,7 @@ jobs:
           projectId: 'starpage-ed409'
           channelId: 'pr-${{ github.event.number }}'
           buildCommand: 'echo "Already built"'
-          entryPoint: 'build/web'
+          entryPoint: '.'
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
 

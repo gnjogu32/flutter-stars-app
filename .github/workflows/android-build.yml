@@ -11,7 +11,7 @@ on:
       - develop
 
 env:
-  FLUTTER_VERSION: '3.10.4'
+  FLUTTER_VERSION: '3.38.5'
 
 jobs:
   android-build:
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -51,16 +51,16 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-apk
-          path: build/app/outputs/flutter-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
       - name: Get APK size
         run: |
-          APK_PATH="build/app/outputs/flutter-release.apk"
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
           if [ -f "$APK_PATH" ]; then
             APK_SIZE=$(stat -c%s "$APK_PATH" | numfmt --to=iec)
             echo "📦 APK Size: $APK_SIZE"
@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -98,16 +98,16 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Upload App Bundle artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-app-bundle
-          path: build/app/outputs/app-release.aab
+          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
       - name: Get Bundle size
         run: |
-          BUNDLE_PATH="build/app/outputs/app-release.aab"
+          BUNDLE_PATH="build/app/outputs/bundle/release/app-release.aab"
           if [ -f "$BUNDLE_PATH" ]; then
             BUNDLE_SIZE=$(stat -c%s "$BUNDLE_PATH" | numfmt --to=iec)
             echo "📦 App Bundle Size: $BUNDLE_SIZE"

@@ -11,7 +11,7 @@ on:
       - develop
 
 env:
-  FLUTTER_VERSION: '3.10.4'
+  FLUTTER_VERSION: '3.38.5'
 
 jobs:
   analyze:
@@ -60,7 +60,7 @@ jobs:
         run: flutter test --coverage
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           files: ./coverage/lcov.info
