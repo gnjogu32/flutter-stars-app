@@ -9,6 +9,7 @@ class PostModel {
   final String? originalAuthorName;
   final String? originalAuthorImageUrl;
   final String content;
+  final String? repostCaption;
   final List<String> imageUrls;
   final String? audioUrl; // Optional audio file URL
   final String? videoUrl; // Optional video file URL
@@ -29,6 +30,7 @@ class PostModel {
     this.originalAuthorName,
     this.originalAuthorImageUrl,
     required this.content,
+    this.repostCaption,
     this.imageUrls = const [],
     this.audioUrl,
     this.videoUrl,
@@ -52,6 +54,7 @@ class PostModel {
       'originalAuthorName': originalAuthorName,
       'originalAuthorImageUrl': originalAuthorImageUrl,
       'content': content,
+      'repostCaption': repostCaption,
       'imageUrls': imageUrls,
       'audioUrl': audioUrl,
       'videoUrl': videoUrl,
@@ -76,6 +79,7 @@ class PostModel {
       originalAuthorName: json['originalAuthorName'],
       originalAuthorImageUrl: json['originalAuthorImageUrl'],
       content: json['content'] ?? '',
+      repostCaption: json['repostCaption'],
       imageUrls: List<String>.from(json['imageUrls'] ?? []),
       audioUrl: json['audioUrl'],
       videoUrl: json['videoUrl'],

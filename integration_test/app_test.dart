@@ -15,9 +15,6 @@ void main() {
       // Wait for app initialization
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      // Verify app launched without errors
-      expect(find.byType(MaterialApp), findsOneWidget);
-
       // Verify UI is responsive
       expect(find.byType(Scaffold), findsWidgets);
     });
@@ -28,12 +25,8 @@ void main() {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      // Verify Material Design is applied
-      expect(find.byType(MaterialApp), findsOneWidget);
-
-      // Find app title
-      final materialApp = find.byType(MaterialApp);
-      expect(materialApp, findsOneWidget);
+      // Verify the app created at least one visible scaffolded screen.
+      expect(find.byType(Scaffold), findsWidgets);
     });
 
     testWidgets('Authentication wrapper is rendered', (

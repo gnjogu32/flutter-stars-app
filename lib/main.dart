@@ -18,11 +18,32 @@ import 'firebase_options.dart';
 
 /// Global navigator key so PushNotificationService can route from background.
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+bool _servicesInitialized = false;
+
+Future<void> _initializeAppServices() async {
+  if (Firebase.apps.isEmpty) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } on FirebaseException catch (e) {
+      if (e.code != 'duplicate-app') {
+        rethrow;
+      }
+    }
+  }
+
+  if (_servicesInitialized) {
+    return;
+  }
+
+  await PushNotificationService.initialize(navigatorKey: navigatorKey);
+  _servicesInitialized = true;
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await PushNotificationService.initialize(navigatorKey: navigatorKey);
+  await _initializeAppServices();
   runApp(const MyApp());
 }
 

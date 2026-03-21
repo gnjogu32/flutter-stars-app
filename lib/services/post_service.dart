@@ -213,6 +213,7 @@ class PostService {
     required String reposterId,
     required String reposterName,
     required String? reposterImageUrl,
+    String? repostCaption,
   }) async {
     try {
       final currentUser = _auth.currentUser;
@@ -238,6 +239,7 @@ class PostService {
         originalAuthorName: ownerName,
         originalAuthorImageUrl: ownerImageUrl,
         content: originalPost.content,
+        repostCaption: repostCaption,
         imageUrls: List<String>.from(originalPost.imageUrls),
         audioUrl: originalPost.audioUrl,
         videoUrl: originalPost.videoUrl,

@@ -295,7 +295,7 @@ class _PostWidgetState extends State<PostWidget> {
     );
   }
 
-  Future<void> _repostToFeed() async {
+  Future<void> _repostToFeed({String caption = ''}) async {
     if (_isReposting) return;
     if (widget.currentUserId.isEmpty) {
       await AuthGuard.show(context);
@@ -323,6 +323,7 @@ class _PostWidgetState extends State<PostWidget> {
         reposterId: widget.currentUserId,
         reposterName: actorName,
         reposterImageUrl: currentUser.profileImageUrl,
+        repostCaption: caption,
       );
 
       if (widget.currentUserId != widget.post.authorId) {
@@ -407,20 +408,40 @@ class _PostWidgetState extends State<PostWidget> {
   }
 
   Future<void> _confirmRepost() async {
-    final confirmed = await showDialog<bool>(
+    final textController = TextEditingController();
+    final result = await showDialog<String?>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Repost'),
-        content: const Text(
-          'Are you sure you want to repost this to your feed?',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Add an optional caption to your repost:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: textController,
+              decoration: InputDecoration(
+                hintText: 'Write something...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+              maxLines: 3,
+              maxLength: 280,
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, textController.text),
             style: TextButton.styleFrom(foregroundColor: Colors.blue),
             child: const Text('Repost'),
           ),
@@ -428,9 +449,10 @@ class _PostWidgetState extends State<PostWidget> {
       ),
     );
 
-    if (confirmed == true && mounted) {
-      await _repostToFeed();
+    if (result != null && mounted) {
+      await _repostToFeed(caption: result.trim());
     }
+    textController.dispose();
   }
 
   Future<void> _confirmCopyToClipboard() async {
