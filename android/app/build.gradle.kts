@@ -19,6 +19,17 @@ if (keyPropertiesFile.exists()) {
     keyProperties.load(FileInputStream(keyPropertiesFile))
 }
 
+val releaseStoreFilePath = keyProperties.getProperty("storeFile")
+val releaseStoreFile = if (!releaseStoreFilePath.isNullOrBlank()) {
+    rootProject.file(releaseStoreFilePath)
+} else {
+    null
+}
+val hasReleaseSigning = releaseStoreFile?.exists() == true &&
+    !keyProperties.getProperty("storePassword").isNullOrBlank() &&
+    !keyProperties.getProperty("keyAlias").isNullOrBlank() &&
+    !keyProperties.getProperty("keyPassword").isNullOrBlank()
+
 android {
     namespace = "starpage.com"
     compileSdk = flutter.compileSdkVersion
@@ -27,7 +38,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-           isCoreLibraryDesugaringEnabled = true
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -40,7 +51,7 @@ android {
         applicationId = "starpage.com"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // Minimum SDK for video_player and other media plugins
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -48,18 +59,27 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../starpage-keystore.jks")
-            storePassword = "starpage123!"
-            keyAlias = "starpage"
-            keyPassword = "starpage123!"
+            if (hasReleaseSigning) {
+                storeFile = releaseStoreFile
+                storePassword = keyProperties.getProperty("storePassword")
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // CI often runs without private keystore files; keep build working by
+            // falling back to debug signing for non-production artifacts.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            // Keep release build unminified for tester stability.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
