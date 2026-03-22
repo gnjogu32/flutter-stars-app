@@ -13,6 +13,8 @@ import '../utils/animation_utils.dart';
 import '../widgets/post_widget.dart';
 import 'chat_screen.dart';
 
+enum _ProfileMediaFolder { all, photos, videos, audio }
+
 class ProfileScreen extends StatefulWidget {
   final String userId;
 
@@ -29,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
   bool _isFollowing = false;
   bool _isLoadingFollow = false;
+  _ProfileMediaFolder _selectedFolder = _ProfileMediaFolder.all;
 
   @override
   void initState() {
@@ -265,7 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildProfileHeader(user, isOwnProfile),
                 const Divider(),
                 // User Posts
-                _buildUserPosts(user.uid),
+                _buildUserPosts(user.uid, isOwnProfile),
               ],
             );
           },
@@ -437,7 +440,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserPosts(String userId) {
+  Widget _buildFolderCard({
+    required String label,
+    required IconData icon,
+    required _ProfileMediaFolder folder,
+  }) {
+    final isSelected = _selectedFolder == folder;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedFolder = folder;
+          });
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: isSelected
+                ? Theme.of(context).colorScheme.primaryContainer
+                : Theme.of(context).colorScheme.surfaceContainerHighest,
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _matchesSelectedFolder(PostModel post) {
+    switch (_selectedFolder) {
+      case _ProfileMediaFolder.all:
+        return true;
+      case _ProfileMediaFolder.photos:
+        return post.imageUrls.isNotEmpty;
+      case _ProfileMediaFolder.videos:
+        return post.videoUrl != null && post.videoUrl!.isNotEmpty;
+      case _ProfileMediaFolder.audio:
+        return post.audioUrl != null && post.audioUrl!.isNotEmpty;
+    }
+  }
+
+  Widget _buildUserPosts(String userId, bool isOwnProfile) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('posts')
@@ -453,32 +524,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'No posts yet',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+        final allPosts = (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+            ? <PostModel>[]
+            : snapshot.data!.docs
+                  .map(
+                    (doc) =>
+                        PostModel.fromJson(doc.data() as Map<String, dynamic>),
+                  )
+                  .toList();
+
+        final filteredPosts = allPosts.where(_matchesSelectedFolder).toList();
+
+        final folderSection = Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isOwnProfile ? 'Author Media Folders' : 'Media',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildFolderCard(
+                    label: 'Photos',
+                    icon: Icons.folder_copy_outlined,
+                    folder: _ProfileMediaFolder.photos,
+                  ),
+                  const SizedBox(width: 10),
+                  _buildFolderCard(
+                    label: 'Videos',
+                    icon: Icons.folder_special_outlined,
+                    folder: _ProfileMediaFolder.videos,
+                  ),
+                  const SizedBox(width: 10),
+                  _buildFolderCard(
+                    label: 'Audio',
+                    icon: Icons.folder_open_outlined,
+                    folder: _ProfileMediaFolder.audio,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text('All'),
+                    selected: _selectedFolder == _ProfileMediaFolder.all,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedFolder = _ProfileMediaFolder.all;
+                      });
+                    },
+                  ),
+                  ChoiceChip(
+                    label: Text('${filteredPosts.length} visible'),
+                    selected: false,
+                    onSelected: null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+
+        if (filteredPosts.isEmpty) {
+          return Column(
+            children: [
+              folderSection,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  _selectedFolder == _ProfileMediaFolder.all
+                      ? 'No posts yet'
+                      : 'No ${_selectedFolder.name} posts yet',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
           );
         }
 
-        final posts = snapshot.data!.docs
-            .map(
-              (doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>),
-            )
-            .toList();
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: posts.length,
-          itemBuilder: (context, index) {
-            return PostWidget(
-              post: posts[index],
-              currentUserId: _auth.currentUser?.uid ?? '',
-            );
-          },
+        return Column(
+          children: [
+            folderSection,
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredPosts.length,
+              itemBuilder: (context, index) {
+                return PostWidget(
+                  post: filteredPosts[index],
+                  currentUserId: _auth.currentUser?.uid ?? '',
+                );
+              },
+            ),
+          ],
         );
       },
     );
