@@ -295,13 +295,21 @@ class PostService {
     required String postId,
     required String content,
     String? talent,
+    String? repostCaption,
   }) async {
     try {
-      await _firestore.collection('posts').doc(postId).update({
+      final updateData = {
         'content': content,
         'talent': talent,
         'updatedAt': DateTime.now(),
-      });
+      };
+      
+      // Only update repostCaption if provided (for reposts)
+      if (repostCaption != null) {
+        updateData['repostCaption'] = repostCaption;
+      }
+      
+      await _firestore.collection('posts').doc(postId).update(updateData);
     } catch (e) {
       rethrow;
     }

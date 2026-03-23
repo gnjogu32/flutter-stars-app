@@ -13,6 +13,7 @@ class EditPostScreen extends StatefulWidget {
 
 class _EditPostScreenState extends State<EditPostScreen> {
   late TextEditingController _contentController;
+  late TextEditingController _repostCaptionController;
   final PostService _postService = PostService();
   String? _selectedTalent;
   bool _isLoading = false;
@@ -38,12 +39,14 @@ class _EditPostScreenState extends State<EditPostScreen> {
     debugPrint('EditPostScreen initialized for post: ${widget.post.postId}');
     debugPrint('Initial content: ${widget.post.content}');
     _contentController = TextEditingController(text: widget.post.content);
+    _repostCaptionController = TextEditingController(text: widget.post.repostCaption ?? '');
     _selectedTalent = widget.post.talent;
   }
 
   @override
   void dispose() {
     _contentController.dispose();
+    _repostCaptionController.dispose();
     super.dispose();
   }
 
@@ -65,6 +68,9 @@ class _EditPostScreenState extends State<EditPostScreen> {
         postId: widget.post.postId,
         content: _contentController.text.trim(),
         talent: _selectedTalent,
+        repostCaption: widget.post.repostCaption != null 
+          ? _repostCaptionController.text.trim() 
+          : null,
       );
 
       if (mounted) {
@@ -97,6 +103,44 @@ class _EditPostScreenState extends State<EditPostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // If this is a repost, show original author's content (read-only)
+            if (widget.post.repostCaption != null) ...
+              [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Original Post by ${widget.post.originalAuthorName ?? 'Unknown'}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.post.content,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Your Caption',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: 8),
+              ],
             // Show images (read-only, can't change images when editing)
             if (widget.post.imageUrls.isNotEmpty) ...[
               Text(
@@ -129,49 +173,70 @@ class _EditPostScreenState extends State<EditPostScreen> {
             ],
 
             // Content text field
-            Text('Content', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _contentController,
-              maxLines: 6,
-              minLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Edit your post content...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            if (widget.post.repostCaption == null) ...[
+              Text('Content', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _contentController,
+                maxLines: 6,
+                minLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Edit your post content...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
                 ),
-                contentPadding: const EdgeInsets.all(12),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
+            ] else ...[
+              Text('Your Caption', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _repostCaptionController,
+                maxLines: 3,
+                maxLength: 280,
+                decoration: InputDecoration(
+                  hintText: 'Edit your repost caption...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                  counterText: '', // Hide character counter
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
 
-            // Talent selection
-            Text(
-              'Talent Category',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedTalent,
-              items: talents.map((String talent) {
-                return DropdownMenuItem<String>(
-                  value: talent,
-                  child: Text(talent),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedTalent = newValue;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Select a talent',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            // Talent selection (not editable for reposts)
+            if (widget.post.repostCaption == null) ...[
+              Text(
+                'Talent Category',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedTalent,
+                items: talents.map((String talent) {
+                  return DropdownMenuItem<String>(
+                    value: talent,
+                    child: Text(talent),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedTalent = newValue;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Select a talent',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ],
 
             // Error message
             if (_errorMessage != null)
