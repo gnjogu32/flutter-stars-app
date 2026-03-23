@@ -37,8 +37,11 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCurrentUser();
-    _markMessagesAsRead();
+    // Defer expensive operations to background to prevent UI blocking
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _markMessagesAsRead(); // Fire-and-forget, don't block UI
+      _loadCurrentUser(); // Load user data asynchronously in background
+    });
   }
 
   Future<void> _loadCurrentUser() async {
@@ -46,9 +49,11 @@ class _ChatScreenState extends State<ChatScreen> {
       final userId = _auth.currentUser?.uid;
       if (userId != null) {
         final user = await _userService.getUser(userId);
-        setState(() {
-          _currentUser = user;
-        });
+        if (mounted) {
+          setState(() {
+            _currentUser = user;
+          });
+        }
       }
     } catch (e) {
       if (kDebugMode) print('Error loading current user: $e');
