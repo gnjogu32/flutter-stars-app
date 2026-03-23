@@ -39,7 +39,9 @@ class _EditPostScreenState extends State<EditPostScreen> {
     debugPrint('EditPostScreen initialized for post: ${widget.post.postId}');
     debugPrint('Initial content: ${widget.post.content}');
     _contentController = TextEditingController(text: widget.post.content);
-    _repostCaptionController = TextEditingController(text: widget.post.repostCaption ?? '');
+    _repostCaptionController = TextEditingController(
+      text: widget.post.repostCaption ?? '',
+    );
     _selectedTalent = widget.post.talent;
   }
 
@@ -68,9 +70,9 @@ class _EditPostScreenState extends State<EditPostScreen> {
         postId: widget.post.postId,
         content: _contentController.text.trim(),
         talent: _selectedTalent,
-        repostCaption: widget.post.repostCaption != null 
-          ? _repostCaptionController.text.trim() 
-          : null,
+        repostCaption: widget.post.repostCaption != null
+            ? _repostCaptionController.text.trim()
+            : null,
       );
 
       if (mounted) {
@@ -104,43 +106,44 @@ class _EditPostScreenState extends State<EditPostScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // If this is a repost, show original author's content (read-only)
-            if (widget.post.repostCaption != null) ...
-              [
-                Container(
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outline,
+            if (widget.post.repostCaption != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Original Post by ${widget.post.originalAuthorName ?? 'Unknown'}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Original Post by ${widget.post.originalAuthorName ?? 'Unknown'}',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.post.content,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.color?.withOpacity(0.7),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.post.content,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Your Caption',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 8),
-              ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Your Caption',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
+            ],
             // Show images (read-only, can't change images when editing)
             if (widget.post.imageUrls.isNotEmpty) ...[
               Text(
@@ -190,7 +193,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
               ),
               const SizedBox(height: 24),
             ] else ...[
-              Text('Your Caption', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                'Your Caption',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _repostCaptionController,

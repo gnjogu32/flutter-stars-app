@@ -303,12 +303,12 @@ class PostService {
         'talent': talent,
         'updatedAt': DateTime.now(),
       };
-      
+
       // Only update repostCaption if provided (for reposts)
       if (repostCaption != null) {
         updateData['repostCaption'] = repostCaption;
       }
-      
+
       await _firestore.collection('posts').doc(postId).update(updateData);
     } catch (e) {
       rethrow;

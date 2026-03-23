@@ -21,6 +21,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
   final Set<String> _deletingConversationIds = <String>{};
 
   @override
+  void initState() {
+    super.initState();
+    // Run migration on first load to fix legacy conversations without participantIds
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId != null) {
+      _chatService.migrateLegacyConversations(currentUserId).ignore();
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();

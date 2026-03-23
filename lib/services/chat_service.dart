@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/message_model.dart';
 import '../models/conversation_model.dart';
 import 'notification_service.dart';
@@ -305,4 +306,56 @@ class ChatService {
       rethrow;
     }
   }
+
+  // Migrate legacy conversations without participantIds field
+  Future<void> migrateLegacyConversations(String currentUserId) async {
+    try {
+      // Get all conversations for this user
+      final conversationsSnapshot = await _firestore
+          .collection('conversations')
+          .where('participantIds', arrayContains: currentUserId)
+          .get();
+
+      // Also check conversations that don't have participantIds (legacy)
+      final legacySnapshot = await _firestore
+          .collection('conversations')
+          .get();
+
+      List<String> conversationsToMigrate = [];
+
+      for (var doc in legacySnapshot.docs) {
+        final data = doc.data();
+        // Check if this is a legacy conversation (no participantIds)
+        if (data['participantIds'] == null || 
+            (data['participantIds'] is List && (data['participantIds'] as List).isEmpty)) {
+          // Extract participant IDs from the document ID format: "userId1_userId2"
+          final conversationId = doc.id;
+          if (conversationId.contains('_')) {
+            conversationsToMigrate.add(conversationId);
+          }
+        }
+      }
+
+      // Update each legacy conversation with properly formatted participantIds
+      for (var conversationId in conversationsToMigrate) {
+        final parts = conversationId.split('_');
+        if (parts.length == 2) {
+          final participantIds = parts;
+          await _firestore
+              .collection('conversations')
+              .doc(conversationId)
+              .update({
+                'participantIds': participantIds,
+              });
+          debugPrint('Migrated legacy conversation: $conversationId');
+        }
+      }
+
+      debugPrint('Migration complete: ${conversationsToMigrate.length} conversations updated');
+    } catch (e) {
+      debugPrint('Error during migration: $e');
+      // Don't throw - migration should not block app functionality
+    }
+  }
 }
+

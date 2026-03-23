@@ -104,29 +104,38 @@ service cloud.firestore {
     // Conversations (Direct Messaging) with validation
     match /conversations/{conversationId} {
       allow read: if isAuthenticated() && 
-                     (request.auth.uid in resource.data.participantIds);
+                     (resource.data.participantIds == null || resource.data.participantIds.size() == 0 ||
+                      request.auth.uid in resource.data.participantIds);
       allow create: if isAuthenticated() &&
                        request.resource.data.participantIds is list &&
                        request.resource.data.participantIds.size() == 2 &&
                        request.auth.uid in request.resource.data.participantIds &&
                        request.resource.data.createdAt is timestamp;
       allow update: if isAuthenticated() && 
-                       (request.auth.uid in resource.data.participantIds) &&
+                       ((resource.data.participantIds == null || resource.data.participantIds.size() == 0) ||
+                        request.auth.uid in resource.data.participantIds) &&
                        request.resource.data.participantIds == resource.data.participantIds; // Cannot change participants
       allow delete: if isAuthenticated() &&
-                       (request.auth.uid in resource.data.participantIds);
+                       ((resource.data.participantIds == null || resource.data.participantIds.size() == 0) ||
+                        request.auth.uid in resource.data.participantIds);
       
       // Messages sub-collection with validation
       match /messages/{messageId} {
         allow read: if isAuthenticated() && 
-                       (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
+                       ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null ||
+                         get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.size() == 0) ||
+                        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
         allow create: if isAuthenticated() && 
                         request.auth.uid == request.resource.data.senderId &&
                         validateString(request.resource.data.content, 1, 5000) &&
                         ((request.resource.data.sentAt is timestamp) || (request.resource.data.createdAt is timestamp)) &&
-                        request.resource.data.senderId in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+                        ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null ||
+                          get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.size() == 0) ||
+                         request.resource.data.senderId in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
         allow delete: if isAuthenticated() &&
-                        (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
+                        ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null ||
+                          get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.size() == 0) ||
+                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
       }
     }
     
