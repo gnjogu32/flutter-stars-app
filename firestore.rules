@@ -131,10 +131,13 @@ service cloud.firestore {
                         ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null ||
                           get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.size() == 0) ||
                          request.resource.data.senderId in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
-        allow delete: if isAuthenticated() &&
+        allow update: if isAuthenticated() &&
                         ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null ||
                           get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.size() == 0) ||
-                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
+                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds) &&
+                        request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead', 'readAt']);
+        allow delete: if isAuthenticated() &&
+                        resource.data.senderId == request.auth.uid; // Only sender can delete their own messages
       }
     }
     

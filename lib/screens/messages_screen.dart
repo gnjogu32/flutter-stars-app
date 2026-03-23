@@ -320,7 +320,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                 value: 'delete',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.delete_outline, color: Colors.red),
+                                    Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.red,
+                                    ),
                                     SizedBox(width: 8),
                                     Text(
                                       'Delete chat',

@@ -129,7 +129,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
-
                 final messages = snapshot.data ?? [];
 
                 if (messages.isEmpty) {
@@ -217,49 +216,131 @@ class _ChatScreenState extends State<ChatScreen> {
         ? theme.colorScheme.onPrimary
         : theme.colorScheme.onSurface;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: isCurrentUser ? 50 : 12,
-        right: isCurrentUser ? 12 : 50,
-        top: 8,
-        bottom: 8,
-      ),
-      child: Align(
-        alignment: alignment,
-        child: Column(
-          crossAxisAlignment: isCurrentUser
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onLongPress: isCurrentUser ? () => _showMessageOptions(message) : null,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: isCurrentUser ? 50 : 12,
+          right: isCurrentUser ? 12 : 50,
+          top: 8,
+          bottom: 8,
+        ),
+        child: Align(
+          alignment: alignment,
+          child: Column(
+            crossAxisAlignment: isCurrentUser
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  message.content,
+                  style: TextStyle(color: textColor),
+                ),
               ),
-              child: Text(message.content, style: TextStyle(color: textColor)),
-            ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    timeago.format(message.sentAt),
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                  if (isCurrentUser && message.isRead)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: Icon(Icons.done_all, size: 12, color: Colors.blue),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      timeago.format(message.sentAt),
+                      style: Theme.of(context).textTheme.labelSmall,
                     ),
-                ],
+                    if (isCurrentUser && message.isRead)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Icon(
+                          Icons.done_all,
+                          size: 12,
+                          color: Colors.blue,
+                        ),
+                      ),
+                  ],
+                ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMessageOptions(MessageModel message) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text(
+                'Delete message',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDeleteMessage(message);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteMessage(MessageModel message) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete message'),
+        content: const Text(
+          'Delete this message? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _chatService.deleteMessage(
+        widget.conversationId,
+        message.messageId,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Message deleted')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete message: $e')));
+    }
   }
 }

@@ -160,14 +160,54 @@ class ChatService {
   }
 
   // Delete a message
+  // Delete a message and update conversation metadata if it was the latest message
   Future<void> deleteMessage(String conversationId, String messageId) async {
     try {
-      await _firestore
+      final conversationRef = _firestore
           .collection('conversations')
-          .doc(conversationId)
+          .doc(conversationId);
+
+      // Get the conversation to check if this is the latest message
+      final conversationDoc = await conversationRef.get();
+
+      // Check if message being deleted is the latest one by fetching the message
+      final messageDoc = await conversationRef
           .collection('messages')
           .doc(messageId)
-          .delete();
+          .get();
+
+      final isLatestMessage =
+          messageDoc.data()?['sentAt'] != null &&
+          messageDoc.data()?['sentAt'] ==
+              conversationDoc.data()?['lastMessageTime'];
+
+      // Delete the message
+      await conversationRef.collection('messages').doc(messageId).delete();
+
+      // If this was the latest message, find and update to the new latest
+      if (isLatestMessage) {
+        final latestMessageSnapshot = await conversationRef
+            .collection('messages')
+            .orderBy('sentAt', descending: true)
+            .limit(1)
+            .get();
+
+        if (latestMessageSnapshot.docs.isNotEmpty) {
+          final latestMessage = latestMessageSnapshot.docs.first.data();
+          await conversationRef.update({
+            'lastMessage': latestMessage['content'] ?? '',
+            'lastSenderId': latestMessage['senderId'] ?? '',
+            'lastMessageTime': latestMessage['sentAt'],
+          });
+        } else {
+          // No messages left, clear the conversation metadata
+          await conversationRef.update({
+            'lastMessage': '',
+            'lastSenderId': '',
+            'lastMessageTime': DateTime.now(),
+          });
+        }
+      }
     } catch (e) {
       rethrow;
     }
@@ -312,12 +352,6 @@ class ChatService {
   // Migrate legacy conversations without participantIds field
   Future<void> migrateLegacyConversations(String currentUserId) async {
     try {
-      // Get all conversations for this user
-      final conversationsSnapshot = await _firestore
-          .collection('conversations')
-          .where('participantIds', arrayContains: currentUserId)
-          .get();
-
       // Also check conversations that don't have participantIds (legacy)
       final legacySnapshot = await _firestore.collection('conversations').get();
 
