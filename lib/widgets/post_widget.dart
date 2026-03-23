@@ -855,10 +855,6 @@ class _PostWidgetState extends State<PostWidget> {
                 Expanded(
                   child: AnimationUtils.scaleButtonAnimation(
                     onTap: () async {
-                      if (widget.currentUserId.isEmpty) {
-                        await AuthGuard.show(context);
-                        return;
-                      }
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,

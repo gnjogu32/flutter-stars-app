@@ -3,6 +3,7 @@ import '../models/comment_model.dart';
 import '../services/comment_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../utils/auth_guard.dart';
 import 'comment_widget.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
@@ -29,6 +30,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   bool _isPosting = false;
   CommentModel? _replyingTo;
 
+  bool get _isGuest => widget.currentUserId.isEmpty;
+
   @override
   void dispose() {
     _commentController.dispose();
@@ -53,14 +56,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         throw Exception('User not authenticated');
       }
 
-      // Get user data
       final userData = await _userService.getUser(currentUser.uid);
       if (userData == null) {
         throw Exception('User profile not found');
       }
 
-      // Add comment
-      // Add comment or reply
       await _commentService.addComment(
         postId: widget.postId,
         authorId: currentUser.uid,
@@ -86,9 +86,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      setState(() {
-        _isPosting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isPosting = false;
+        });
+      }
     }
   }
 
@@ -124,11 +126,10 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         return Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: Column(
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: 12,
@@ -153,7 +154,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   ],
                 ),
               ),
-              // Comments list
               Expanded(
                 child: StreamBuilder<List<CommentModel>>(
                   stream: _commentService.getCommentsByPost(widget.postId),
@@ -186,82 +186,103 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           currentUserId: widget.currentUserId,
                           onDelete: () =>
                               _deleteComment(comments[index].commentId),
-                          onReply: (comment) {
-                            setState(() => _replyingTo = comment);
-                            _commentController.clear();
-                          },
+                          onReply: _isGuest
+                              ? null
+                              : (comment) {
+                                  setState(() => _replyingTo = comment);
+                                  _commentController.clear();
+                                },
                         );
                       },
                     );
                   },
                 ),
               ),
-              // Add comment field
-              // Add comment/reply field
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   border: Border(top: BorderSide(color: theme.dividerColor)),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_replyingTo != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Replying to ${_replyingTo!.authorName}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
+                child: _isGuest
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Log in to add comments and replies.',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              await AuthGuard.show(context);
+                            },
+                            child: const Text('Log in'),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_replyingTo != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Replying to ${_replyingTo!.authorName}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _replyingTo = null),
+                                    child: const Icon(Icons.close, size: 16),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _commentController,
+                                  decoration: InputDecoration(
+                                    hintText: _replyingTo != null
+                                        ? 'Reply to ${_replyingTo!.authorName}...'
+                                        : 'Add a comment...',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    fillColor: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    filled: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  maxLines: null,
                                 ),
                               ),
-                            ),
-                            GestureDetector(
-                              onTap: () => setState(() => _replyingTo = null),
-                              child: const Icon(Icons.close, size: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _commentController,
-                            decoration: InputDecoration(
-                              hintText: _replyingTo != null
-                                  ? 'Reply to ${_replyingTo!.authorName}...'
-                                  : 'Add a comment...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide.none,
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.send),
+                                onPressed: _isPosting ? null : _postComment,
                               ),
-                              fillColor:
-                                  theme.colorScheme.surfaceContainerHighest,
-                              filled: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                            maxLines: null,
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.send),
-                          onPressed: _isPosting ? null : _postComment,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                        ],
+                      ),
               ),
             ],
           ),

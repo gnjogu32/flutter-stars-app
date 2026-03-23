@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
 import '../services/comment_service.dart';
+import '../utils/auth_guard.dart';
 
 class CommentWidget extends StatefulWidget {
   final CommentModel comment;
@@ -33,6 +34,10 @@ class _CommentWidgetState extends State<CommentWidget> {
   }
 
   Future<void> _toggleLike() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
     try {
       if (_isLiked) {
         await _commentService.unlikeComment(
@@ -341,6 +346,10 @@ class _ReplyItemState extends State<_ReplyItem> {
   }
 
   Future<void> _toggleLike() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
     try {
       if (_isLiked) {
         await _commentService.unlikeComment(
