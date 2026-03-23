@@ -110,15 +110,15 @@ service cloud.firestore {
                        request.resource.data.participantIds is list &&
                        request.resource.data.participantIds.size() == 2 &&
                        request.auth.uid in request.resource.data.participantIds &&
+                       request.resource.data.createdBy == request.auth.uid &&
                        isTimestamp(request.resource.data.createdAt);
       allow update: if isAuthenticated() &&
                        ((resource.data.participantIds == null || resource.data.participantIds.size() == 0) ||
                         request.auth.uid in resource.data.participantIds) &&
                        (request.resource.data.participantIds == resource.data.participantIds ||
-                        !request.resource.data.diff(resource.data).changedKeys().hasAny(['participantIds']));
+                        !request.resource.data.diff(resource.data).changedKeys().hasAny(['participantIds', 'createdBy', 'createdAt']));
       allow delete: if isAuthenticated() &&
-                       ((resource.data.participantIds == null || resource.data.participantIds.size() == 0) ||
-                        request.auth.uid in resource.data.participantIds);
+                       resource.data.createdBy == request.auth.uid; // Only creator can delete
       match /messages/{messageId} {
         allow read: if isAuthenticated() &&
                        ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null || 

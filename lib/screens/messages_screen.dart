@@ -58,6 +58,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
+  bool _canDeleteConversation(ConversationModel conversation) {
+    // Only the conversation creator can delete it
+    return conversation.createdBy == _auth.currentUser?.uid;
+  }
+
   Future<void> _confirmAndDeleteConversation(
     ConversationModel conversation,
   ) async {
@@ -305,21 +310,27 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               _confirmAndDeleteConversation(conversation);
                             }
                           },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Delete chat',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ],
+                          itemBuilder: (context) {
+                            // Show delete option only if current user is the creator
+                            if (!_canDeleteConversation(conversation)) {
+                              return []; // No menu options for non-creators
+                            }
+                            return const [
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_outline, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Delete chat',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ];
+                          },
                         ),
                       ],
                     ),

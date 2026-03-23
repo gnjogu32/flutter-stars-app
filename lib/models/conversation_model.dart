@@ -9,6 +9,7 @@ class ConversationModel {
   final int unreadCount;
   final String? otherUserName;
   final String? otherUserImageUrl;
+  final String? createdBy; // Who initiated/created the conversation
 
   ConversationModel({
     required this.conversationId,
@@ -19,6 +20,7 @@ class ConversationModel {
     this.unreadCount = 0,
     this.otherUserName,
     this.otherUserImageUrl,
+    this.createdBy,
   });
 
   // Convert ConversationModel to JSON for Firestore
@@ -32,6 +34,7 @@ class ConversationModel {
       'unreadCount': unreadCount,
       'otherUserName': otherUserName,
       'otherUserImageUrl': otherUserImageUrl,
+      'createdBy': createdBy,
     };
   }
 
@@ -50,6 +53,7 @@ class ConversationModel {
       unreadCount: json['unreadCount'] ?? 0,
       otherUserName: json['otherUserName'],
       otherUserImageUrl: json['otherUserImageUrl'],
+      createdBy: json['createdBy'],
     );
   }
 

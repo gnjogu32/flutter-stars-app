@@ -45,6 +45,7 @@ class ChatService {
           'lastMessageTime': now,
           'otherUserName': recipientName,
           'otherUserImageUrl': recipientImageUrl,
+          'createdBy': senderId, // Track who initiated the conversation
           'createdAt': now,
           'updatedAt': now,
         }, SetOptions(merge: true));
@@ -296,6 +297,7 @@ class ChatService {
           'lastMessageTime': DateTime.now(),
           'otherUserName': targetUserName,
           'otherUserImageUrl': targetUserImageUrl,
+          'createdBy': currentUserId, // Track who initiated the conversation
           'createdAt': DateTime.now(),
           'updatedAt': DateTime.now(),
         }, SetOptions(merge: true));
@@ -317,17 +319,16 @@ class ChatService {
           .get();
 
       // Also check conversations that don't have participantIds (legacy)
-      final legacySnapshot = await _firestore
-          .collection('conversations')
-          .get();
+      final legacySnapshot = await _firestore.collection('conversations').get();
 
       List<String> conversationsToMigrate = [];
 
       for (var doc in legacySnapshot.docs) {
         final data = doc.data();
         // Check if this is a legacy conversation (no participantIds)
-        if (data['participantIds'] == null || 
-            (data['participantIds'] is List && (data['participantIds'] as List).isEmpty)) {
+        if (data['participantIds'] == null ||
+            (data['participantIds'] is List &&
+                (data['participantIds'] as List).isEmpty)) {
           // Extract participant IDs from the document ID format: "userId1_userId2"
           final conversationId = doc.id;
           if (conversationId.contains('_')) {
@@ -344,18 +345,17 @@ class ChatService {
           await _firestore
               .collection('conversations')
               .doc(conversationId)
-              .update({
-                'participantIds': participantIds,
-              });
+              .update({'participantIds': participantIds});
           debugPrint('Migrated legacy conversation: $conversationId');
         }
       }
 
-      debugPrint('Migration complete: ${conversationsToMigrate.length} conversations updated');
+      debugPrint(
+        'Migration complete: ${conversationsToMigrate.length} conversations updated',
+      );
     } catch (e) {
       debugPrint('Error during migration: $e');
       // Don't throw - migration should not block app functionality
     }
   }
 }
-
