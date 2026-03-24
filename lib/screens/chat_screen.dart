@@ -293,12 +293,13 @@ class _ChatScreenState extends State<ChatScreen> {
               leading: const Icon(Icons.copy_outlined),
               title: const Text('Copy message'),
               onTap: () async {
+                final messenger = ScaffoldMessenger.of(this.context);
                 Navigator.pop(context);
                 await Clipboard.setData(ClipboardData(text: message.content));
                 if (!mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Message copied')));
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Message copied')),
+                );
               },
             ),
             if (isCurrentUser)
