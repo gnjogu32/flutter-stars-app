@@ -8,7 +8,7 @@ class CommentWidget extends StatefulWidget {
   final CommentModel comment;
   final String currentUserId;
   final VoidCallback onDelete;
-  final void Function(CommentModel)? onReply;
+  final void Function(CommentModel, String)? onReply;
 
   const CommentWidget({
     super.key,
@@ -263,7 +263,8 @@ class _CommentWidgetState extends State<CommentWidget> {
               if (widget.onReply != null) ...[
                 const SizedBox(width: 16),
                 GestureDetector(
-                  onTap: () => widget.onReply!(widget.comment),
+                  onTap: () =>
+                      widget.onReply!(widget.comment, widget.comment.commentId),
                   child: Row(
                     children: [
                       Icon(
@@ -313,6 +314,7 @@ class _CommentWidgetState extends State<CommentWidget> {
                         (reply) => _ReplyItem(
                           reply: reply,
                           currentUserId: widget.currentUserId,
+                          onReply: widget.onReply,
                         ),
                       ),
                     ],
@@ -330,7 +332,13 @@ class _CommentWidgetState extends State<CommentWidget> {
 class _ReplyItem extends StatefulWidget {
   final CommentModel reply;
   final String currentUserId;
-  const _ReplyItem({required this.reply, required this.currentUserId});
+  final void Function(CommentModel, String)? onReply;
+
+  const _ReplyItem({
+    required this.reply,
+    required this.currentUserId,
+    this.onReply,
+  });
   @override
   State<_ReplyItem> createState() => _ReplyItemState();
 }
@@ -472,6 +480,36 @@ class _ReplyItemState extends State<_ReplyItem> {
                     ],
                   ),
                 ),
+                if (widget.onReply != null) ...[
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: () => widget.onReply!(
+                      widget.reply,
+                      widget.reply.parentId.isEmpty
+                          ? widget.reply.commentId
+                          : widget.reply.parentId,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.reply,
+                          size: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Reply',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontSize: 10,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

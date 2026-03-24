@@ -31,6 +31,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   final UserService _userService = UserService();
   bool _isPosting = false;
   CommentModel? _replyingTo;
+  String? _replyParentId;
   List<UserModel> _mentionableUsers = const [];
   List<UserModel> _filteredMentionUsers = const [];
   String? _activeMentionQuery;
@@ -207,13 +208,16 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         authorImageUrl: userData.profileImageUrl,
         content: _commentController.text.trim(),
         postAuthorId: widget.postAuthorId,
-        parentId: _replyingTo?.commentId ?? '',
+        parentId: _replyParentId ?? '',
         replyToName: _replyingTo?.authorName,
       );
 
       _commentController.clear();
       if (mounted) {
-        setState(() => _replyingTo = null);
+        setState(() {
+          _replyingTo = null;
+          _replyParentId = null;
+        });
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Comment posted!')));
@@ -325,12 +329,18 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           currentUserId: widget.currentUserId,
                           onDelete: () =>
                               _deleteComment(comments[index].commentId),
-                          onReply: _isGuest
-                              ? null
-                              : (comment) {
-                                  setState(() => _replyingTo = comment);
-                                  _commentController.clear();
-                                },
+                          onReply: (comment, parentId) async {
+                            if (_isGuest) {
+                              await AuthGuard.show(context);
+                              return;
+                            }
+
+                            setState(() {
+                              _replyingTo = comment;
+                              _replyParentId = parentId;
+                            });
+                            _commentController.clear();
+                          },
                         );
                       },
                     );
@@ -381,8 +391,10 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                                     ),
                                   ),
                                   GestureDetector(
-                                    onTap: () =>
-                                        setState(() => _replyingTo = null),
+                                    onTap: () => setState(() {
+                                      _replyingTo = null;
+                                      _replyParentId = null;
+                                    }),
                                     child: const Icon(Icons.close, size: 16),
                                   ),
                                 ],
