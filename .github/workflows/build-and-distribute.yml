@@ -83,7 +83,7 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           file: build/app/outputs/flutter-apk/app-release.apk
           releaseNotes: Release ${{ github.ref_name }}
-          testers: ${{ secrets.FIREBASE_TESTERS }}
+          groups: alpha,beta
 
   notify:
     needs: [build, firebase-distribute]
