@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import '../services/post_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../utils/mention_utils.dart';
 import '../models/user_model.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -34,6 +35,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   String? _selectedTalent;
   bool _isLoading = false;
   String? _errorMessage;
+  List<UserModel> _mentionableUsers = const [];
+  List<UserModel> _filteredMentionUsers = const [];
+  String? _activeMentionQuery;
+  bool _isLoadingMentionUsers = false;
 
   final List<String> talents = [
     'Art',
@@ -50,9 +55,140 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _contentController.addListener(_handleMentionInputChanged);
+  }
+
+  @override
   void dispose() {
+    _contentController.removeListener(_handleMentionInputChanged);
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _ensureMentionableUsersLoaded() async {
+    if (_mentionableUsers.isNotEmpty || _isLoadingMentionUsers) return;
+
+    _isLoadingMentionUsers = true;
+    try {
+      final users = await _userService.getAllUsers();
+      if (!mounted) return;
+      setState(() {
+        _mentionableUsers = users;
+      });
+    } finally {
+      _isLoadingMentionUsers = false;
+    }
+  }
+
+  Future<void> _handleMentionInputChanged() async {
+    final query = MentionUtils.activeMentionQuery(
+      _contentController.text,
+      _contentController.selection,
+    );
+
+    if (query == null) {
+      if (_activeMentionQuery != null || _filteredMentionUsers.isNotEmpty) {
+        setState(() {
+          _activeMentionQuery = null;
+          _filteredMentionUsers = const [];
+        });
+      }
+      return;
+    }
+
+    await _ensureMentionableUsersLoaded();
+    if (!mounted) return;
+
+    final normalizedQuery = query.toLowerCase();
+    final currentUserId = _authService.currentUser?.uid;
+    final matchingUsers = _mentionableUsers
+        .where((user) {
+          if (user.uid == currentUserId) return false;
+          final handle = MentionUtils.normalizeDisplayNameToHandle(
+            user.displayName,
+          );
+          return normalizedQuery.isEmpty ||
+              handle.startsWith(normalizedQuery) ||
+              user.displayName.toLowerCase().contains(normalizedQuery);
+        })
+        .take(6)
+        .toList();
+
+    setState(() {
+      _activeMentionQuery = query;
+      _filteredMentionUsers = matchingUsers;
+    });
+  }
+
+  void _insertMentionHandle(String handle) {
+    final nextValue = MentionUtils.insertMention(
+      text: _contentController.text,
+      selection: _contentController.selection,
+      handle: handle,
+    );
+
+    _contentController.value = nextValue;
+    setState(() {
+      _activeMentionQuery = null;
+      _filteredMentionUsers = const [];
+    });
+  }
+
+  Widget _buildMentionSuggestions(BuildContext context) {
+    if (_activeMentionQuery == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final showFollowers = 'followers'.startsWith(
+      _activeMentionQuery!.toLowerCase(),
+    );
+    final hasSuggestions = showFollowers || _filteredMentionUsers.isNotEmpty;
+
+    if (!hasSuggestions) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showFollowers)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text('@followers'),
+              subtitle: const Text('Notify all of your followers'),
+              onTap: () => _insertMentionHandle('followers'),
+            ),
+          ..._filteredMentionUsers.map((user) {
+            final handle = MentionUtils.normalizeDisplayNameToHandle(
+              user.displayName,
+            );
+            return ListTile(
+              dense: true,
+              leading: CircleAvatar(
+                backgroundImage: user.profileImageUrl != null
+                    ? NetworkImage(user.profileImageUrl!)
+                    : null,
+                child: user.profileImageUrl == null
+                    ? const Icon(Icons.person, size: 18)
+                    : null,
+              ),
+              title: Text(user.displayName),
+              subtitle: Text('@$handle'),
+              onTap: () => _insertMentionHandle(handle),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -308,13 +444,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               minLines: 3,
               decoration: InputDecoration(
                 hintText: 'Share your creativity...',
-                helperText: 'Tip: Use @followers to notify your followers.',
+                helperText: 'Tip: Type @ to mention people or use @followers.',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 contentPadding: const EdgeInsets.all(12),
               ),
             ),
+            _buildMentionSuggestions(context),
             const SizedBox(height: 16),
 
             // Talent selection
