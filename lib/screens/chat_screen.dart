@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/message_model.dart';
@@ -222,7 +223,7 @@ class _ChatScreenState extends State<ChatScreen> {
         : theme.colorScheme.onSurface;
 
     return GestureDetector(
-      onLongPress: isCurrentUser ? () => _showMessageOptions(message) : null,
+      onLongPress: () => _showMessageOptions(message),
       child: Padding(
         padding: EdgeInsets.only(
           left: isCurrentUser ? 50 : 12,
@@ -281,22 +282,37 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showMessageOptions(MessageModel message) {
+    final isCurrentUser = message.senderId == _auth.currentUser?.uid;
+
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
-                'Delete message',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
+              leading: const Icon(Icons.copy_outlined),
+              title: const Text('Copy message'),
+              onTap: () async {
                 Navigator.pop(context);
-                _confirmDeleteMessage(message);
+                await Clipboard.setData(ClipboardData(text: message.content));
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Message copied')));
               },
             ),
+            if (isCurrentUser)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text(
+                  'Delete message',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteMessage(message);
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.close),
               title: const Text('Cancel'),
