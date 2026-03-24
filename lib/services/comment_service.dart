@@ -59,6 +59,34 @@ class CommentService {
         );
       }
 
+      final notificationService = NotificationService();
+
+      if (notificationService.containsFollowersMention(content)) {
+        await notificationService.notifyFollowersMention(
+          authorId: authorId,
+          authorName: authorName,
+          authorImageUrl: authorImageUrl,
+          content: content,
+          postId: postId,
+          commentId: commentId,
+          type: 'mention_followers',
+        );
+      }
+
+      // Notify directly-mentioned users in comments (e.g., @johndoe).
+      await notificationService.notifyUserMentions(
+        authorId: authorId,
+        authorName: authorName,
+        authorImageUrl: authorImageUrl,
+        content: content,
+        postId: postId,
+        commentId: commentId,
+        type: 'mention_user',
+        excludeUserIds: authorId != postAuthorId
+            ? <String>{postAuthorId}
+            : const <String>{},
+      );
+
       return comment;
     } catch (e) {
       rethrow;

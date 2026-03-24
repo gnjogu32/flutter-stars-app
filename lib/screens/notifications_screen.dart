@@ -176,7 +176,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               );
             } else if (notification.type == 'like_post' ||
                 notification.type == 'comment' ||
-                notification.type == 'mention_followers') {
+                notification.type == 'mention_followers' ||
+                notification.type == 'mention_user') {
               // Navigate to post (would need to add post screen navigation)
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context_).showSnackBar(

@@ -9,6 +9,11 @@ class NotificationService {
     caseSensitive: false,
   );
 
+  static final RegExp _userMentionPattern = RegExp(
+    r'(^|\s)@([A-Za-z0-9._-]{2,32})\b',
+    caseSensitive: false,
+  );
+
   // Create a new notification
   Future<void> createNotification({
     required String userId,
@@ -51,6 +56,98 @@ class NotificationService {
 
   bool containsFollowersMention(String text) {
     return _followersMentionPattern.hasMatch(text);
+  }
+
+  Set<String> extractMentionHandles(String text) {
+    final matches = _userMentionPattern.allMatches(text);
+    final handles = <String>{};
+
+    for (final match in matches) {
+      final raw = (match.group(2) ?? '').trim().toLowerCase();
+      if (raw.isEmpty) continue;
+      if (raw == 'followers') continue;
+      handles.add(raw);
+    }
+
+    return handles;
+  }
+
+  String _normalizeDisplayNameToHandle(String displayName) {
+    return displayName
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'[^a-z0-9._-]'), '');
+  }
+
+  Future<int> notifyUserMentions({
+    required String authorId,
+    required String authorName,
+    String? authorImageUrl,
+    required String content,
+    String? postId,
+    String? commentId,
+    String type = 'mention_user',
+    Set<String> excludeUserIds = const <String>{},
+  }) async {
+    try {
+      final mentionedHandles = extractMentionHandles(content);
+      if (mentionedHandles.isEmpty) return 0;
+
+      final usersSnap = await _firestore.collection('users').get();
+      if (usersSnap.docs.isEmpty) return 0;
+
+      final handleToUserId = <String, String>{};
+
+      for (final doc in usersSnap.docs) {
+        final data = doc.data();
+        final userId = (data['uid'] as String?)?.trim().isNotEmpty == true
+            ? (data['uid'] as String).trim()
+            : doc.id;
+
+        final displayName = (data['displayName'] as String?) ?? '';
+        final normalizedHandle = _normalizeDisplayNameToHandle(displayName);
+        if (normalizedHandle.isEmpty) continue;
+
+        handleToUserId.putIfAbsent(normalizedHandle, () => userId);
+      }
+
+      final recipients = <String>{};
+      for (final handle in mentionedHandles) {
+        final userId = handleToUserId[handle];
+        if (userId == null) continue;
+        recipients.add(userId);
+      }
+
+      recipients.remove(authorId);
+      recipients.removeAll(excludeUserIds);
+
+      if (recipients.isEmpty) return 0;
+
+      final preview = _buildContentPreview(content);
+      final message = preview.isEmpty
+          ? '$authorName mentioned you'
+          : '$authorName mentioned you: "$preview"';
+
+      var sentCount = 0;
+      for (final recipientId in recipients) {
+        await createNotification(
+          userId: recipientId,
+          triggeredBy: authorId,
+          triggeredByName: authorName,
+          triggeredByImageUrl: authorImageUrl,
+          type: type,
+          postId: postId,
+          commentId: commentId,
+          content: message,
+        );
+        sentCount += 1;
+      }
+
+      return sentCount;
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> saveFcmToken(String userId, String token) async {

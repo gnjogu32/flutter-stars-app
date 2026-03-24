@@ -199,6 +199,16 @@ class PostService {
             postId: postId,
           );
         }
+
+        // Notify directly-mentioned users in the post content (e.g., @johndoe).
+        await _notificationService.notifyUserMentions(
+          authorId: authorId,
+          authorName: authorName,
+          authorImageUrl: authorImageUrl,
+          content: content,
+          postId: postId,
+          type: 'mention_user',
+        );
       } catch (e) {
         throw Exception('Failed to save post to database: $e');
       }
