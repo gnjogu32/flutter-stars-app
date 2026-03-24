@@ -84,6 +84,10 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Starpage',
         navigatorKey: navigatorKey,
+        builder: (context, child) {
+          if (child == null) return const SizedBox.shrink();
+          return SelectionArea(child: child);
+        },
         theme: _buildLightTheme(),
         darkTheme: _buildDarkTheme(),
         themeMode: ThemeMode.system,
