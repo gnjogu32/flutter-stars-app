@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/post_model.dart';
 import '../utils/screen_awake_controller.dart';
+import '../utils/auth_guard.dart';
+import '../services/share_service.dart';
+import '../widgets/comments_bottom_sheet.dart';
 import 'profile_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
@@ -87,6 +91,8 @@ class _ReelsScreenState extends State<ReelsScreen> {
             );
           }
 
+          final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
           return PageView.builder(
             controller: _pageController,
             scrollDirection: Axis.vertical,
@@ -99,6 +105,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
               return _ReelItem(
                 post: reel,
                 isActive: _tabVisible && index == _activeIndex,
+                currentUserId: currentUserId,
                 onOpenProfile: () {
                   final userId = (reel.originalAuthorId ?? reel.authorId)
                       .trim();
@@ -122,11 +129,13 @@ class _ReelItem extends StatefulWidget {
   final PostModel post;
   final bool isActive;
   final VoidCallback onOpenProfile;
+  final String currentUserId;
 
   const _ReelItem({
     required this.post,
     required this.isActive,
     required this.onOpenProfile,
+    required this.currentUserId,
   });
 
   @override
@@ -137,6 +146,19 @@ class _ReelItemState extends State<_ReelItem> {
   late final VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _holdsScreenAwake = false;
+  late bool _isLiked;
+  late int _likeCount;
+
+  bool get _isSharedPost =>
+      (widget.post.originalAuthorId ?? '').trim().isNotEmpty;
+
+  String get _ownerId => _isSharedPost
+      ? widget.post.originalAuthorId!.trim()
+      : widget.post.authorId;
+
+  String get _activeUserId => widget.currentUserId.trim();
+
+  bool get _canInteract => _activeUserId.isNotEmpty;
 
   void _syncScreenAwakeWithPlayback() {
     if (!_isInitialized) return;
@@ -153,6 +175,8 @@ class _ReelItemState extends State<_ReelItem> {
   @override
   void initState() {
     super.initState();
+    _isLiked = widget.post.isLikedBy(_activeUserId);
+    _likeCount = widget.post.likeCount;
     _controller =
         VideoPlayerController.networkUrl(Uri.parse(widget.post.videoUrl!))
           ..addListener(_syncScreenAwakeWithPlayback)
@@ -170,6 +194,10 @@ class _ReelItemState extends State<_ReelItem> {
   @override
   void didUpdateWidget(covariant _ReelItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    _isLiked = widget.post.isLikedBy(_activeUserId);
+    _likeCount = widget.post.likeCount;
+
     if (!_isInitialized) return;
 
     if (widget.isActive && !oldWidget.isActive) {
@@ -179,6 +207,64 @@ class _ReelItemState extends State<_ReelItem> {
       _controller.pause();
       _syncScreenAwakeWithPlayback();
     }
+  }
+
+  Future<void> _toggleLike() async {
+    if (!await AuthGuard.check(context, _activeUserId)) return;
+
+    final wasLiked = _isLiked;
+    final previousLikeCount = _likeCount;
+
+    setState(() {
+      _isLiked = !wasLiked;
+      _likeCount = wasLiked
+          ? (_likeCount > 0 ? _likeCount - 1 : 0)
+          : _likeCount + 1;
+    });
+
+    try {
+      if (wasLiked) {
+        await FirebaseFirestore.instance
+            .collection('posts')
+            .doc(widget.post.postId)
+            .update({
+              'likes': FieldValue.arrayRemove([_activeUserId]),
+            });
+      } else {
+        await FirebaseFirestore.instance
+            .collection('posts')
+            .doc(widget.post.postId)
+            .update({
+              'likes': FieldValue.arrayUnion([_activeUserId]),
+            });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLiked = wasLiked;
+        _likeCount = previousLikeCount;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _openComments() async {
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => CommentsBottomSheet(
+        postId: widget.post.postId,
+        postAuthorId: _ownerId,
+        currentUserId: _activeUserId,
+      ),
+    );
+  }
+
+  void _sharePost() {
+    ShareService.sharePost(widget.post);
   }
 
   @override
@@ -222,6 +308,44 @@ class _ReelItemState extends State<_ReelItem> {
           )
         else
           const Center(child: CircularProgressIndicator(color: Colors.white)),
+        Positioned(
+          right: 12,
+          bottom: 120,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _InteractionButton(
+                icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+                iconColor: _isLiked ? Colors.redAccent : Colors.white,
+                label: '$_likeCount',
+                onTap: _toggleLike,
+              ),
+              const SizedBox(height: 14),
+              _InteractionButton(
+                icon: Icons.comment_outlined,
+                label: '${widget.post.commentCount}',
+                onTap: _openComments,
+              ),
+              const SizedBox(height: 14),
+              _InteractionButton(
+                icon: Icons.share_outlined,
+                label: 'Share',
+                onTap: _sharePost,
+              ),
+              if (!_canInteract) ...[
+                const SizedBox(height: 10),
+                const Text(
+                  'Sign in',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
         Positioned(
           left: 0,
           right: 0,
@@ -305,6 +429,50 @@ class _ReelItemState extends State<_ReelItem> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _InteractionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? iconColor;
+
+  const _InteractionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black45,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: iconColor ?? Colors.white, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
