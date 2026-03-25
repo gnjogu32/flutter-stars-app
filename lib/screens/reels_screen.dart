@@ -403,6 +403,34 @@ class _ReelItemState extends State<_ReelItem> {
     );
   }
 
+  Future<void> _openInteractionsSheet() async {
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.42,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        snap: true,
+        snapSizes: const [0.42, 0.85],
+        builder: (context, scrollController) => _ReelInteractionsSheet(
+          post: widget.post,
+          isLiked: _isLiked,
+          likeCount: _likeCount,
+          isReposting: _isReposting,
+          onLike: _toggleLike,
+          onComments: _openComments,
+          onRepost: _confirmRepost,
+          onShare: _sharePost,
+          scrollController: scrollController,
+        ),
+      ),
+    );
+  }
+
   void _sharePost() {
     ShareService.sharePost(widget.post);
   }
@@ -464,7 +492,7 @@ class _ReelItemState extends State<_ReelItem> {
               _InteractionButton(
                 icon: Icons.comment_outlined,
                 label: '${widget.post.commentCount}',
-                onTap: _openComments,
+                onTap: _openInteractionsSheet,
               ),
               const SizedBox(height: 14),
               _InteractionButton(
@@ -617,6 +645,126 @@ class _InteractionButton extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReelInteractionsSheet extends StatefulWidget {
+  final PostModel post;
+  final bool isLiked;
+  final int likeCount;
+  final bool isReposting;
+  final Future<void> Function() onLike;
+  final Future<void> Function() onComments;
+  final Future<void> Function() onRepost;
+  final VoidCallback onShare;
+  final ScrollController scrollController;
+
+  const _ReelInteractionsSheet({
+    required this.post,
+    required this.isLiked,
+    required this.likeCount,
+    required this.isReposting,
+    required this.onLike,
+    required this.onComments,
+    required this.onRepost,
+    required this.onShare,
+    required this.scrollController,
+  });
+
+  @override
+  State<_ReelInteractionsSheet> createState() => _ReelInteractionsSheetState();
+}
+
+class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
+  Future<void> _handleLike() async {
+    await widget.onLike();
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _handleComments() async {
+    Navigator.of(context).pop();
+    await widget.onComments();
+  }
+
+  Future<void> _handleRepost() async {
+    Navigator.of(context).pop();
+    await widget.onRepost();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final content = widget.post.content.trim();
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 8,
+          bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: ListView(
+          controller: widget.scrollController,
+          children: [
+            const Text(
+              'Interactions',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            if (content.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  content,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            if (content.isNotEmpty) const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                widget.isLiked ? Icons.favorite : Icons.favorite_border,
+                color: widget.isLiked ? Colors.redAccent : null,
+              ),
+              title: const Text('Like'),
+              trailing: Text('${widget.likeCount}'),
+              onTap: _handleLike,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.comment_outlined),
+              title: const Text('Comments'),
+              trailing: Text('${widget.post.commentCount}'),
+              onTap: _handleComments,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.repeat),
+              title: const Text('Repost'),
+              trailing: Text(
+                widget.isReposting ? '...' : '${widget.post.repostCount}',
+              ),
+              onTap: _handleRepost,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.share_outlined),
+              title: const Text('Share'),
+              onTap: () {
+                widget.onShare();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         ),
       ),
     );
