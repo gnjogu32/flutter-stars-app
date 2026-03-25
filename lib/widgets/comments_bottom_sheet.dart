@@ -7,6 +7,7 @@ import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
 import '../utils/mention_utils.dart';
 import 'comment_widget.dart';
+import 'comment_thread_widget.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   final String postId;
@@ -324,9 +325,10 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                       controller: scrollController,
                       itemCount: comments.length,
                       itemBuilder: (context, index) {
-                        return CommentWidget(
+                        return CommentThreadWidget(
                           comment: comments[index],
                           currentUserId: widget.currentUserId,
+                          postId: widget.postId,
                           onDelete: () =>
                               _deleteComment(comments[index].commentId),
                           onReply: (comment, parentId) async {

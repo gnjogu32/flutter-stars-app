@@ -6,6 +6,8 @@ import 'package:video_player/video_player.dart';
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
+import '../services/repost_queue_service.dart';
+import '../services/analytics_service.dart';
 import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
 import '../services/share_service.dart';
@@ -100,6 +102,13 @@ class _ReelsScreenState extends State<ReelsScreen> {
             itemCount: reels.length,
             onPageChanged: (index) {
               setState(() => _activeIndex = index);
+              // Track view for the visible reel
+              final analyticsService = AnalyticsService();
+              final currentReel = reels[index];
+              analyticsService.trackView(
+                currentReel.postId,
+                currentReel.authorId,
+              );
             },
             itemBuilder: (context, index) {
               final reel = reels[index];
@@ -220,6 +229,7 @@ class _ReelItemState extends State<_ReelItem> {
 
     final notificationService = NotificationService();
     final userService = UserService();
+    final analyticsService = AnalyticsService();
     final wasLiked = _isLiked;
     final previousLikeCount = _likeCount;
 
@@ -239,6 +249,8 @@ class _ReelItemState extends State<_ReelItem> {
             .update({
               'likes': FieldValue.arrayRemove([_activeUserId]),
             });
+        // Track unlike in analytics
+        await analyticsService.trackUnlike(widget.post.postId, _activeUserId);
       } else {
         await FirebaseFirestore.instance
             .collection('posts')
@@ -246,6 +258,12 @@ class _ReelItemState extends State<_ReelItem> {
             .update({
               'likes': FieldValue.arrayUnion([_activeUserId]),
             });
+        // Track like in analytics
+        await analyticsService.trackLike(
+          widget.post.postId,
+          _ownerId,
+          _activeUserId,
+        );
 
         if (_activeUserId != _ownerId) {
           final currentUser = await userService.getUser(_activeUserId);
@@ -278,7 +296,7 @@ class _ReelItemState extends State<_ReelItem> {
     }
   }
 
-  Future<void> _repostToFeed({String caption = ''}) async {
+  Future<void> _repostToFeed({String caption = '', DateTime? scheduleTime}) async {
     if (_isReposting) return;
     if (_activeUserId.isEmpty) {
       await AuthGuard.show(context);
@@ -289,7 +307,8 @@ class _ReelItemState extends State<_ReelItem> {
 
     try {
       final userService = UserService();
-      final postService = PostService();
+      final queueService = RepostQueueService();
+      final analyticsService = AnalyticsService();
       final notificationService = NotificationService();
 
       final currentUser = await userService.getUser(_activeUserId);
@@ -301,15 +320,26 @@ class _ReelItemState extends State<_ReelItem> {
           ? 'Someone'
           : currentUser.displayName.trim();
 
-      await postService.repostPost(
-        originalPost: widget.post,
-        reposterId: _activeUserId,
-        reposterName: actorName,
-        reposterImageUrl: currentUser.profileImageUrl,
-        repostCaption: caption,
+      // If scheduling for future, queue it; otherwise post immediately
+      await queueService.queueRepost(
+        userId: _activeUserId,
+        postId: widget.post.postId,
+        originalAuthorId: widget.post.authorId,
+        userName: actorName,
+        userImageUrl: currentUser.profileImageUrl,
+        post: widget.post,
+        caption: caption,
+        scheduleTime: scheduleTime, // Null = post immediately
       );
 
-      if (_activeUserId != widget.post.authorId) {
+      // Track repost in analytics (regardless of schedule)
+      await analyticsService.trackRepost(
+        widget.post.postId,
+        _ownerId,
+        _activeUserId,
+      );
+
+      if (_activeUserId != widget.post.authorId && (scheduleTime == null || scheduleTime.isBefore(DateTime.now().add(Duration(seconds: 1))))) {
         try {
           await notificationService.createNotification(
             userId: widget.post.authorId,
@@ -326,9 +356,24 @@ class _ReelItemState extends State<_ReelItem> {
       }
 
       if (!mounted) return;
+      if (scheduleTime != null && scheduleTime.isAfter(DateTime.now())) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Repost scheduled for ${scheduleTime.year}-${scheduleTime.month}-${scheduleTime.day} ✓')));
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Reposted to your feed ✓')));
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Reposted to your feed ✓')));
+      ).showSnackBar(SnackBar(content: Text('Failed to repost: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isReposting = false);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -344,48 +389,109 @@ class _ReelItemState extends State<_ReelItem> {
   Future<void> _confirmRepost() async {
     if (_isReposting) return;
     final textController = TextEditingController();
+    DateTime? scheduleTime;
+    
     final result = await showDialog<String?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Repost'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Add an optional caption to your repost:',
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: textController,
-              decoration: InputDecoration(
-                hintText: 'Write something...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Repost'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add an optional caption to your repost:',
+                  style: TextStyle(fontSize: 14),
                 ),
-                contentPadding: const EdgeInsets.all(12),
-              ),
-              maxLines: 3,
-              maxLength: 280,
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textController,
+                  decoration: InputDecoration(
+                    hintText: 'Write something...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                  maxLines: 3,
+                  maxLength: 280,
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Text(
+                  'Schedule (Optional)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.maxFinite,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now().add(const Duration(days: 1)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (date != null && context.mounted) {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: const TimeOfDay(hour: 9, minute: 0),
+                            );
+                            if (time != null) {
+                              setState(() {
+                                scheduleTime = DateTime(
+                                  date.year,
+                                  date.month,
+                                  date.day,
+                                  time.hour,
+                                  time.minute,
+                                );
+                              });
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.schedule),
+                        label: Text(
+                          scheduleTime == null
+                              ? 'Post now'
+                              : 'Scheduled: ${scheduleTime!.year}-${scheduleTime!.month}-${scheduleTime!.day} ${scheduleTime!.hour}:${scheduleTime!.minute.toString().padLeft(2, '0')}',
+                        ),
+                      ),
+                      if (scheduleTime != null)
+                        TextButton(
+                          onPressed: () => setState(() => scheduleTime = null),
+                          child: const Text('Remove schedule'),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, textController.text),
+              style: TextButton.styleFrom(foregroundColor: Colors.blue),
+              child: const Text('Repost'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, textController.text),
-            style: TextButton.styleFrom(foregroundColor: Colors.blue),
-            child: const Text('Repost'),
-          ),
-        ],
       ),
     );
 
     if (result != null && mounted) {
-      await _repostToFeed(caption: result.trim());
+      await _repostToFeed(caption: result.trim(), scheduleTime: scheduleTime);
     }
     textController.dispose();
   }
@@ -433,6 +539,15 @@ class _ReelItemState extends State<_ReelItem> {
 
   void _sharePost() {
     ShareService.sharePost(widget.post);
+    // Track share in analytics
+    final analyticsService = AnalyticsService();
+    if (_activeUserId.isNotEmpty) {
+      analyticsService.trackShare(
+        widget.post.postId,
+        _ownerId,
+        _activeUserId,
+      );
+    }
   }
 
   @override

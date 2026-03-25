@@ -262,15 +262,24 @@ class _ChatScreenState extends State<ChatScreen> {
                       timeago.format(message.sentAt),
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
-                    if (isCurrentUser && message.isRead)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Icon(
-                          Icons.done_all,
-                          size: 12,
-                          color: Colors.blue,
-                        ),
+                    if (isCurrentUser) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        message.isRead ? Icons.done_all : Icons.done,
+                        size: 14,
+                        color: message.isRead ? Colors.blue : Colors.grey,
                       ),
+                      if (message.isRead && message.readAt != null) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          'Read ${timeago.format(message.readAt!)}',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontSize: 10,
+                            color: Colors.blue.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ],
                   ],
                 ),
               ),
