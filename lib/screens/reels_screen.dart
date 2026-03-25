@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/post_model.dart';
+import '../services/notification_service.dart';
+import '../services/post_service.dart';
 import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
 import '../services/share_service.dart';
+import '../services/user_service.dart';
 import '../widgets/comments_bottom_sheet.dart';
 import 'profile_screen.dart';
 
@@ -53,6 +56,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
         stream: _firestore
             .collection('posts')
             .where('videoUrl', isNull: false)
+            .orderBy('createdAt', descending: true)
             .limit(50)
             .snapshots(),
         builder: (context, snapshot) {
@@ -72,15 +76,12 @@ class _ReelsScreenState extends State<ReelsScreen> {
             );
           }
 
-          final reels =
-              (snapshot.data?.docs ?? [])
-                  .map(
-                    (doc) =>
-                        PostModel.fromJson(doc.data() as Map<String, dynamic>),
-                  )
-                  .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
-                  .toList()
-                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          final reels = (snapshot.data?.docs ?? [])
+              .map(
+                (doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>),
+              )
+              .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
+              .toList();
 
           if (reels.isEmpty) {
             return const Center(
@@ -148,6 +149,8 @@ class _ReelItemState extends State<_ReelItem> {
   bool _holdsScreenAwake = false;
   late bool _isLiked;
   late int _likeCount;
+  bool _isLikeUpdating = false;
+  bool _isReposting = false;
 
   bool get _isSharedPost =>
       (widget.post.originalAuthorId ?? '').trim().isNotEmpty;
@@ -195,8 +198,10 @@ class _ReelItemState extends State<_ReelItem> {
   void didUpdateWidget(covariant _ReelItem oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    _isLiked = widget.post.isLikedBy(_activeUserId);
-    _likeCount = widget.post.likeCount;
+    if (!_isLikeUpdating) {
+      _isLiked = widget.post.isLikedBy(_activeUserId);
+      _likeCount = widget.post.likeCount;
+    }
 
     if (!_isInitialized) return;
 
@@ -210,12 +215,16 @@ class _ReelItemState extends State<_ReelItem> {
   }
 
   Future<void> _toggleLike() async {
+    if (_isLikeUpdating) return;
     if (!await AuthGuard.check(context, _activeUserId)) return;
 
+    final notificationService = NotificationService();
+    final userService = UserService();
     final wasLiked = _isLiked;
     final previousLikeCount = _likeCount;
 
     setState(() {
+      _isLikeUpdating = true;
       _isLiked = !wasLiked;
       _likeCount = wasLiked
           ? (_likeCount > 0 ? _likeCount - 1 : 0)
@@ -237,10 +246,29 @@ class _ReelItemState extends State<_ReelItem> {
             .update({
               'likes': FieldValue.arrayUnion([_activeUserId]),
             });
+
+        if (_activeUserId != _ownerId) {
+          final currentUser = await userService.getUser(_activeUserId);
+          if (currentUser != null) {
+            await notificationService.createNotification(
+              userId: _ownerId,
+              triggeredBy: _activeUserId,
+              triggeredByName: currentUser.displayName,
+              triggeredByImageUrl: currentUser.profileImageUrl,
+              type: 'like_post',
+              postId: widget.post.postId,
+              content: '${currentUser.displayName} liked your post',
+            );
+          }
+        }
       }
+
+      if (!mounted) return;
+      setState(() => _isLikeUpdating = false);
     } catch (e) {
       if (!mounted) return;
       setState(() {
+        _isLikeUpdating = false;
         _isLiked = wasLiked;
         _likeCount = previousLikeCount;
       });
@@ -248,6 +276,118 @@ class _ReelItemState extends State<_ReelItem> {
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
+  }
+
+  Future<void> _repostToFeed({String caption = ''}) async {
+    if (_isReposting) return;
+    if (_activeUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    setState(() => _isReposting = true);
+
+    try {
+      final userService = UserService();
+      final postService = PostService();
+      final notificationService = NotificationService();
+
+      final currentUser = await userService.getUser(_activeUserId);
+      if (currentUser == null) {
+        throw Exception('Could not load your profile for reposting.');
+      }
+
+      final actorName = currentUser.displayName.trim().isEmpty
+          ? 'Someone'
+          : currentUser.displayName.trim();
+
+      await postService.repostPost(
+        originalPost: widget.post,
+        reposterId: _activeUserId,
+        reposterName: actorName,
+        reposterImageUrl: currentUser.profileImageUrl,
+        repostCaption: caption,
+      );
+
+      if (_activeUserId != widget.post.authorId) {
+        try {
+          await notificationService.createNotification(
+            userId: widget.post.authorId,
+            triggeredBy: _activeUserId,
+            triggeredByName: actorName,
+            triggeredByImageUrl: currentUser.profileImageUrl,
+            type: 'repost_post',
+            postId: widget.post.postId,
+            content: '$actorName reposted your content',
+          );
+        } catch (e) {
+          debugPrint('Repost notification skipped: $e');
+        }
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Reposted to your feed ✓')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to repost: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isReposting = false);
+      }
+    }
+  }
+
+  Future<void> _confirmRepost() async {
+    if (_isReposting) return;
+    final textController = TextEditingController();
+    final result = await showDialog<String?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Repost'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Add an optional caption to your repost:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: textController,
+              decoration: InputDecoration(
+                hintText: 'Write something...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+              maxLines: 3,
+              maxLength: 280,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, textController.text),
+            style: TextButton.styleFrom(foregroundColor: Colors.blue),
+            child: const Text('Repost'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _repostToFeed(caption: result.trim());
+    }
+    textController.dispose();
   }
 
   Future<void> _openComments() async {
@@ -325,6 +465,12 @@ class _ReelItemState extends State<_ReelItem> {
                 icon: Icons.comment_outlined,
                 label: '${widget.post.commentCount}',
                 onTap: _openComments,
+              ),
+              const SizedBox(height: 14),
+              _InteractionButton(
+                icon: Icons.repeat,
+                label: _isReposting ? '...' : '${widget.post.repostCount}',
+                onTap: _confirmRepost,
               ),
               const SizedBox(height: 14),
               _InteractionButton(
