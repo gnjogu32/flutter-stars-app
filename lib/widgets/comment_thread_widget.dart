@@ -108,19 +108,17 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              _commentService
-                  .updateComment(
-                    commentId: widget.comment.commentId,
-                    content: controller.text,
-                    authorId: widget.currentUserId,
-                  )
-                  .then((_) {
-                    Navigator.pop(dialogContext);
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Comment updated')),
-                    );
-                  });
+            onPressed: () async {
+              await _commentService.updateComment(
+                commentId: widget.comment.commentId,
+                content: controller.text,
+                authorId: widget.currentUserId,
+              );
+              if (!mounted || !dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Comment updated')),
+              );
             },
             child: const Text('Update'),
           ),
@@ -171,7 +169,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               timeago.format(widget.comment.createdAt),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.textTheme.labelSmall?.color
-                                    ?.withOpacity(0.6),
+                                    ?.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -385,8 +383,8 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                       Text(
                         timeago.format(reply.createdAt),
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.textTheme.labelSmall?.color?.withOpacity(
-                            0.6,
+                          color: theme.textTheme.labelSmall?.color?.withValues(
+                            alpha: 0.6,
                           ),
                           fontSize: 10,
                         ),

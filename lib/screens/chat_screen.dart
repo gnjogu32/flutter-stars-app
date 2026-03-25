@@ -276,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
                                 fontSize: 10,
-                                color: Colors.blue.withOpacity(0.7),
+                                color: Colors.blue.withValues(alpha: 0.7),
                               ),
                         ),
                       ],
