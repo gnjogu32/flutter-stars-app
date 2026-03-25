@@ -3,7 +3,6 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
 import '../services/comment_service.dart';
 import '../utils/auth_guard.dart';
-import 'comment_widget.dart';
 
 class CommentThreadWidget extends StatefulWidget {
   final CommentModel comment;
@@ -58,9 +57,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -163,10 +162,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                           children: [
                             Text(
                               widget.comment.authorName,
-                              style:
-                                  theme.textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -267,7 +265,10 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                             children: [
                               Icon(Icons.delete, size: 16, color: Colors.red),
                               SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ],
                           ),
                         ),
@@ -384,8 +385,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                       Text(
                         timeago.format(reply.createdAt),
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.textTheme.labelSmall?.color
-                              ?.withOpacity(0.6),
+                          color: theme.textTheme.labelSmall?.color?.withOpacity(
+                            0.6,
+                          ),
                           fontSize: 10,
                         ),
                       ),

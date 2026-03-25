@@ -73,11 +73,16 @@ class AnalyticsModel {
       repostedByUsers: List<String>.from(json['repostedByUsers'] ?? []),
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
-          : DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+          : DateTime.parse(
+              json['createdAt'] ?? DateTime.now().toIso8601String(),
+            ),
       updatedAt: json['updatedAt'] is Timestamp
           ? (json['updatedAt'] as Timestamp).toDate()
-          : DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-      engagementRate: (json['engagementRate'] as num?)?.toDouble() ?? engagementRate,
+          : DateTime.parse(
+              json['updatedAt'] ?? DateTime.now().toIso8601String(),
+            ),
+      engagementRate:
+          (json['engagementRate'] as num?)?.toDouble() ?? engagementRate,
     );
   }
 
@@ -126,10 +131,10 @@ class AnalyticsModel {
   // Rank metrics for comparison
   String getRankEmoji(int metric, List<AnalyticsModel> allPost) {
     if (allPost.isEmpty) return '📊';
-    
+
     final sorted = allPost.map((p) => metric).toList()..sort();
     final median = sorted[sorted.length ~/ 2] as num;
-    
+
     if (metric > median * 1.5) return '🚀';
     if (metric > median) return '📈';
     if (metric < median * 0.5) return '📉';

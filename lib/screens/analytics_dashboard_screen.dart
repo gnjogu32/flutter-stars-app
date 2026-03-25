@@ -8,7 +8,8 @@ class AnalyticsDashboardScreen extends StatefulWidget {
   const AnalyticsDashboardScreen({super.key});
 
   @override
-  State<AnalyticsDashboardScreen> createState() => _AnalyticsDashboardScreenState();
+  State<AnalyticsDashboardScreen> createState() =>
+      _AnalyticsDashboardScreenState();
 }
 
 class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
@@ -27,17 +28,12 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     if (_currentUserId.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Analytics')),
-        body: const Center(
-          child: Text('Please log in to view your analytics'),
-        ),
+        body: const Center(child: Text('Please log in to view your analytics')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Content Analytics'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Content Analytics'), elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -110,7 +106,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             _buildStatCard(
               title: 'Engagement Rate',
               value: summary['avgEngagementRate'] != null
-                  ? (summary['avgEngagementRate'] * 100).toStringAsFixed(1) + '%'
+                  ? (summary['avgEngagementRate'] * 100).toStringAsFixed(1) +
+                        '%'
                   : '0%',
               icon: Icons.trending_up,
               color: Colors.purple,
@@ -178,9 +175,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       children: [
         Text(
           'Top Performing Content',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         StreamBuilder<List<AnalyticsModel>>(
@@ -212,10 +209,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               children: posts.asMap().entries.map((entry) {
                 final index = entry.key;
                 final post = entry.value;
-                return _buildPostAnalyticsCard(
-                  post,
-                  rank: index + 1,
-                );
+                return _buildPostAnalyticsCard(post, rank: index + 1);
               }).toList(),
             );
           },
@@ -230,9 +224,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       children: [
         Text(
           'All Content',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         StreamBuilder<List<AnalyticsModel>>(
@@ -273,10 +267,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     );
   }
 
-  Widget _buildPostAnalyticsCard(
-    AnalyticsModel post, {
-    int? rank,
-  }) {
+  Widget _buildPostAnalyticsCard(AnalyticsModel post, {int? rank}) {
     final theme = Theme.of(context);
 
     return Card(
@@ -292,10 +283,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                   color: rank == 1
                       ? Colors.amber
                       : rank == 2
-                          ? Colors.grey[400]
-                          : rank == 3
-                              ? Colors.orange[700]
-                              : theme.colorScheme.secondaryContainer,
+                      ? Colors.grey[400]
+                      : rank == 3
+                      ? Colors.orange[700]
+                      : theme.colorScheme.secondaryContainer,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -340,8 +331,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                       color: post.engagementPercentage > 5
                           ? Colors.green
                           : post.engagementPercentage > 2
-                              ? Colors.orange
-                              : Colors.grey,
+                          ? Colors.orange
+                          : Colors.grey,
                     ),
                   ),
                   Text(
@@ -397,8 +388,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     post.engagementRate > 0.1
                         ? Colors.green
                         : post.engagementRate > 0.05
-                            ? Colors.orange
-                            : Colors.blue,
+                        ? Colors.orange
+                        : Colors.blue,
                   ),
                 ),
                 const SizedBox(height: 8),

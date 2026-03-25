@@ -28,7 +28,9 @@ class RepostQueueService {
     try {
       // Default to immediate if no schedule time
       scheduleTime ??= DateTime.now();
-      final isScheduled = scheduleTime.isAfter(DateTime.now().add(Duration(seconds: 1)));
+      final isScheduled = scheduleTime.isAfter(
+        DateTime.now().add(Duration(seconds: 1)),
+      );
 
       final queueId = _firestore.collection('repost_queue').doc().id;
       final now = DateTime.now();
@@ -80,7 +82,10 @@ class RepostQueueService {
   }
 
   // Get all reposts (pending, sent, failed) for user
-  Stream<List<RepostQueueModel>> getUserRepostHistoryStream(String userId, {int limit = 50}) {
+  Stream<List<RepostQueueModel>> getUserRepostHistoryStream(
+    String userId, {
+    int limit = 50,
+  }) {
     return _firestore
         .collection('repost_queue')
         .where('userId', isEqualTo: userId)
@@ -112,24 +117,18 @@ class RepostQueueService {
       );
 
       // Mark as sent
-      await _firestore
-          .collection('repost_queue')
-          .doc(item.queueId)
-          .update({
-            'status': 'sent',
-          });
+      await _firestore.collection('repost_queue').doc(item.queueId).update({
+        'status': 'sent',
+      });
 
       _debugLog('Repost processed: ${item.queueId}');
     } catch (e) {
       _debugLog('Error processing repost: $e');
       // Mark as failed
-      await _firestore
-          .collection('repost_queue')
-          .doc(item.queueId)
-          .update({
-            'status': 'failed',
-            'errorMessage': e.toString(),
-          });
+      await _firestore.collection('repost_queue').doc(item.queueId).update({
+        'status': 'failed',
+        'errorMessage': e.toString(),
+      });
     }
   }
 
@@ -169,7 +168,9 @@ class RepostQueueService {
             .get();
 
         if (postDoc.exists) {
-          final post = PostModel.fromJson(postDoc.data() as Map<String, dynamic>);
+          final post = PostModel.fromJson(
+            postDoc.data() as Map<String, dynamic>,
+          );
 
           // Get user data for display
           final userDoc = await _firestore
@@ -182,12 +183,7 @@ class RepostQueueService {
             final userName = userData['displayName'] ?? 'Someone';
             final userImageUrl = userData['profileImageUrl'];
 
-            await _processQueueItem(
-              queueItem,
-              post,
-              userName,
-              userImageUrl,
-            );
+            await _processQueueItem(queueItem, post, userName, userImageUrl);
           }
         }
       }
@@ -244,9 +240,9 @@ class RepostQueueService {
           .get();
 
       return {
-        'pending': pending.count,
-        'sent': sent.count,
-        'failed': failed.count,
+        'pending': pending.count ?? 0,
+        'sent': sent.count ?? 0,
+        'failed': failed.count ?? 0,
       };
     } catch (e) {
       _debugLog('Error getting repost stats: $e');

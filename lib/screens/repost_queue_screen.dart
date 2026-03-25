@@ -28,10 +28,7 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Repost Queue'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Repost Queue'), elevation: 0),
       body: DefaultTabController(
         length: 3,
         child: Column(
@@ -78,11 +75,7 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.inbox,
-                  size: 48,
-                  color: Colors.grey.shade400,
-                ),
+                Icon(Icons.inbox, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
                 Text(
                   'No pending reposts',
@@ -122,11 +115,7 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.schedule,
-                  size: 48,
-                  color: Colors.grey.shade400,
-                ),
+                Icon(Icons.schedule, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
                 Text(
                   'No scheduled reposts',
@@ -159,18 +148,16 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
         }
 
         final items = snapshot.data ?? [];
-        final completed = items.where((item) => item.status == 'sent' || item.status == 'failed').toList();
+        final completed = items
+            .where((item) => item.status == 'sent' || item.status == 'failed')
+            .toList();
 
         if (completed.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.history,
-                  size: 48,
-                  color: Colors.grey.shade400,
-                ),
+                Icon(Icons.history, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
                 Text(
                   'No repost history',
@@ -242,7 +229,8 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
                 ),
               ],
             ),
-            if (item.repostCaption != null && item.repostCaption!.isNotEmpty) ...[
+            if (item.repostCaption != null &&
+                item.repostCaption!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -346,15 +334,15 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
       try {
         await _queueService.cancelRepost(queueId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Repost cancelled')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Repost cancelled')));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
       }
     }

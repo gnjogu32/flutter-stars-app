@@ -6,7 +6,6 @@ import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
 import '../utils/mention_utils.dart';
-import 'comment_widget.dart';
 import 'comment_thread_widget.dart';
 
 class CommentsBottomSheet extends StatefulWidget {

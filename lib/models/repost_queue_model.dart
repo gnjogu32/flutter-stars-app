@@ -51,11 +51,15 @@ class RepostQueueModel {
       repostCaption: json['repostCaption'],
       scheduleTime: json['scheduleTime'] is Timestamp
           ? (json['scheduleTime'] as Timestamp).toDate()
-          : DateTime.parse(json['scheduleTime'] ?? DateTime.now().toIso8601String()),
+          : DateTime.parse(
+              json['scheduleTime'] ?? DateTime.now().toIso8601String(),
+            ),
       isScheduled: json['isScheduled'] ?? false,
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
-          : DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+          : DateTime.parse(
+              json['createdAt'] ?? DateTime.now().toIso8601String(),
+            ),
       status: json['status'] ?? 'pending',
       errorMessage: json['errorMessage'],
     );

@@ -273,10 +273,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         const SizedBox(width: 4),
                         Text(
                           'Read ${timeago.format(message.readAt!)}',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            color: Colors.blue.withOpacity(0.7),
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                fontSize: 10,
+                                color: Colors.blue.withOpacity(0.7),
+                              ),
                         ),
                       ],
                     ],

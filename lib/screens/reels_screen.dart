@@ -5,7 +5,6 @@ import 'package:video_player/video_player.dart';
 
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
-import '../services/post_service.dart';
 import '../services/repost_queue_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/screen_awake_controller.dart';
@@ -296,7 +295,10 @@ class _ReelItemState extends State<_ReelItem> {
     }
   }
 
-  Future<void> _repostToFeed({String caption = '', DateTime? scheduleTime}) async {
+  Future<void> _repostToFeed({
+    String caption = '',
+    DateTime? scheduleTime,
+  }) async {
     if (_isReposting) return;
     if (_activeUserId.isEmpty) {
       await AuthGuard.show(context);
@@ -339,7 +341,11 @@ class _ReelItemState extends State<_ReelItem> {
         _activeUserId,
       );
 
-      if (_activeUserId != widget.post.authorId && (scheduleTime == null || scheduleTime.isBefore(DateTime.now().add(Duration(seconds: 1))))) {
+      if (_activeUserId != widget.post.authorId &&
+          (scheduleTime == null ||
+              scheduleTime.isBefore(
+                DateTime.now().add(Duration(seconds: 1)),
+              ))) {
         try {
           await notificationService.createNotification(
             userId: widget.post.authorId,
@@ -357,22 +363,17 @@ class _ReelItemState extends State<_ReelItem> {
 
       if (!mounted) return;
       if (scheduleTime != null && scheduleTime.isAfter(DateTime.now())) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Repost scheduled for ${scheduleTime.year}-${scheduleTime.month}-${scheduleTime.day} ✓')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Repost scheduled for ${scheduleTime.year}-${scheduleTime.month}-${scheduleTime.day} ✓',
+            ),
+          ),
+        );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Reposted to your feed ✓')));
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to repost: $e')));
-    } finally {
-      if (mounted) {
-        setState(() => _isReposting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reposted to your feed ✓')),
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -390,7 +391,7 @@ class _ReelItemState extends State<_ReelItem> {
     if (_isReposting) return;
     final textController = TextEditingController();
     DateTime? scheduleTime;
-    
+
     final result = await showDialog<String?>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -435,9 +436,13 @@ class _ReelItemState extends State<_ReelItem> {
                         onPressed: () async {
                           final date = await showDatePicker(
                             context: context,
-                            initialDate: DateTime.now().add(const Duration(days: 1)),
+                            initialDate: DateTime.now().add(
+                              const Duration(days: 1),
+                            ),
                             firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (date != null && context.mounted) {
                             final time = await showTimePicker(
@@ -542,11 +547,7 @@ class _ReelItemState extends State<_ReelItem> {
     // Track share in analytics
     final analyticsService = AnalyticsService();
     if (_activeUserId.isNotEmpty) {
-      analyticsService.trackShare(
-        widget.post.postId,
-        _ownerId,
-        _activeUserId,
-      );
+      analyticsService.trackShare(widget.post.postId, _ownerId, _activeUserId);
     }
   }
 

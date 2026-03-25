@@ -7,11 +7,15 @@ import 'package:gal/gal.dart';
 import '../models/user_model.dart';
 import '../models/post_model.dart';
 import '../services/auth_service.dart';
+import '../services/analytics_service.dart';
 import '../services/chat_service.dart';
+import '../services/repost_queue_service.dart';
 import '../services/user_service.dart';
 import '../utils/animation_utils.dart';
 import '../widgets/post_widget.dart';
+import 'analytics_dashboard_screen.dart';
 import 'chat_screen.dart';
+import 'repost_queue_screen.dart';
 
 enum _ProfileMediaFolder { all, photos, videos, audio }
 
@@ -27,7 +31,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AnalyticsService _analyticsService = AnalyticsService();
   final ChatService _chatService = ChatService();
+  final RepostQueueService _repostQueueService = RepostQueueService();
   final UserService _userService = UserService();
   bool _isFollowing = false;
   bool _isLoadingFollow = false;
@@ -160,6 +166,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _openAnalyticsDashboard() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AnalyticsDashboardScreen()),
+    );
+  }
+
+  void _openRepostQueue() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const RepostQueueScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     // If userId is empty, use current user's ID
@@ -210,6 +228,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         actions: isOwnProfile
             ? [
+                IconButton(
+                  icon: const Icon(Icons.bar_chart),
+                  tooltip: 'Analytics Dashboard',
+                  onPressed: _openAnalyticsDashboard,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.schedule_send),
+                  tooltip: 'Repost Queue',
+                  onPressed: _openRepostQueue,
+                ),
                 IconButton(
                   icon: const Icon(Icons.logout),
                   onPressed: () {
@@ -354,6 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
             ),
+            if (isOwnProfile) _buildQuickSummaryCards(user.uid),
             const SizedBox(height: 20),
             // Edit Profile / Follow Button & Message Button
             if (isOwnProfile)
@@ -437,6 +466,117 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(count.toString(), style: Theme.of(context).textTheme.titleLarge),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
+    );
+  }
+
+  Widget _buildQuickSummaryCards(String userId) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _analyticsService.getAuthorSummary(userId),
+      builder: (context, analyticsSnapshot) {
+        return FutureBuilder<Map<String, int>>(
+          future: _repostQueueService.getRepostStats(userId),
+          builder: (context, repostSnapshot) {
+            if (analyticsSnapshot.connectionState == ConnectionState.waiting ||
+                repostSnapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final analytics = analyticsSnapshot.data ?? const {};
+            final reposts =
+                repostSnapshot.data ??
+                const {'pending': 0, 'sent': 0, 'failed': 0};
+
+            final totalEngagements = analytics['totalEngagements'] ?? 0;
+            final engagementRate =
+                ((analytics['avgEngagementRate'] ?? 0.0) as num).toDouble();
+
+            return Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickSummaryCard(
+                      title: 'Engagements',
+                      value: '$totalEngagements',
+                      subtitle:
+                          '${(engagementRate * 100).toStringAsFixed(1)}% rate',
+                      icon: Icons.trending_up,
+                      onTap: _openAnalyticsDashboard,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildQuickSummaryCard(
+                      title: 'Repost Queue',
+                      value: '${reposts['pending'] ?? 0} pending',
+                      subtitle: '${reposts['sent'] ?? 0} sent',
+                      icon: Icons.schedule_send,
+                      onTap: _openRepostQueue,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickSummaryCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(subtitle, style: theme.textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

@@ -15,11 +15,13 @@ class AnalyticsService {
   Future<void> trackView(String postId, String authorId) async {
     try {
       final analyticsId = '$postId:analytics';
-      final analyticsRef = _firestore.collection('post_analytics').doc(analyticsId);
+      final analyticsRef = _firestore
+          .collection('post_analytics')
+          .doc(analyticsId);
 
       // Get existing analytics or create new
       final doc = await analyticsRef.get();
-      
+
       if (doc.exists) {
         await analyticsRef.update({
           'viewCount': FieldValue.increment(1),
@@ -55,16 +57,15 @@ class AnalyticsService {
   Future<void> trackLike(String postId, String authorId, String userId) async {
     try {
       final analyticsId = '$postId:analytics';
-      final analyticsRef = _firestore.collection('post_analytics').doc(analyticsId);
+      final analyticsRef = _firestore
+          .collection('post_analytics')
+          .doc(analyticsId);
 
-      await analyticsRef.set(
-        {
-          'likeCount': FieldValue.increment(1),
-          'likedByUsers': FieldValue.arrayUnion([userId]),
-          'updatedAt': DateTime.now(),
-        },
-        SetOptions(merge: true),
-      );
+      await analyticsRef.set({
+        'likeCount': FieldValue.increment(1),
+        'likedByUsers': FieldValue.arrayUnion([userId]),
+        'updatedAt': DateTime.now(),
+      }, SetOptions(merge: true));
 
       _debugLog('Like tracked for post: $postId');
     } catch (e) {
@@ -92,16 +93,10 @@ class AnalyticsService {
   Future<void> trackComment(String postId) async {
     try {
       final analyticsId = '$postId:analytics';
-      await _firestore
-          .collection('post_analytics')
-          .doc(analyticsId)
-          .set(
-            {
-              'commentCount': FieldValue.increment(1),
-              'updatedAt': DateTime.now(),
-            },
-            SetOptions(merge: true),
-          );
+      await _firestore.collection('post_analytics').doc(analyticsId).set({
+        'commentCount': FieldValue.increment(1),
+        'updatedAt': DateTime.now(),
+      }, SetOptions(merge: true));
 
       _debugLog('Comment tracked for post: $postId');
     } catch (e) {
@@ -113,14 +108,11 @@ class AnalyticsService {
   Future<void> trackShare(String postId, String authorId, String userId) async {
     try {
       final analyticsId = '$postId:analytics';
-      await _firestore.collection('post_analytics').doc(analyticsId).set(
-        {
-          'shareCount': FieldValue.increment(1),
-          'sharedByUsers': FieldValue.arrayUnion([userId]),
-          'updatedAt': DateTime.now(),
-        },
-        SetOptions(merge: true),
-      );
+      await _firestore.collection('post_analytics').doc(analyticsId).set({
+        'shareCount': FieldValue.increment(1),
+        'sharedByUsers': FieldValue.arrayUnion([userId]),
+        'updatedAt': DateTime.now(),
+      }, SetOptions(merge: true));
 
       _debugLog('Share tracked for post: $postId');
     } catch (e) {
@@ -129,17 +121,18 @@ class AnalyticsService {
   }
 
   // Track a repost event
-  Future<void> trackRepost(String postId, String authorId, String userId) async {
+  Future<void> trackRepost(
+    String postId,
+    String authorId,
+    String userId,
+  ) async {
     try {
       final analyticsId = '$postId:analytics';
-      await _firestore.collection('post_analytics').doc(analyticsId).set(
-        {
-          'repostCount': FieldValue.increment(1),
-          'repostedByUsers': FieldValue.arrayUnion([userId]),
-          'updatedAt': DateTime.now(),
-        },
-        SetOptions(merge: true),
-      );
+      await _firestore.collection('post_analytics').doc(analyticsId).set({
+        'repostCount': FieldValue.increment(1),
+        'repostedByUsers': FieldValue.arrayUnion([userId]),
+        'updatedAt': DateTime.now(),
+      }, SetOptions(merge: true));
 
       _debugLog('Repost tracked for post: $postId');
     } catch (e) {
@@ -179,8 +172,7 @@ class AnalyticsService {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) =>
-                  AnalyticsModel.fromJson(doc.data() as Map<String, dynamic>))
+              .map((doc) => AnalyticsModel.fromJson(doc.data()))
               .toList(),
         );
   }
@@ -199,8 +191,7 @@ class AnalyticsService {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) =>
-                  AnalyticsModel.fromJson(doc.data() as Map<String, dynamic>))
+              .map((doc) => AnalyticsModel.fromJson(doc.data()))
               .toList(),
         );
   }
@@ -228,8 +219,9 @@ class AnalyticsService {
         totalReposts += (data['repostCount'] as int?) ?? 0;
       }
 
-      final avgEngagementRate =
-          totalViews > 0 ? (totalLikes / totalViews) : 0.0;
+      final avgEngagementRate = totalViews > 0
+          ? (totalLikes / totalViews)
+          : 0.0;
 
       return {
         'totalPosts': snapshot.docs.length,
@@ -241,8 +233,9 @@ class AnalyticsService {
         'totalEngagements':
             totalLikes + totalComments + totalShares + totalReposts,
         'avgEngagementRate': avgEngagementRate,
-        'avgViewsPerPost':
-            snapshot.docs.isNotEmpty ? totalViews ~/ snapshot.docs.length : 0,
+        'avgViewsPerPost': snapshot.docs.isNotEmpty
+            ? totalViews ~/ snapshot.docs.length
+            : 0,
       };
     } catch (e) {
       _debugLog('Error getting author summary: $e');
@@ -298,7 +291,9 @@ class AnalyticsService {
           .where('authorId', isEqualTo: authorId)
           .get();
 
-      _debugLog('Analyzing ${snapshot.docs.length} posts for author: $authorId');
+      _debugLog(
+        'Analyzing ${snapshot.docs.length} posts for author: $authorId',
+      );
     } catch (e) {
       _debugLog('Error batch analyzing posts: $e');
     }
