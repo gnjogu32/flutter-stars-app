@@ -69,6 +69,37 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Preflight App Hosting checks
+        run: |
+          set -euo pipefail
+
+          gcloud config set project starpage-ed409
+
+          ACTIVE_ACCOUNT="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' | head -n 1)"
+          if [ -z "$ACTIVE_ACCOUNT" ]; then
+            echo "::error::No active Google Cloud account found after authentication."
+            exit 1
+          fi
+
+          CONFIGURED_PROJECT="$(gcloud config get-value project 2>/dev/null)"
+          if [ "$CONFIGURED_PROJECT" != "starpage-ed409" ]; then
+            echo "::error::gcloud project is '$CONFIGURED_PROJECT', expected 'starpage-ed409'."
+            exit 1
+          fi
+
+          if ! BACKENDS_OUTPUT="$(gcloud firebase app-hosting backends list --project=starpage-ed409 --format='value(name)' 2>&1)"; then
+            echo "::error::Unable to list App Hosting backends. Ensure App Hosting is enabled and FIREBASE_SERVICE_ACCOUNT has roles/apphosting.admin."
+            echo "$BACKENDS_OUTPUT"
+            exit 1
+          fi
+
+          echo "$BACKENDS_OUTPUT"
+
+          if ! echo "$BACKENDS_OUTPUT" | grep -q 'flutter-stars-web'; then
+            echo "::error::App Hosting backend 'flutter-stars-web' was not found in project 'starpage-ed409'."
+            exit 1
+          fi
+
       - name: Deploy to Firebase App Hosting
         run: |
           gcloud firebase app-hosting backends deploy \
