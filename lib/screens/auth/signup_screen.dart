@@ -109,12 +109,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showKeyboardPrompt =
-        (_displayNameFocusNode.hasFocus ||
-            _emailFocusNode.hasFocus ||
-            _passwordFocusNode.hasFocus ||
-            _confirmPasswordFocusNode.hasFocus) &&
-        MediaQuery.viewInsetsOf(context).bottom > 0;
+    final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create Account'), centerTitle: true),

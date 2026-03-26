@@ -12,6 +12,7 @@ import '../utils/auth_guard.dart';
 import '../services/share_service.dart';
 import '../services/user_service.dart';
 import '../widgets/comments_bottom_sheet.dart';
+import '../widgets/keyboard_prompt_banner.dart';
 import 'profile_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
@@ -390,7 +391,13 @@ class _ReelItemState extends State<_ReelItem> {
   Future<void> _confirmRepost() async {
     if (_isReposting) return;
     final textController = TextEditingController();
+    final focusNode = FocusNode();
+    final hasFocus = ValueNotifier(false);
     DateTime? scheduleTime;
+
+    focusNode.addListener(() {
+      hasFocus.value = focusNode.hasFocus;
+    });
 
     final result = await showDialog<String?>(
       context: context,
@@ -402,6 +409,21 @@ class _ReelItemState extends State<_ReelItem> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: hasFocus,
+                  builder: (context, value, child) => KeyboardPromptBanner(
+                    visible: MediaQuery.viewInsetsOf(context).bottom > 0,
+                    text: 'Add a repost caption before sharing or scheduling.',
+                    icon: Icons.repeat_outlined,
+                  ),
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: hasFocus,
+                  builder: (context, value, child) =>
+                      MediaQuery.viewInsetsOf(context).bottom > 0
+                      ? const SizedBox(height: 12)
+                      : const SizedBox.shrink(),
+                ),
                 const Text(
                   'Add an optional caption to your repost:',
                   style: TextStyle(fontSize: 14),
@@ -409,6 +431,7 @@ class _ReelItemState extends State<_ReelItem> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: textController,
+                  focusNode: focusNode,
                   decoration: InputDecoration(
                     hintText: 'Write something...',
                     border: OutlineInputBorder(
@@ -498,6 +521,8 @@ class _ReelItemState extends State<_ReelItem> {
     if (result != null && mounted) {
       await _repostToFeed(caption: result.trim(), scheduleTime: scheduleTime);
     }
+    hasFocus.dispose();
+    focusNode.dispose();
     textController.dispose();
   }
 

@@ -17,6 +17,7 @@ import '../utils/auth_guard.dart';
 import '../utils/screen_awake_controller.dart';
 import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
+import 'keyboard_prompt_banner.dart';
 
 class PostWidget extends StatefulWidget {
   final PostModel post;
@@ -409,31 +410,51 @@ class _PostWidgetState extends State<PostWidget> {
 
   Future<void> _confirmRepost() async {
     final textController = TextEditingController();
+    final focusNode = FocusNode();
+    final hasFocus = ValueNotifier(false);
+
+    focusNode.addListener(() {
+      hasFocus.value = focusNode.hasFocus;
+    });
+
     final result = await showDialog<String?>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Repost'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Add an optional caption to your repost:',
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: textController,
-              decoration: InputDecoration(
-                hintText: 'Write something...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+        content: ValueListenableBuilder<bool>(
+          valueListenable: hasFocus,
+          builder: (context, value, child) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                KeyboardPromptBanner(
+                  visible: MediaQuery.viewInsetsOf(context).bottom > 0,
+                  text: 'Add a repost caption before sharing.',
+                  icon: Icons.repeat_outlined,
                 ),
-                contentPadding: const EdgeInsets.all(12),
-              ),
-              maxLines: 3,
-              maxLength: 280,
+                if (MediaQuery.viewInsetsOf(context).bottom > 0)
+                  const SizedBox(height: 12),
+                const Text(
+                  'Add an optional caption to your repost:',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: textController,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    hintText: 'Write something...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                  maxLines: 3,
+                  maxLength: 280,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
         actions: [
           TextButton(
@@ -452,6 +473,8 @@ class _PostWidgetState extends State<PostWidget> {
     if (result != null && mounted) {
       await _repostToFeed(caption: result.trim());
     }
+    hasFocus.dispose();
+    focusNode.dispose();
     textController.dispose();
   }
 

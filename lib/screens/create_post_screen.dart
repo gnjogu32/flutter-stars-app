@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../utils/mention_utils.dart';
 import '../models/user_model.dart';
+import '../widgets/keyboard_prompt_banner.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -20,6 +21,7 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _contentController = TextEditingController();
+  final FocusNode _contentFocusNode = FocusNode();
   final _imagePicker = ImagePicker();
   final PostService _postService = PostService();
   final AuthService _authService = AuthService();
@@ -58,13 +60,22 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   void initState() {
     super.initState();
     _contentController.addListener(_handleMentionInputChanged);
+    _contentFocusNode.addListener(_handleComposerFocusChanged);
   }
 
   @override
   void dispose() {
     _contentController.removeListener(_handleMentionInputChanged);
+    _contentFocusNode.removeListener(_handleComposerFocusChanged);
+    _contentFocusNode.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  void _handleComposerFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _ensureMentionableUsersLoaded() async {
@@ -426,12 +437,33 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Post'),
         centerTitle: true,
         elevation: 0,
       ),
+      bottomNavigationBar: showKeyboardPrompt
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  0,
+                  16,
+                  MediaQuery.viewInsetsOf(context).bottom + 12,
+                ),
+                child: const KeyboardPromptBanner(
+                  visible: true,
+                  text:
+                      'Sharing your post. Add the final details before publishing.',
+                  icon: Icons.edit_note_outlined,
+                ),
+              ),
+            )
+          : null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -440,6 +472,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             // Content text field
             TextField(
               controller: _contentController,
+              focusNode: _contentFocusNode,
               maxLines: 6,
               minLines: 3,
               decoration: InputDecoration(

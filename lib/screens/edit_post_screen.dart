@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 import '../services/post_service.dart';
+import '../widgets/keyboard_prompt_banner.dart';
 
 class EditPostScreen extends StatefulWidget {
   final PostModel post;
@@ -14,6 +15,8 @@ class EditPostScreen extends StatefulWidget {
 class _EditPostScreenState extends State<EditPostScreen> {
   late TextEditingController _contentController;
   late TextEditingController _repostCaptionController;
+  final FocusNode _contentFocusNode = FocusNode();
+  final FocusNode _repostCaptionFocusNode = FocusNode();
   final PostService _postService = PostService();
   String? _selectedTalent;
   bool _isLoading = false;
@@ -43,13 +46,25 @@ class _EditPostScreenState extends State<EditPostScreen> {
       text: widget.post.repostCaption ?? '',
     );
     _selectedTalent = widget.post.talent;
+    _contentFocusNode.addListener(_handleComposerFocusChanged);
+    _repostCaptionFocusNode.addListener(_handleComposerFocusChanged);
   }
 
   @override
   void dispose() {
+    _contentFocusNode.removeListener(_handleComposerFocusChanged);
+    _repostCaptionFocusNode.removeListener(_handleComposerFocusChanged);
+    _contentFocusNode.dispose();
+    _repostCaptionFocusNode.dispose();
     _contentController.dispose();
     _repostCaptionController.dispose();
     super.dispose();
+  }
+
+  void _handleComposerFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _updatePost() async {
@@ -94,12 +109,36 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final editingRepostCaption = _repostCaptionFocusNode.hasFocus;
+    final showKeyboardPrompt = isKeyboardVisible;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Post'),
         centerTitle: true,
         elevation: 0,
       ),
+      bottomNavigationBar: showKeyboardPrompt
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  0,
+                  16,
+                  MediaQuery.viewInsetsOf(context).bottom + 12,
+                ),
+                child: KeyboardPromptBanner(
+                  visible: true,
+                  text: editingRepostCaption
+                      ? 'Editing your repost caption.'
+                      : 'Editing your post content.',
+                  icon: Icons.edit_outlined,
+                ),
+              ),
+            )
+          : null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -181,6 +220,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _contentController,
+                focusNode: _contentFocusNode,
                 maxLines: 6,
                 minLines: 3,
                 decoration: InputDecoration(
@@ -200,6 +240,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _repostCaptionController,
+                focusNode: _repostCaptionFocusNode,
                 maxLines: 3,
                 maxLength: 280,
                 decoration: InputDecoration(

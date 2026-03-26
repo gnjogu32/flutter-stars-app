@@ -1,4 +1,4 @@
-name: Android Emulator Tests
+name: Android Integration Tests (Emulator)
 
 on:
   push:
@@ -17,7 +17,7 @@ env:
 
 jobs:
   android-test:
-    name: Run Android Integration Tests
+    name: Android Integration (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
     
     strategy:
@@ -68,7 +68,7 @@ jobs:
           retention-days: 30
 
   espresso-test:
-    name: Run Espresso Unit Tests
+    name: Android Espresso Tests
     runs-on: ubuntu-latest
     
     steps:

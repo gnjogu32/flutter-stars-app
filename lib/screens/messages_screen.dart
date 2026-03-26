@@ -129,9 +129,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     final userId = _auth.currentUser?.uid;
-    final showKeyboardPrompt =
-        _searchFocusNode.hasFocus &&
-        MediaQuery.viewInsetsOf(context).bottom > 0;
+    final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     if (userId == null) {
       return Scaffold(

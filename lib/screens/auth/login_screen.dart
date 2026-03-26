@@ -82,9 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showKeyboardPrompt =
-        (_emailFocusNode.hasFocus || _passwordFocusNode.hasFocus) &&
-        MediaQuery.viewInsetsOf(context).bottom > 0;
+    final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Starpage Login'), centerTitle: true),

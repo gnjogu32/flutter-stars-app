@@ -7,6 +7,7 @@ import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
 import '../utils/mention_utils.dart';
 import 'comment_thread_widget.dart';
+import 'keyboard_prompt_banner.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   final String postId;
@@ -26,6 +27,7 @@ class CommentsBottomSheet extends StatefulWidget {
 
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   final _commentController = TextEditingController();
+  final FocusNode _commentFocusNode = FocusNode();
   final CommentService _commentService = CommentService();
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
@@ -43,13 +45,22 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   void initState() {
     super.initState();
     _commentController.addListener(_handleMentionInputChanged);
+    _commentFocusNode.addListener(_handleComposerFocusChanged);
   }
 
   @override
   void dispose() {
     _commentController.removeListener(_handleMentionInputChanged);
+    _commentFocusNode.removeListener(_handleComposerFocusChanged);
+    _commentFocusNode.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  void _handleComposerFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _ensureMentionableUsersLoaded() async {
@@ -259,6 +270,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
+
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.6,
@@ -374,6 +387,16 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          KeyboardPromptBanner(
+                            visible: showKeyboardPrompt,
+                            text: _replyingTo != null
+                                ? 'Write your reply before sending.'
+                                : 'Write your comment before sending.',
+                            icon: _replyingTo != null
+                                ? Icons.reply_outlined
+                                : Icons.mode_comment_outlined,
+                          ),
+                          if (showKeyboardPrompt) const SizedBox(height: 8),
                           if (_replyingTo != null)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 6),
@@ -407,6 +430,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                               Expanded(
                                 child: TextField(
                                   controller: _commentController,
+                                  focusNode: _commentFocusNode,
                                   decoration: InputDecoration(
                                     hintText: _replyingTo != null
                                         ? 'Reply to ${_replyingTo!.authorName}...'
