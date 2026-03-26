@@ -435,15 +435,15 @@ class ChatService {
           if (!snapshot.exists) return false;
           final data = snapshot.data();
           if (data == null) return false;
-          
+
           // Check if typing status is recent (last 3 seconds)
           final timestamp = data['timestamp'] as Timestamp?;
           if (timestamp == null) return false;
-          
+
           final now = DateTime.now();
           final typingTime = timestamp.toDate();
           final timeDiff = now.difference(typingTime).inSeconds;
-          
+
           return timeDiff < 3;
         });
   }
