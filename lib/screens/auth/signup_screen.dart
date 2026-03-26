@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/keyboard_prompt_banner.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,9 +12,13 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _displayNameController = TextEditingController();
+  final _displayNameFocusNode = FocusNode();
   final _emailController = TextEditingController();
+  final _emailFocusNode = FocusNode();
   final _passwordController = TextEditingController();
+  final _passwordFocusNode = FocusNode();
   final _confirmPasswordController = TextEditingController();
+  final _confirmPasswordFocusNode = FocusNode();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -35,7 +40,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _displayNameFocusNode.addListener(_handleFocusChanged);
+    _emailFocusNode.addListener(_handleFocusChanged);
+    _passwordFocusNode.addListener(_handleFocusChanged);
+    _confirmPasswordFocusNode.addListener(_handleFocusChanged);
+  }
+
+  void _handleFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
+    _displayNameFocusNode.removeListener(_handleFocusChanged);
+    _emailFocusNode.removeListener(_handleFocusChanged);
+    _passwordFocusNode.removeListener(_handleFocusChanged);
+    _confirmPasswordFocusNode.removeListener(_handleFocusChanged);
+    _displayNameFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
     _displayNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -81,8 +109,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final showKeyboardPrompt =
+        (_displayNameFocusNode.hasFocus ||
+            _emailFocusNode.hasFocus ||
+            _passwordFocusNode.hasFocus ||
+            _confirmPasswordFocusNode.hasFocus) &&
+        MediaQuery.viewInsetsOf(context).bottom > 0;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Create Account'), centerTitle: true),
+      bottomNavigationBar: showKeyboardPrompt
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  0,
+                  16,
+                  MediaQuery.viewInsetsOf(context).bottom + 12,
+                ),
+                child: const KeyboardPromptBanner(
+                  visible: true,
+                  text: 'Complete your account details to sign up.',
+                  icon: Icons.app_registration_outlined,
+                ),
+              ),
+            )
+          : null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -103,6 +156,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             // Display Name Field
             TextField(
               controller: _displayNameController,
+              focusNode: _displayNameFocusNode,
               decoration: InputDecoration(
                 hintText: 'Display Name',
                 prefixIcon: const Icon(Icons.person),
@@ -115,6 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             // Email Field
             TextField(
               controller: _emailController,
+              focusNode: _emailFocusNode,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
                 hintText: 'Email',
@@ -151,6 +206,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             // Password Field
             TextField(
               controller: _passwordController,
+              focusNode: _passwordFocusNode,
               obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
                 hintText: 'Password',
@@ -179,6 +235,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             // Confirm Password Field
             TextField(
               controller: _confirmPasswordController,
+              focusNode: _confirmPasswordFocusNode,
               obscureText: !_isConfirmPasswordVisible,
               decoration: InputDecoration(
                 hintText: 'Confirm Password',

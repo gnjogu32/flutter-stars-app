@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../models/conversation_model.dart';
 import '../services/chat_service.dart';
 import '../utils/animation_utils.dart';
+import '../widgets/keyboard_prompt_banner.dart';
 import 'chat_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isSearching = false;
   final Set<String> _deletingConversationIds = <String>{};
 
@@ -28,10 +30,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (currentUserId != null) {
       _chatService.migrateLegacyConversations(currentUserId).ignore();
     }
+    _searchFocusNode.addListener(_handleFocusChanged);
+  }
+
+  void _handleFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    _searchFocusNode.removeListener(_handleFocusChanged);
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -118,6 +129,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     final userId = _auth.currentUser?.uid;
+    final showKeyboardPrompt =
+        _searchFocusNode.hasFocus &&
+        MediaQuery.viewInsetsOf(context).bottom > 0;
+
     if (userId == null) {
       return Scaffold(
         appBar: AppBar(
@@ -138,6 +153,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
         centerTitle: true,
         elevation: 0,
       ),
+      bottomNavigationBar: showKeyboardPrompt
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  0,
+                  16,
+                  MediaQuery.viewInsetsOf(context).bottom + 12,
+                ),
+                child: const KeyboardPromptBanner(
+                  visible: true,
+                  text: 'Search for a conversation.',
+                  icon: Icons.search,
+                ),
+              ),
+            )
+          : null,
       body: Column(
         children: [
           // Search bar
@@ -145,6 +178,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               decoration: InputDecoration(
                 hintText: 'Search conversations...',
                 prefixIcon: const Icon(Icons.search),

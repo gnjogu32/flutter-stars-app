@@ -16,6 +16,7 @@ class DiscoverScreen extends StatefulWidget {
 class _DiscoverScreenState extends State<DiscoverScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   String _selectedTalentFilter = 'All';
 
   final List<String> talents = [
@@ -33,7 +34,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _searchFocusNode.addListener(_handleFocusChanged);
+  }
+
+  void _handleFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
+    _searchFocusNode.removeListener(_handleFocusChanged);
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
