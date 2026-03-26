@@ -87,44 +87,59 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     );
   }
 
-  void _editComment() {
+  Future<void> _editComment() async {
     final controller = TextEditingController(text: widget.comment.content);
+    final focusNode = FocusNode();
     final messenger = ScaffoldMessenger.of(context);
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit Comment'),
-        content: TextField(
-          controller: controller,
-          maxLines: null,
-          decoration: InputDecoration(
-            hintText: 'Edit your comment...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await _commentService.updateComment(
-                commentId: widget.comment.commentId,
-                content: controller.text,
-                authorId: widget.currentUserId,
-              );
-              if (!mounted || !dialogContext.mounted) return;
-              Navigator.pop(dialogContext);
-              messenger.showSnackBar(
-                const SnackBar(content: Text('Comment updated')),
-              );
-            },
-            child: const Text('Update'),
-          ),
-        ],
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, _) {
+          final keyboardInset = MediaQuery.viewInsetsOf(dialogContext).bottom;
+          return AlertDialog(
+            title: const Text('Edit Comment'),
+            content: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: keyboardInset),
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                maxLines: null,
+                decoration: InputDecoration(
+                  hintText: 'Edit your comment...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await _commentService.updateComment(
+                    commentId: widget.comment.commentId,
+                    content: controller.text,
+                    authorId: widget.currentUserId,
+                  );
+                  if (!mounted || !dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Comment updated')),
+                  );
+                },
+                child: const Text('Update'),
+              ),
+            ],
+          );
+        },
       ),
     );
+    focusNode.dispose();
   }
 
   @override

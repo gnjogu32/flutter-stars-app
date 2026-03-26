@@ -404,104 +404,114 @@ class _ReelItemState extends State<_ReelItem> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Repost'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ValueListenableBuilder<bool>(
-                  valueListenable: hasFocus,
-                  builder: (context, value, child) => KeyboardPromptBanner(
-                    visible: MediaQuery.viewInsetsOf(context).bottom > 0,
-                    text: 'Add a repost caption before sharing or scheduling.',
-                    icon: Icons.repeat_outlined,
-                  ),
-                ),
-                ValueListenableBuilder<bool>(
-                  valueListenable: hasFocus,
-                  builder: (context, value, child) =>
-                      MediaQuery.viewInsetsOf(context).bottom > 0
-                      ? const SizedBox(height: 12)
-                      : const SizedBox.shrink(),
-                ),
-                const Text(
-                  'Add an optional caption to your repost:',
-                  style: TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: textController,
-                  focusNode: focusNode,
-                  decoration: InputDecoration(
-                    hintText: 'Write something...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.all(12),
-                  ),
-                  maxLines: 3,
-                  maxLength: 280,
-                ),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
-                const Text(
-                  'Schedule (Optional)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.maxFinite,
+          content: ValueListenableBuilder<bool>(
+            valueListenable: hasFocus,
+            builder: (context, value, child) {
+              final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+              return AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(bottom: keyboardInset),
+                child: SingleChildScrollView(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextButton.icon(
-                        onPressed: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now().add(
-                              const Duration(days: 1),
-                            ),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                          );
-                          if (date != null && context.mounted) {
-                            final time = await showTimePicker(
-                              context: context,
-                              initialTime: const TimeOfDay(hour: 9, minute: 0),
-                            );
-                            if (time != null) {
-                              setState(() {
-                                scheduleTime = DateTime(
-                                  date.year,
-                                  date.month,
-                                  date.day,
-                                  time.hour,
-                                  time.minute,
-                                );
-                              });
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.schedule),
-                        label: Text(
-                          scheduleTime == null
-                              ? 'Post now'
-                              : 'Scheduled: ${scheduleTime!.year}-${scheduleTime!.month}-${scheduleTime!.day} ${scheduleTime!.hour}:${scheduleTime!.minute.toString().padLeft(2, '0')}',
+                      KeyboardPromptBanner(
+                        visible: keyboardInset > 0,
+                        text:
+                            'Add a repost caption before sharing or scheduling.',
+                        icon: Icons.repeat_outlined,
+                      ),
+                      if (keyboardInset > 0) const SizedBox(height: 12),
+                      const Text(
+                        'Add an optional caption to your repost:',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: textController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          hintText: 'Write something...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.all(12),
+                        ),
+                        maxLines: 3,
+                        maxLength: 280,
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Schedule (Optional)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
-                      if (scheduleTime != null)
-                        TextButton(
-                          onPressed: () => setState(() => scheduleTime = null),
-                          child: const Text('Remove schedule'),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.maxFinite,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now().add(
+                                    const Duration(days: 1),
+                                  ),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 365),
+                                  ),
+                                );
+                                if (date != null && context.mounted) {
+                                  final time = await showTimePicker(
+                                    context: context,
+                                    initialTime: const TimeOfDay(
+                                      hour: 9,
+                                      minute: 0,
+                                    ),
+                                  );
+                                  if (time != null) {
+                                    setState(() {
+                                      scheduleTime = DateTime(
+                                        date.year,
+                                        date.month,
+                                        date.day,
+                                        time.hour,
+                                        time.minute,
+                                      );
+                                    });
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.schedule),
+                              label: Text(
+                                scheduleTime == null
+                                    ? 'Post now'
+                                    : 'Scheduled: ${scheduleTime!.year}-${scheduleTime!.month}-${scheduleTime!.day} ${scheduleTime!.hour}:${scheduleTime!.minute.toString().padLeft(2, '0')}',
+                              ),
+                            ),
+                            if (scheduleTime != null)
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => scheduleTime = null),
+                                child: const Text('Remove schedule'),
+                              ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
           actions: [
             TextButton(

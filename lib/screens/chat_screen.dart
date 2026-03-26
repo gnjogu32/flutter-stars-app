@@ -68,7 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onTextChanged() {
     final isTyping = _messageController.text.isNotEmpty;
-    
+
     if (isTyping && !_isUserTyping) {
       // User started typing
       setState(() => _isUserTyping = true);
@@ -86,7 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
         isTyping: false,
       );
     }
-    
+
     // Reset timer for stopping typing after delay
     _typingTimer?.cancel();
     if (isTyping) {
@@ -161,6 +161,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.otherUserName),
@@ -222,13 +224,16 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             builder: (context, snapshot) {
               final isTyping = snapshot.data ?? false;
-              
+
               if (!isTyping) {
                 return const SizedBox.shrink();
               }
-              
+
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     Text(
@@ -247,7 +252,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(3, (index) {
                           return AnimatedOpacity(
-                            opacity: ((DateTime.now().millisecond ~/ 200) + index) % 3 == 0 ? 0.3 : 1,
+                            opacity:
+                                ((DateTime.now().millisecond ~/ 200) + index) %
+                                        3 ==
+                                    0
+                                ? 0.3
+                                : 1,
                             duration: const Duration(milliseconds: 200),
                             child: Container(
                               width: 4,
@@ -267,43 +277,48 @@ class _ChatScreenState extends State<ChatScreen> {
             },
           ),
           // Message input
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: keyboardInset),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: 'Type a message...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        filled: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
-                      fillColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      maxLines: null,
                     ),
-                    maxLines: null,
                   ),
-                ),
-                const SizedBox(width: 8),
-                AnimationUtils.scaleButtonAnimation(
-                  onTap: _isSending ? () {} : _sendMessage,
-                  child: IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: _isSending ? null : _sendMessage,
+                  const SizedBox(width: 8),
+                  AnimationUtils.scaleButtonAnimation(
+                    onTap: _isSending ? () {} : _sendMessage,
+                    child: IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: _isSending ? null : _sendMessage,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

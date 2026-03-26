@@ -270,7 +270,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final showKeyboardPrompt = keyboardInset > 0;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -361,107 +362,113 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   },
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: theme.dividerColor)),
-                ),
-                child: _isGuest
-                    ? Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Log in to add comments and replies.',
-                              style: theme.textTheme.bodySmall,
+              AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(bottom: keyboardInset),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: theme.dividerColor)),
+                  ),
+                  child: _isGuest
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Log in to add comments and replies.',
+                                style: theme.textTheme.bodySmall,
+                              ),
                             ),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              await AuthGuard.show(context);
-                            },
-                            child: const Text('Log in'),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          KeyboardPromptBanner(
-                            visible: showKeyboardPrompt,
-                            text: _replyingTo != null
-                                ? 'Write your reply before sending.'
-                                : 'Write your comment before sending.',
-                            icon: _replyingTo != null
-                                ? Icons.reply_outlined
-                                : Icons.mode_comment_outlined,
-                          ),
-                          if (showKeyboardPrompt) const SizedBox(height: 8),
-                          if (_replyingTo != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Replying to ${_replyingTo!.authorName}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
+                            TextButton(
+                              onPressed: () async {
+                                await AuthGuard.show(context);
+                              },
+                              child: const Text('Log in'),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            KeyboardPromptBanner(
+                              visible: showKeyboardPrompt,
+                              text: _replyingTo != null
+                                  ? 'Write your reply before sending.'
+                                  : 'Write your comment before sending.',
+                              icon: _replyingTo != null
+                                  ? Icons.reply_outlined
+                                  : Icons.mode_comment_outlined,
+                            ),
+                            if (showKeyboardPrompt) const SizedBox(height: 8),
+                            if (_replyingTo != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Replying to ${_replyingTo!.authorName}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => setState(() {
-                                      _replyingTo = null;
-                                      _replyParentId = null;
-                                    }),
-                                    child: const Icon(Icons.close, size: 16),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          _buildMentionSuggestions(context),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _commentController,
-                                  focusNode: _commentFocusNode,
-                                  decoration: InputDecoration(
-                                    hintText: _replyingTo != null
-                                        ? 'Reply to ${_replyingTo!.authorName}...'
-                                        : 'Add a comment...',
-                                    helperText:
-                                        'Type @ to mention people or use @followers.',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      borderSide: BorderSide.none,
+                                    GestureDetector(
+                                      onTap: () => setState(() {
+                                        _replyingTo = null;
+                                        _replyParentId = null;
+                                      }),
+                                      child: const Icon(Icons.close, size: 16),
                                     ),
-                                    fillColor: theme
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                                    filled: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                  ),
-                                  maxLines: null,
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.send),
-                                onPressed: _isPosting ? null : _postComment,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            _buildMentionSuggestions(context),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _commentController,
+                                    focusNode: _commentFocusNode,
+                                    decoration: InputDecoration(
+                                      hintText: _replyingTo != null
+                                          ? 'Reply to ${_replyingTo!.authorName}...'
+                                          : 'Add a comment...',
+                                      helperText:
+                                          'Type @ to mention people or use @followers.',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      fillColor: theme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      filled: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                    ),
+                                    maxLines: null,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.send),
+                                  onPressed: _isPosting ? null : _postComment,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ],
           ),

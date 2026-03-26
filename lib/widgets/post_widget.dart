@@ -423,38 +423,45 @@ class _PostWidgetState extends State<PostWidget> {
         title: const Text('Repost'),
         content: ValueListenableBuilder<bool>(
           valueListenable: hasFocus,
-          builder: (context, value, child) => SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                KeyboardPromptBanner(
-                  visible: MediaQuery.viewInsetsOf(context).bottom > 0,
-                  text: 'Add a repost caption before sharing.',
-                  icon: Icons.repeat_outlined,
-                ),
-                if (MediaQuery.viewInsetsOf(context).bottom > 0)
-                  const SizedBox(height: 12),
-                const Text(
-                  'Add an optional caption to your repost:',
-                  style: TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: textController,
-                  focusNode: focusNode,
-                  decoration: InputDecoration(
-                    hintText: 'Write something...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+          builder: (context, value, child) {
+            final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: keyboardInset),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    KeyboardPromptBanner(
+                      visible: keyboardInset > 0,
+                      text: 'Add a repost caption before sharing.',
+                      icon: Icons.repeat_outlined,
                     ),
-                    contentPadding: const EdgeInsets.all(12),
-                  ),
-                  maxLines: 3,
-                  maxLength: 280,
+                    if (keyboardInset > 0) const SizedBox(height: 12),
+                    const Text(
+                      'Add an optional caption to your repost:',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: textController,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        hintText: 'Write something...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                      maxLines: 3,
+                      maxLength: 280,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
         actions: [
           TextButton(
