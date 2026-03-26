@@ -46,8 +46,9 @@ class _ChatScreenState extends State<ChatScreen> {
       _markMessagesAsRead(); // Fire-and-forget, don't block UI
       _loadCurrentUser(); // Load user data asynchronously in background
     });
-    
+
     _messageController.addListener(_onTextChanged);
+  }
 
   Future<void> _loadCurrentUser() async {
     try {

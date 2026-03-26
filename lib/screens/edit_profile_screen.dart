@@ -5,7 +5,6 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../models/user_model.dart';
-import '../widgets/keyboard_prompt_banner.dart';
 import 'auth/change_password_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -235,17 +234,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   @override
-  void dispose() {
-    _displayNameController.dispose();
-    _bioController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final showKeyboardPrompt =
-        (_displayNameFocusNode.hasFocus || _bioFocusNode.hasFocus) &&
-        MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
