@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import '../models/message_model.dart';
 import '../models/user_model.dart';
 import '../services/chat_service.dart';
@@ -34,6 +35,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   late UserModel? _currentUser;
   bool _isSending = false;
+  bool _isUserTyping = false;
+  Timer? _typingTimer;
 
   @override
   void initState() {
@@ -43,7 +46,8 @@ class _ChatScreenState extends State<ChatScreen> {
       _markMessagesAsRead(); // Fire-and-forget, don't block UI
       _loadCurrentUser(); // Load user data asynchronously in background
     });
-  }
+    
+    _messageController.addListener(_onTextChanged);
 
   Future<void> _loadCurrentUser() async {
     try {
@@ -58,6 +62,43 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     } catch (e) {
       if (kDebugMode) print('Error loading current user: $e');
+    }
+  }
+
+  void _onTextChanged() {
+    final isTyping = _messageController.text.isNotEmpty;
+    
+    if (isTyping && !_isUserTyping) {
+      // User started typing
+      setState(() => _isUserTyping = true);
+      _chatService.setTypingStatus(
+        conversationId: widget.conversationId,
+        userId: _auth.currentUser?.uid ?? '',
+        isTyping: true,
+      );
+    } else if (!isTyping && _isUserTyping) {
+      // User stopped typing
+      setState(() => _isUserTyping = false);
+      _chatService.setTypingStatus(
+        conversationId: widget.conversationId,
+        userId: _auth.currentUser?.uid ?? '',
+        isTyping: false,
+      );
+    }
+    
+    // Reset timer for stopping typing after delay
+    _typingTimer?.cancel();
+    if (isTyping) {
+      _typingTimer = Timer(const Duration(milliseconds: 1500), () {
+        if (_messageController.text.isNotEmpty == false && _isUserTyping) {
+          setState(() => _isUserTyping = false);
+          _chatService.setTypingStatus(
+            conversationId: widget.conversationId,
+            userId: _auth.currentUser?.uid ?? '',
+            isTyping: false,
+          );
+        }
+      });
     }
   }
 
@@ -105,7 +146,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
+    _typingTimer?.cancel();
+    // Clear typing status when leaving chat
+    _chatService.setTypingStatus(
+      conversationId: widget.conversationId,
+      userId: _auth.currentUser?.uid ?? '',
+      isTyping: false,
+    );
     super.dispose();
   }
 
@@ -163,6 +212,58 @@ class _ChatScreenState extends State<ChatScreen> {
                 );
               },
             ),
+          ),
+          // Typing indicator
+          StreamBuilder<bool>(
+            stream: _chatService.getTypingStatusStream(
+              widget.conversationId,
+              widget.otherUserId,
+            ),
+            builder: (context, snapshot) {
+              final isTyping = snapshot.data ?? false;
+              
+              if (!isTyping) {
+                return const SizedBox.shrink();
+              }
+              
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      '${widget.otherUserName} is typing',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Animated typing dots
+                    SizedBox(
+                      width: 20,
+                      height: 12,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(3, (index) {
+                          return AnimatedOpacity(
+                            opacity: ((DateTime.now().millisecond ~/ 200) + index) % 3 == 0 ? 0.3 : 1,
+                            duration: const Duration(milliseconds: 200),
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           // Message input
           Container(

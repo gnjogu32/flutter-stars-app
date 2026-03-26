@@ -392,4 +392,59 @@ class ChatService {
       // Don't throw - migration should not block app functionality
     }
   }
+
+  // Set typing status
+  Future<void> setTypingStatus({
+    required String conversationId,
+    required String userId,
+    required bool isTyping,
+  }) async {
+    try {
+      final typingStatusRef = _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('typingStatus')
+          .doc(userId);
+
+      if (isTyping) {
+        await typingStatusRef.set({
+          'userId': userId,
+          'isTyping': true,
+          'timestamp': DateTime.now(),
+        });
+      } else {
+        await typingStatusRef.delete();
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error setting typing status: $e');
+    }
+  }
+
+  // Get typing status stream for other user
+  Stream<bool> getTypingStatusStream(
+    String conversationId,
+    String otherUserId,
+  ) {
+    return _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('typingStatus')
+        .doc(otherUserId)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) return false;
+          final data = snapshot.data();
+          if (data == null) return false;
+          
+          // Check if typing status is recent (last 3 seconds)
+          final timestamp = data['timestamp'] as Timestamp?;
+          if (timestamp == null) return false;
+          
+          final now = DateTime.now();
+          final typingTime = timestamp.toDate();
+          final timeDiff = now.difference(typingTime).inSeconds;
+          
+          return timeDiff < 3;
+        });
+  }
 }
