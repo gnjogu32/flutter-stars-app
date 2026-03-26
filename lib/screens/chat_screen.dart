@@ -162,8 +162,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final theme = Theme.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(widget.otherUserName),
         centerTitle: true,
@@ -232,7 +234,7 @@ class _ChatScreenState extends State<ChatScreen> {
               return Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 8,
+                  vertical: 12,
                 ),
                 child: Row(
                   children: [
@@ -276,52 +278,53 @@ class _ChatScreenState extends State<ChatScreen> {
               );
             },
           ),
-          // Message input
-          AnimatedPadding(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            padding: EdgeInsets.only(bottom: keyboardInset),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                        fillColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(bottom: keyboardInset),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
                       ),
-                      maxLines: null,
+                      fillColor: theme.colorScheme.surfaceContainerHighest,
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
+                    maxLines: null,
                   ),
-                  const SizedBox(width: 8),
-                  AnimationUtils.scaleButtonAnimation(
-                    onTap: _isSending ? () {} : _sendMessage,
-                    child: IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: _isSending ? null : _sendMessage,
-                    ),
+                ),
+                const SizedBox(width: 8),
+                AnimationUtils.scaleButtonAnimation(
+                  onTap: _isSending ? () {} : _sendMessage,
+                  child: IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: _isSending ? null : _sendMessage,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
