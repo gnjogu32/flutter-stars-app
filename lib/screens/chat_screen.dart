@@ -349,20 +349,60 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       bottomNavigationBar: SafeArea(
         top: false,
-        child: AnimatedPadding(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          padding: EdgeInsets.only(bottom: composerBottomInset),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Emoji panel above typing area (if visible)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              height: _showEmojiPanel ? 240 : 0,
+              child: _showEmojiPanel
+                  ? Container(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: GridView.builder(
+                          padding: EdgeInsets.zero,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 8,
+                                childAspectRatio: 1.2,
+                              ),
+                          itemCount: _quickEmojis.length,
+                          itemBuilder: (context, index) {
+                            final emoji = _quickEmojis[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => _insertEmoji(emoji),
+                              child: Center(
+                                child: Text(
+                                  emoji,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+            // Divider between emoji panel and typing area
+            if (_showEmojiPanel)
+              Divider(height: 1, color: Colors.grey.shade300),
+            // Typing area always visible at bottom
+            AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: composerBottomInset),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                ),
+                child: Row(
                   children: [
                     IconButton(
                       onPressed: _toggleEmojiPanel,
@@ -403,47 +443,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ],
                 ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  height: _showEmojiPanel ? 240 : 0,
-                  child: _showEmojiPanel
-                      ? Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: GridView.builder(
-                              padding: const EdgeInsets.all(8),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 8,
-                                    childAspectRatio: 1.2,
-                                  ),
-                              itemCount: _quickEmojis.length,
-                              itemBuilder: (context, index) {
-                                final emoji = _quickEmojis[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () => _insertEmoji(emoji),
-                                  child: Center(
-                                    child: Text(
-                                      emoji,
-                                      style: const TextStyle(fontSize: 24),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
