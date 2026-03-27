@@ -912,20 +912,6 @@ class _PostWidgetState extends State<PostWidget> {
     );
   }
 
-  void _openImageViewer(int initialIndex) {
-    if (widget.post.imageUrls.isEmpty) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => _FullScreenImageGallery(
-          imageUrls: widget.post.imageUrls,
-          initialIndex: initialIndex,
-          canSaveImages: _ownerId == widget.currentUserId,
-        ),
-      ),
-    );
-  }
-
   Future<void> _openCommentsSheet() async {
     if (!mounted) return;
     await showModalBottomSheet(
@@ -1215,6 +1201,7 @@ class _PostWidgetState extends State<PostWidget> {
               _VideoPlayer(
                 videoUrl: widget.post.videoUrl!,
                 onOpenProfile: _openAuthorProfile,
+                onOpenDetails: _showPostDetailsSheet,
                 onFirstPlay: _incrementVideoViewCount,
                 canSaveMedia: _ownerId == widget.currentUserId,
               ),
@@ -1239,7 +1226,7 @@ class _PostWidgetState extends State<PostWidget> {
             if (widget.post.imageUrls.isNotEmpty)
               widget.post.imageUrls.length == 1
                   ? GestureDetector(
-                      onTap: () => _openImageViewer(0),
+                      onTap: _showPostDetailsSheet,
                       onLongPress: () =>
                           _showImageOptions(widget.post.imageUrls.first),
                       child: ClipRRect(
@@ -1278,12 +1265,11 @@ class _PostWidgetState extends State<PostWidget> {
                         children: widget.post.imageUrls.asMap().entries.map((
                           entry,
                         ) {
-                          final index = entry.key;
                           final imageUrl = entry.value;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
                             child: GestureDetector(
-                              onTap: () => _openImageViewer(index),
+                              onTap: _showPostDetailsSheet,
                               onLongPress: () => _showImageOptions(imageUrl),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
@@ -1301,36 +1287,6 @@ class _PostWidgetState extends State<PostWidget> {
                     ),
             const SizedBox(height: 12),
             _buildResponsiveFeedInteractions(),
-            const SizedBox(height: 12),
-            // See Details Button
-            SizedBox(
-              width: double.infinity,
-              child: AnimationUtils.scaleButtonAnimation(
-                onTap: _showPostDetailsSheet,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.expand_less),
-                      const SizedBox(width: 8),
-                      Text(
-                        'View full caption',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -1758,12 +1714,14 @@ class _AudioPlayerState extends State<_AudioPlayer> {
 class _VideoPlayer extends StatefulWidget {
   final String videoUrl;
   final VoidCallback onOpenProfile;
+  final VoidCallback onOpenDetails;
   final Future<void> Function() onFirstPlay;
   final bool canSaveMedia;
 
   const _VideoPlayer({
     required this.videoUrl,
     required this.onOpenProfile,
+    required this.onOpenDetails,
     required this.onFirstPlay,
     required this.canSaveMedia,
   });
@@ -1902,7 +1860,8 @@ class _VideoPlayerState extends State<_VideoPlayer> {
     }
 
     return GestureDetector(
-      onTap: () => setState(() => _showControls = !_showControls),
+      onTap: widget.onOpenDetails,
+      onDoubleTap: () => setState(() => _showControls = !_showControls),
       child: Stack(
         children: [
           ClipRRect(
