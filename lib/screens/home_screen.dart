@@ -124,10 +124,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Edit Profile',
+            icon: const Icon(Icons.chat_bubble_outline),
+            tooltip: 'Chat',
             onPressed: () {
-              Navigator.of(context).pushNamed('/edit-profile');
+              Navigator.of(context).pushNamed('/chat');
             },
           ),
           StreamBuilder<DocumentSnapshot>(
