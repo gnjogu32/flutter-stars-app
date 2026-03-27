@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/post_model.dart';
@@ -161,6 +162,33 @@ class _ReelItemState extends State<_ReelItem> {
   late int _likeCount;
   bool _isLikeUpdating = false;
   bool _isReposting = false;
+
+  static const List<String> _quickEmojis = [
+    '😀',
+    '😁',
+    '😂',
+    '🤣',
+    '😊',
+    '😍',
+    '🥳',
+    '😎',
+    '🤔',
+    '👏',
+    '🔥',
+    '💯',
+    '✨',
+    '🙌',
+    '👍',
+    '🙏',
+    '❤️',
+    '💙',
+    '💚',
+    '🎉',
+    '😢',
+    '😡',
+    '🤝',
+    '💫',
+  ];
 
   bool get _isSharedPost =>
       (widget.post.originalAuthorId ?? '').trim().isNotEmpty;
@@ -394,6 +422,7 @@ class _ReelItemState extends State<_ReelItem> {
     final textController = TextEditingController();
     final focusNode = FocusNode();
     final hasFocus = ValueNotifier(false);
+    var showEmojiPanel = false;
     DateTime? scheduleTime;
 
     focusNode.addListener(() {
@@ -409,39 +438,120 @@ class _ReelItemState extends State<_ReelItem> {
             valueListenable: hasFocus,
             builder: (context, value, child) {
               final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+              final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
               return AnimatedPadding(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
-                padding: EdgeInsets.only(bottom: keyboardInset),
+                padding: EdgeInsets.only(bottom: composerBottomInset),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       KeyboardPromptBanner(
-                        visible: keyboardInset > 0,
+                        visible: keyboardInset > 0 && !showEmojiPanel,
                         text:
                             'Add a repost caption before sharing or scheduling.',
                         icon: Icons.repeat_outlined,
                       ),
-                      if (keyboardInset > 0) const SizedBox(height: 12),
+                      if (keyboardInset > 0 && !showEmojiPanel)
+                        const SizedBox(height: 12),
                       const Text(
                         'Add an optional caption to your repost:',
                         style: TextStyle(fontSize: 14),
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: textController,
-                        focusNode: focusNode,
-                        decoration: InputDecoration(
-                          hintText: 'Write something...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              setState(() => showEmojiPanel = !showEmojiPanel);
+                              if (showEmojiPanel) {
+                                focusNode.unfocus();
+                                SystemChannels.textInput.invokeMethod(
+                                  'TextInput.hide',
+                                );
+                              } else {
+                                FocusScope.of(context).requestFocus(focusNode);
+                              }
+                            },
+                            icon: Icon(
+                              showEmojiPanel
+                                  ? Icons.keyboard_outlined
+                                  : Icons.emoji_emotions_outlined,
+                            ),
                           ),
-                          contentPadding: const EdgeInsets.all(12),
-                        ),
-                        maxLines: 3,
-                        maxLength: 280,
+                          Expanded(
+                            child: TextField(
+                              controller: textController,
+                              focusNode: focusNode,
+                              onTap: () {
+                                if (showEmojiPanel) {
+                                  setState(() => showEmojiPanel = false);
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Write something...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              maxLines: 3,
+                              maxLength: 280,
+                            ),
+                          ),
+                        ],
+                      ),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        height: showEmojiPanel ? 180 : 0,
+                        child: showEmojiPanel
+                            ? GridView.builder(
+                                padding: const EdgeInsets.only(top: 8),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 8,
+                                      childAspectRatio: 1.2,
+                                    ),
+                                itemCount: _quickEmojis.length,
+                                itemBuilder: (context, index) {
+                                  final emoji = _quickEmojis[index];
+                                  return InkWell(
+                                    borderRadius: BorderRadius.circular(8),
+                                    onTap: () {
+                                      final currentText = textController.text;
+                                      final currentSelection =
+                                          textController.selection;
+                                      final start = currentSelection.start >= 0
+                                          ? currentSelection.start
+                                          : currentText.length;
+                                      final end = currentSelection.end >= 0
+                                          ? currentSelection.end
+                                          : currentText.length;
+                                      final newText = currentText.replaceRange(
+                                        start,
+                                        end,
+                                        emoji,
+                                      );
+                                      textController.value = TextEditingValue(
+                                        text: newText,
+                                        selection: TextSelection.collapsed(
+                                          offset: start + emoji.length,
+                                        ),
+                                      );
+                                    },
+                                    child: Center(
+                                      child: Text(
+                                        emoji,
+                                        style: const TextStyle(fontSize: 24),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : const SizedBox.shrink(),
                       ),
                       const SizedBox(height: 16),
                       const Divider(),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gal/gal.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -42,6 +43,33 @@ class _PostWidgetState extends State<PostWidget> {
   bool _isFollowLoading = false;
   bool _isReposting = false;
   late int _videoViewCount;
+
+  static const List<String> _quickEmojis = [
+    '😀',
+    '😁',
+    '😂',
+    '🤣',
+    '😊',
+    '😍',
+    '🥳',
+    '😎',
+    '🤔',
+    '👏',
+    '🔥',
+    '💯',
+    '✨',
+    '🙌',
+    '👍',
+    '🙏',
+    '❤️',
+    '💙',
+    '💚',
+    '🎉',
+    '😢',
+    '😡',
+    '🤝',
+    '💫',
+  ];
 
   bool get _isSharedPost =>
       (widget.post.originalAuthorId ?? '').trim().isNotEmpty;
@@ -629,6 +657,7 @@ class _PostWidgetState extends State<PostWidget> {
     final textController = TextEditingController();
     final focusNode = FocusNode();
     final hasFocus = ValueNotifier(false);
+    var showEmojiPanel = false;
 
     focusNode.addListener(() {
       hasFocus.value = focusNode.hasFocus;
@@ -636,61 +665,146 @@ class _PostWidgetState extends State<PostWidget> {
 
     final result = await showDialog<String?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Repost'),
-        content: ValueListenableBuilder<bool>(
-          valueListenable: hasFocus,
-          builder: (context, value, child) {
-            final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-            return AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(bottom: keyboardInset),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    KeyboardPromptBanner(
-                      visible: keyboardInset > 0,
-                      text: 'Add a repost caption before sharing.',
-                      icon: Icons.repeat_outlined,
-                    ),
-                    if (keyboardInset > 0) const SizedBox(height: 12),
-                    const Text(
-                      'Add an optional caption to your repost:',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: textController,
-                      focusNode: focusNode,
-                      decoration: InputDecoration(
-                        hintText: 'Write something...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.all(12),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Repost'),
+          content: ValueListenableBuilder<bool>(
+            valueListenable: hasFocus,
+            builder: (context, value, child) {
+              final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+              final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
+              return AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(bottom: composerBottomInset),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      KeyboardPromptBanner(
+                        visible: keyboardInset > 0 && !showEmojiPanel,
+                        text: 'Add a repost caption before sharing.',
+                        icon: Icons.repeat_outlined,
                       ),
-                      maxLines: 3,
-                      maxLength: 280,
-                    ),
-                  ],
+                      if (keyboardInset > 0 && !showEmojiPanel)
+                        const SizedBox(height: 12),
+                      const Text(
+                        'Add an optional caption to your repost:',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              setDialogState(
+                                () => showEmojiPanel = !showEmojiPanel,
+                              );
+                              if (showEmojiPanel) {
+                                focusNode.unfocus();
+                                SystemChannels.textInput.invokeMethod(
+                                  'TextInput.hide',
+                                );
+                              } else {
+                                FocusScope.of(context).requestFocus(focusNode);
+                              }
+                            },
+                            icon: Icon(
+                              showEmojiPanel
+                                  ? Icons.keyboard_outlined
+                                  : Icons.emoji_emotions_outlined,
+                            ),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: textController,
+                              focusNode: focusNode,
+                              onTap: () {
+                                if (showEmojiPanel) {
+                                  setDialogState(() => showEmojiPanel = false);
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Write something...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              maxLines: 3,
+                              maxLength: 280,
+                            ),
+                          ),
+                        ],
+                      ),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        height: showEmojiPanel ? 180 : 0,
+                        child: showEmojiPanel
+                            ? GridView.builder(
+                                padding: const EdgeInsets.only(top: 8),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 8,
+                                      childAspectRatio: 1.2,
+                                    ),
+                                itemCount: _quickEmojis.length,
+                                itemBuilder: (context, index) {
+                                  final emoji = _quickEmojis[index];
+                                  return InkWell(
+                                    borderRadius: BorderRadius.circular(8),
+                                    onTap: () {
+                                      final currentText = textController.text;
+                                      final currentSelection =
+                                          textController.selection;
+                                      final start = currentSelection.start >= 0
+                                          ? currentSelection.start
+                                          : currentText.length;
+                                      final end = currentSelection.end >= 0
+                                          ? currentSelection.end
+                                          : currentText.length;
+                                      final newText = currentText.replaceRange(
+                                        start,
+                                        end,
+                                        emoji,
+                                      );
+                                      textController.value = TextEditingValue(
+                                        text: newText,
+                                        selection: TextSelection.collapsed(
+                                          offset: start + emoji.length,
+                                        ),
+                                      );
+                                    },
+                                    child: Center(
+                                      child: Text(
+                                        emoji,
+                                        style: const TextStyle(fontSize: 24),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, textController.text),
+              style: TextButton.styleFrom(foregroundColor: Colors.blue),
+              child: const Text('Repost'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, textController.text),
-            style: TextButton.styleFrom(foregroundColor: Colors.blue),
-            child: const Text('Repost'),
-          ),
-        ],
       ),
     );
 

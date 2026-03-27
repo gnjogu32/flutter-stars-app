@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/comment_model.dart';
 import '../models/user_model.dart';
 import '../services/comment_service.dart';
@@ -38,6 +39,34 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   List<UserModel> _filteredMentionUsers = const [];
   String? _activeMentionQuery;
   bool _isLoadingMentionUsers = false;
+  bool _showEmojiPanel = false;
+
+  static const List<String> _quickEmojis = [
+    '😀',
+    '😁',
+    '😂',
+    '🤣',
+    '😊',
+    '😍',
+    '🥳',
+    '😎',
+    '🤔',
+    '👏',
+    '🔥',
+    '💯',
+    '✨',
+    '🙌',
+    '👍',
+    '🙏',
+    '❤️',
+    '💙',
+    '💚',
+    '🎉',
+    '😢',
+    '😡',
+    '🤝',
+    '💫',
+  ];
 
   bool get _isGuest => widget.currentUserId.isEmpty;
 
@@ -59,8 +88,46 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   void _handleComposerFocusChanged() {
     if (mounted) {
+      if (_commentFocusNode.hasFocus && _showEmojiPanel) {
+        _showEmojiPanel = false;
+      }
       setState(() {});
     }
+  }
+
+  void _toggleEmojiPanel() {
+    setState(() => _showEmojiPanel = !_showEmojiPanel);
+
+    if (_showEmojiPanel) {
+      _commentFocusNode.unfocus();
+      SystemChannels.textInput.invokeMethod('TextInput.hide');
+    } else {
+      FocusScope.of(context).requestFocus(_commentFocusNode);
+    }
+  }
+
+  void _hideEmojiPanelOnInputTap() {
+    if (_showEmojiPanel) {
+      setState(() => _showEmojiPanel = false);
+    }
+  }
+
+  void _insertEmoji(String emoji) {
+    final currentText = _commentController.text;
+    final currentSelection = _commentController.selection;
+
+    final start = currentSelection.start >= 0
+        ? currentSelection.start
+        : currentText.length;
+    final end = currentSelection.end >= 0
+        ? currentSelection.end
+        : currentText.length;
+
+    final newText = currentText.replaceRange(start, end, emoji);
+    _commentController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + emoji.length),
+    );
   }
 
   Future<void> _ensureMentionableUsersLoaded() async {
@@ -271,7 +338,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final showKeyboardPrompt = keyboardInset > 0;
+    final showKeyboardPrompt = keyboardInset > 0 && !_showEmojiPanel;
+    final composerBottomInset = _showEmojiPanel ? 0.0 : keyboardInset;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -365,7 +433,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               AnimatedPadding(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
-                padding: EdgeInsets.only(bottom: keyboardInset),
+                padding: EdgeInsets.only(bottom: composerBottomInset),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -432,10 +500,19 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                             _buildMentionSuggestions(context),
                             Row(
                               children: [
+                                IconButton(
+                                  onPressed: _toggleEmojiPanel,
+                                  icon: Icon(
+                                    _showEmojiPanel
+                                        ? Icons.keyboard_outlined
+                                        : Icons.emoji_emotions_outlined,
+                                  ),
+                                ),
                                 Expanded(
                                   child: TextField(
                                     controller: _commentController,
                                     focusNode: _commentFocusNode,
+                                    onTap: _hideEmojiPanelOnInputTap,
                                     decoration: InputDecoration(
                                       hintText: _replyingTo != null
                                           ? 'Reply to ${_replyingTo!.authorName}...'
@@ -465,6 +542,51 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                                   onPressed: _isPosting ? null : _postComment,
                                 ),
                               ],
+                            ),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              curve: Curves.easeOut,
+                              height: _showEmojiPanel ? 220 : 0,
+                              child: _showEmojiPanel
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: theme
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: GridView.builder(
+                                          padding: const EdgeInsets.all(8),
+                                          gridDelegate:
+                                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                                crossAxisCount: 8,
+                                                childAspectRatio: 1.2,
+                                              ),
+                                          itemCount: _quickEmojis.length,
+                                          itemBuilder: (context, index) {
+                                            final emoji = _quickEmojis[index];
+                                            return InkWell(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              onTap: () => _insertEmoji(emoji),
+                                              child: Center(
+                                                child: Text(
+                                                  emoji,
+                                                  style: const TextStyle(
+                                                    fontSize: 24,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                           ],
                         ),

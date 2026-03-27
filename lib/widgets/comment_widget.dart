@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
 import '../services/comment_service.dart';
@@ -27,6 +28,33 @@ class _CommentWidgetState extends State<CommentWidget> {
   late bool _isLiked;
   bool _showReplies = false;
   final CommentService _commentService = CommentService();
+
+  static const List<String> _quickEmojis = [
+    '😀',
+    '😁',
+    '😂',
+    '🤣',
+    '😊',
+    '😍',
+    '🥳',
+    '😎',
+    '🤔',
+    '👏',
+    '🔥',
+    '💯',
+    '✨',
+    '🙌',
+    '👍',
+    '🙏',
+    '❤️',
+    '💙',
+    '💚',
+    '🎉',
+    '😢',
+    '😡',
+    '🤝',
+    '💫',
+  ];
 
   @override
   void initState() {
@@ -86,59 +114,170 @@ class _CommentWidgetState extends State<CommentWidget> {
     );
   }
 
-  void _editComment() {
+  Future<void> _editComment() async {
     final controller = TextEditingController(text: widget.comment.content);
+    final focusNode = FocusNode();
     final messenger = ScaffoldMessenger.of(context);
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit Comment'),
-        content: TextField(
-          controller: controller,
-          maxLines: null,
-          decoration: InputDecoration(
-            hintText: 'Edit your comment...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              if (controller.text.trim().isEmpty) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Comment cannot be empty')),
-                );
-                return;
-              }
+    var showEmojiPanel = false;
 
-              try {
-                await _commentService.updateComment(
-                  commentId: widget.comment.commentId,
-                  content: controller.text.trim(),
-                  authorId: widget.currentUserId,
-                );
-                if (mounted) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Comment updated')),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              }
-              controller.dispose();
-            },
-            child: const Text('Save'),
-          ),
-        ],
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final keyboardInset = MediaQuery.viewInsetsOf(dialogContext).bottom;
+          final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
+
+          return AlertDialog(
+            title: const Text('Edit Comment'),
+            content: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: composerBottomInset),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setDialogState(
+                              () => showEmojiPanel = !showEmojiPanel,
+                            );
+                            if (showEmojiPanel) {
+                              focusNode.unfocus();
+                              SystemChannels.textInput.invokeMethod(
+                                'TextInput.hide',
+                              );
+                            } else {
+                              FocusScope.of(
+                                dialogContext,
+                              ).requestFocus(focusNode);
+                            }
+                          },
+                          icon: Icon(
+                            showEmojiPanel
+                                ? Icons.keyboard_outlined
+                                : Icons.emoji_emotions_outlined,
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            onTap: () {
+                              if (showEmojiPanel) {
+                                setDialogState(() => showEmojiPanel = false);
+                              }
+                            },
+                            maxLines: null,
+                            decoration: InputDecoration(
+                              hintText: 'Edit your comment...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      height: showEmojiPanel ? 180 : 0,
+                      child: showEmojiPanel
+                          ? GridView.builder(
+                              padding: const EdgeInsets.only(top: 8),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 8,
+                                    childAspectRatio: 1.2,
+                                  ),
+                              itemCount: _quickEmojis.length,
+                              itemBuilder: (context, index) {
+                                final emoji = _quickEmojis[index];
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () {
+                                    final currentText = controller.text;
+                                    final currentSelection =
+                                        controller.selection;
+                                    final start = currentSelection.start >= 0
+                                        ? currentSelection.start
+                                        : currentText.length;
+                                    final end = currentSelection.end >= 0
+                                        ? currentSelection.end
+                                        : currentText.length;
+                                    final newText = currentText.replaceRange(
+                                      start,
+                                      end,
+                                      emoji,
+                                    );
+                                    controller.value = TextEditingValue(
+                                      text: newText,
+                                      selection: TextSelection.collapsed(
+                                        offset: start + emoji.length,
+                                      ),
+                                    );
+                                  },
+                                  child: Center(
+                                    child: Text(
+                                      emoji,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  if (controller.text.trim().isEmpty) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Comment cannot be empty')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await _commentService.updateComment(
+                      commentId: widget.comment.commentId,
+                      content: controller.text.trim(),
+                      authorId: widget.currentUserId,
+                    );
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Comment updated')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
       ),
     );
+    focusNode.dispose();
+    controller.dispose();
   }
 
   void _showMoreOptions() {
