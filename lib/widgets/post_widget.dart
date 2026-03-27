@@ -98,52 +98,6 @@ class _PostWidgetState extends State<PostWidget> {
                   controller: scrollController,
                   padding: const EdgeInsets.all(16),
                   children: [
-                    // Author section
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: _openAuthorProfile,
-                          child: CircleAvatar(
-                            backgroundImage: _ownerImageUrl != null
-                                ? NetworkImage(_ownerImageUrl!)
-                                : null,
-                            child: _ownerImageUrl == null
-                                ? const Icon(Icons.person)
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _openAuthorProfile,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _ownerName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                if (widget.post.talent != null)
-                                  Text(
-                                    widget.post.talent!,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
                     // Post Caption/Content
                     if (widget.post.repostCaption != null) ...[
                       Container(
@@ -296,6 +250,52 @@ class _PostWidgetState extends State<PostWidget> {
                       ),
                     ],
                   ),
+                ),
+              ),
+              // Author section at the very bottom
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _openAuthorProfile,
+                      child: CircleAvatar(
+                        backgroundImage: _ownerImageUrl != null
+                            ? NetworkImage(_ownerImageUrl!)
+                            : null,
+                        child: _ownerImageUrl == null
+                            ? const Icon(Icons.person)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _openAuthorProfile,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _ownerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (widget.post.talent != null)
+                              Text(
+                                widget.post.talent!,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1226,7 +1226,17 @@ class _PostWidgetState extends State<PostWidget> {
             if (widget.post.imageUrls.isNotEmpty)
               widget.post.imageUrls.length == 1
                   ? GestureDetector(
-                      onTap: _showPostDetailsSheet,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => _FullScreenImageGallery(
+                              imageUrls: widget.post.imageUrls,
+                              initialIndex: 0,
+                              canSaveImages: _ownerId == widget.currentUserId,
+                            ),
+                          ),
+                        );
+                      },
                       onLongPress: () =>
                           _showImageOptions(widget.post.imageUrls.first),
                       child: ClipRRect(
@@ -1265,11 +1275,24 @@ class _PostWidgetState extends State<PostWidget> {
                         children: widget.post.imageUrls.asMap().entries.map((
                           entry,
                         ) {
+                          final idx = entry.key;
                           final imageUrl = entry.value;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
                             child: GestureDetector(
-                              onTap: _showPostDetailsSheet,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        _FullScreenImageGallery(
+                                          imageUrls: widget.post.imageUrls,
+                                          initialIndex: idx,
+                                          canSaveImages:
+                                              _ownerId == widget.currentUserId,
+                                        ),
+                                  ),
+                                );
+                              },
                               onLongPress: () => _showImageOptions(imageUrl),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
