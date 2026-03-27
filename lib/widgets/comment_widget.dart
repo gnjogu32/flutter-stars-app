@@ -3,6 +3,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
 import '../services/comment_service.dart';
 import '../utils/auth_guard.dart';
+import 'expandable_text.dart';
 
 class CommentWidget extends StatefulWidget {
   final CommentModel comment;
@@ -220,9 +221,10 @@ class _CommentWidgetState extends State<CommentWidget> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              ExpandableText(
                 widget.comment.content,
                 style: Theme.of(context).textTheme.bodyMedium,
+                trimLines: 3,
               ),
               if (widget.comment.isEdited)
                 Padding(

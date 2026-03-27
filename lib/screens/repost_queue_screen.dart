@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/repost_queue_model.dart';
 import '../services/repost_queue_service.dart';
+import '../widgets/expandable_text.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class RepostQueueScreen extends StatefulWidget {
@@ -238,11 +239,10 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
                   color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
+                child: ExpandableText(
                   item.repostCaption!,
                   style: theme.textTheme.bodySmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  trimLines: 2,
                 ),
               ),
             ],

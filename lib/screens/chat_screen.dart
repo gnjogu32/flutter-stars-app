@@ -33,10 +33,39 @@ class _ChatScreenState extends State<ChatScreen> {
   final UserService _userService = UserService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _messageController = TextEditingController();
+  final FocusNode _messageFocusNode = FocusNode();
   late UserModel? _currentUser;
   bool _isSending = false;
   bool _isUserTyping = false;
+  bool _showEmojiPanel = false;
   Timer? _typingTimer;
+
+  static const List<String> _quickEmojis = [
+    '😀',
+    '😁',
+    '😂',
+    '🤣',
+    '😊',
+    '😍',
+    '🥳',
+    '😎',
+    '🤔',
+    '👏',
+    '🔥',
+    '💯',
+    '✨',
+    '🙌',
+    '👍',
+    '🙏',
+    '❤️',
+    '💙',
+    '💚',
+    '🎉',
+    '😢',
+    '😡',
+    '🤝',
+    '💫',
+  ];
 
   @override
   void initState() {
@@ -145,10 +174,47 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _toggleEmojiPanel() {
+    setState(() => _showEmojiPanel = !_showEmojiPanel);
+
+    if (_showEmojiPanel) {
+      _messageFocusNode.unfocus();
+      SystemChannels.textInput.invokeMethod('TextInput.hide');
+    } else {
+      FocusScope.of(context).requestFocus(_messageFocusNode);
+    }
+  }
+
+  void _hideEmojiPanelOnInputTap() {
+    if (_showEmojiPanel) {
+      setState(() => _showEmojiPanel = false);
+    }
+  }
+
+  void _insertEmoji(String emoji) {
+    final currentText = _messageController.text;
+    final currentSelection = _messageController.selection;
+
+    final start = currentSelection.start >= 0
+        ? currentSelection.start
+        : currentText.length;
+    final end = currentSelection.end >= 0
+        ? currentSelection.end
+        : currentText.length;
+
+    final newText = currentText.replaceRange(start, end, emoji);
+
+    _messageController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + emoji.length),
+    );
+  }
+
   @override
   void dispose() {
     _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
+    _messageFocusNode.dispose();
     _typingTimer?.cancel();
     // Clear typing status when leaving chat
     _chatService.setTypingStatus(
@@ -162,6 +228,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final composerBottomInset = _showEmojiPanel ? 0.0 : keyboardInset;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -285,41 +352,94 @@ class _ChatScreenState extends State<ChatScreen> {
         child: AnimatedPadding(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          padding: EdgeInsets.only(bottom: keyboardInset),
+          padding: EdgeInsets.only(bottom: composerBottomInset),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               border: Border(top: BorderSide(color: Colors.grey.shade200)),
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
-                      ),
-                      fillColor: theme.colorScheme.surfaceContainerHighest,
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _toggleEmojiPanel,
+                      icon: Icon(
+                        _showEmojiPanel
+                            ? Icons.keyboard_outlined
+                            : Icons.emoji_emotions_outlined,
                       ),
                     ),
-                    maxLines: null,
-                  ),
+                    Expanded(
+                      child: TextField(
+                        focusNode: _messageFocusNode,
+                        controller: _messageController,
+                        onTap: _hideEmojiPanelOnInputTap,
+                        decoration: InputDecoration(
+                          hintText: 'Type a message...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          fillColor: theme.colorScheme.surfaceContainerHighest,
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        maxLines: null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    AnimationUtils.scaleButtonAnimation(
+                      onTap: _isSending ? () {} : _sendMessage,
+                      child: IconButton(
+                        icon: const Icon(Icons.send),
+                        onPressed: _isSending ? null : _sendMessage,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                AnimationUtils.scaleButtonAnimation(
-                  onTap: _isSending ? () {} : _sendMessage,
-                  child: IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: _isSending ? null : _sendMessage,
-                  ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  height: _showEmojiPanel ? 240 : 0,
+                  child: _showEmojiPanel
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: GridView.builder(
+                              padding: const EdgeInsets.all(8),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 8,
+                                    childAspectRatio: 1.2,
+                                  ),
+                              itemCount: _quickEmojis.length,
+                              itemBuilder: (context, index) {
+                                final emoji = _quickEmojis[index];
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () => _insertEmoji(emoji),
+                                  child: Center(
+                                    child: Text(
+                                      emoji,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                 ),
               ],
             ),

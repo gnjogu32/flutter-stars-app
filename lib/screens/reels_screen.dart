@@ -12,6 +12,7 @@ import '../utils/auth_guard.dart';
 import '../services/share_service.dart';
 import '../services/user_service.dart';
 import '../widgets/comments_bottom_sheet.dart';
+import '../widgets/expandable_text.dart';
 import '../widgets/keyboard_prompt_banner.dart';
 import 'profile_screen.dart';
 
@@ -730,11 +731,14 @@ class _ReelItemState extends State<_ReelItem> {
                 ),
                 if (widget.post.content.trim().isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  Text(
+                  ExpandableText(
                     widget.post.content,
                     style: const TextStyle(color: Colors.white),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                    trimLines: 3,
+                    actionStyle: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
                 if (_isInitialized) ...[

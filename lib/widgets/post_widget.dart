@@ -17,6 +17,7 @@ import '../utils/auth_guard.dart';
 import '../utils/screen_awake_controller.dart';
 import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
+import 'expandable_text.dart';
 import 'keyboard_prompt_banner.dart';
 
 class PostWidget extends StatefulWidget {
@@ -710,9 +711,10 @@ class _PostWidgetState extends State<PostWidget> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
+                    ExpandableText(
                       widget.post.content,
                       style: Theme.of(context).textTheme.bodySmall,
+                      trimLines: 3,
                     ),
                   ],
                 ),
@@ -730,11 +732,12 @@ class _PostWidgetState extends State<PostWidget> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    ExpandableText(
                       widget.post.repostCaption!,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
+                      trimLines: 3,
                     ),
                   ],
                 ),
@@ -742,9 +745,10 @@ class _PostWidgetState extends State<PostWidget> {
               const SizedBox(height: 12),
             ] else ...[
               // Regular post content
-              Text(
+              ExpandableText(
                 widget.post.content,
                 style: Theme.of(context).textTheme.bodyMedium,
+                trimLines: 4,
               ),
               const SizedBox(height: 12),
             ],

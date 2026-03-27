@@ -20,6 +20,9 @@ class _TrendingScreenState extends State<TrendingScreen>
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late TabController _tabController;
   String _selectedCategory = 'All';
+  late Future<List<PostModel>> _todayFuture;
+  late Future<List<PostModel>> _weekFuture;
+  late Future<List<PostModel>> _topLikedFuture;
 
   final List<String> talents = [
     'All',
@@ -39,12 +42,38 @@ class _TrendingScreenState extends State<TrendingScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _selectedCategory = widget.talentFilter ?? 'All';
+    _todayFuture = _loadTodayTrending(_selectedCategory);
+    _weekFuture = _trendingService.getTrendingPosts(limit: 50);
+    _topLikedFuture = _trendingService.getTopPostsByLikes(limit: 50);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<List<PostModel>> _loadTodayTrending(String category) {
+    if (category == 'All') {
+      return _trendingService.getTrendingPosts(limit: 50);
+    }
+
+    return _trendingService.getTrendingPostsByTalent(
+      talent: category,
+      limit: 50,
+    );
+  }
+
+  void _onCategorySelected(String talent) {
+    if (_selectedCategory == talent) {
+      return;
+    }
+
+    setState(() {
+      _selectedCategory = talent;
+      _todayFuture = _loadTodayTrending(talent);
+    });
   }
 
   @override
@@ -83,11 +112,7 @@ class _TrendingScreenState extends State<TrendingScreen>
                     child: FilterChip(
                       label: Text(talent),
                       selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedCategory = talent;
-                        });
-                      },
+                      onSelected: (_) => _onCategorySelected(talent),
                       backgroundColor: theme.colorScheme.surfaceContainerHigh,
                       selectedColor: theme.colorScheme.primary,
                       labelStyle: TextStyle(
@@ -111,17 +136,13 @@ class _TrendingScreenState extends State<TrendingScreen>
               children: [
                 // Today's Trending
                 _buildTrendingList(
-                  future: _selectedCategory == 'All'
-                      ? _trendingService.getTrendingPosts(limit: 50)
-                      : _trendingService.getTrendingPostsByTalent(
-                          talent: _selectedCategory,
-                          limit: 50,
-                        ),
+                  future: _todayFuture,
+                  listStorageKey: 'trending_today_$_selectedCategory',
                 ),
                 // This Week's Trending
-                _buildTrendingListByTalent(),
+                _buildTrendingListByTalent(listStorageKey: 'trending_week'),
                 // Top Liked
-                _buildTopLikedList(),
+                _buildTopLikedList(listStorageKey: 'trending_top_liked'),
               ],
             ),
           ),
@@ -130,7 +151,10 @@ class _TrendingScreenState extends State<TrendingScreen>
     );
   }
 
-  Widget _buildTrendingList({required Future<List<PostModel>> future}) {
+  Widget _buildTrendingList({
+    required Future<List<PostModel>> future,
+    required String listStorageKey,
+  }) {
     return FutureBuilder<List<PostModel>>(
       future: future,
       builder: (context, snapshot) {
@@ -146,29 +170,17 @@ class _TrendingScreenState extends State<TrendingScreen>
           return const Center(child: Text('No trending posts found'));
         }
 
-        final posts = snapshot.data!;
-
-        return ListView.builder(
-          itemCount: posts.length,
-          physics: const BouncingScrollPhysics(),
-          itemBuilder: (context, index) {
-            return AnimationUtils.slideUpAnimation(
-              duration: const Duration(milliseconds: 400),
-              delayMilliseconds: index * 50,
-              child: PostWidget(
-                post: posts[index],
-                currentUserId: _auth.currentUser?.uid ?? '',
-              ),
-            );
-          },
+        return _buildPostList(
+          posts: snapshot.data!,
+          listStorageKey: listStorageKey,
         );
       },
     );
   }
 
-  Widget _buildTrendingListByTalent() {
+  Widget _buildTrendingListByTalent({required String listStorageKey}) {
     return FutureBuilder<List<PostModel>>(
-      future: _trendingService.getTrendingPosts(limit: 50),
+      future: _weekFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -182,29 +194,17 @@ class _TrendingScreenState extends State<TrendingScreen>
           return const Center(child: Text('No trending posts this week'));
         }
 
-        final posts = snapshot.data!;
-
-        return ListView.builder(
-          itemCount: posts.length,
-          physics: const BouncingScrollPhysics(),
-          itemBuilder: (context, index) {
-            return AnimationUtils.slideUpAnimation(
-              duration: const Duration(milliseconds: 400),
-              delayMilliseconds: index * 50,
-              child: PostWidget(
-                post: posts[index],
-                currentUserId: _auth.currentUser?.uid ?? '',
-              ),
-            );
-          },
+        return _buildPostList(
+          posts: snapshot.data!,
+          listStorageKey: listStorageKey,
         );
       },
     );
   }
 
-  Widget _buildTopLikedList() {
+  Widget _buildTopLikedList({required String listStorageKey}) {
     return FutureBuilder<List<PostModel>>(
-      future: _trendingService.getTopPostsByLikes(limit: 50),
+      future: _topLikedFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -221,15 +221,45 @@ class _TrendingScreenState extends State<TrendingScreen>
         final posts = snapshot.data!;
 
         return ListView.builder(
+          key: PageStorageKey<String>(listStorageKey),
           itemCount: posts.length,
+          cacheExtent: 600,
           physics: const BouncingScrollPhysics(),
           itemBuilder: (context, index) {
-            return AnimationUtils.slideUpAnimation(
-              duration: const Duration(milliseconds: 400),
-              delayMilliseconds: index * 50,
-              child: _buildRankedPostWidget(index: index, post: posts[index]),
+            return KeyedSubtree(
+              key: ValueKey(posts[index].postId),
+              child: AnimationUtils.slideUpAnimation(
+                duration: const Duration(milliseconds: 400),
+                delayMilliseconds: index * 50,
+                child: _buildRankedPostWidget(index: index, post: posts[index]),
+              ),
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildPostList({
+    required List<PostModel> posts,
+    required String listStorageKey,
+  }) {
+    return ListView.builder(
+      key: PageStorageKey<String>(listStorageKey),
+      itemCount: posts.length,
+      cacheExtent: 600,
+      physics: const BouncingScrollPhysics(),
+      itemBuilder: (context, index) {
+        return KeyedSubtree(
+          key: ValueKey(posts[index].postId),
+          child: AnimationUtils.slideUpAnimation(
+            duration: const Duration(milliseconds: 400),
+            delayMilliseconds: index * 50,
+            child: PostWidget(
+              post: posts[index],
+              currentUserId: _auth.currentUser?.uid ?? '',
+            ),
+          ),
         );
       },
     );
