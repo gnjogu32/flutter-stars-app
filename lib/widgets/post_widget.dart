@@ -926,6 +926,102 @@ class _PostWidgetState extends State<PostWidget> {
     );
   }
 
+  Future<void> _openCommentsSheet() async {
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => CommentsBottomSheet(
+        postId: widget.post.postId,
+        postAuthorId: _ownerId,
+        currentUserId: widget.currentUserId,
+      ),
+    );
+  }
+
+  Widget _buildFeedInteractionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    return Material(
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: iconColor),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: iconColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResponsiveFeedInteractions() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 8.0;
+        final isCompact = constraints.maxWidth < 380;
+        final columns = isCompact ? 2 : 4;
+        final itemWidth =
+            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+        final actions = [
+          _buildFeedInteractionButton(
+            icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+            label: '$_likeCount',
+            iconColor: _isLiked ? Colors.red : null,
+            onTap: _toggleLike,
+          ),
+          _buildFeedInteractionButton(
+            icon: Icons.comment_outlined,
+            label: '${widget.post.commentCount}',
+            onTap: _openCommentsSheet,
+          ),
+          _buildFeedInteractionButton(
+            icon: Icons.repeat,
+            label: '${widget.post.repostCount}',
+            onTap: _repostToFeed,
+          ),
+          _buildFeedInteractionButton(
+            icon: Icons.share_outlined,
+            label: 'Share',
+            onTap: _showShareDialog,
+          ),
+        ];
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: actions
+              .map((action) => SizedBox(width: itemWidth, child: action))
+              .toList(),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -1204,6 +1300,8 @@ class _PostWidgetState extends State<PostWidget> {
                       ),
                     ),
             const SizedBox(height: 12),
+            _buildResponsiveFeedInteractions(),
+            const SizedBox(height: 12),
             // See Details Button
             SizedBox(
               width: double.infinity,
@@ -1221,7 +1319,7 @@ class _PostWidgetState extends State<PostWidget> {
                       const Icon(Icons.expand_less),
                       const SizedBox(width: 8),
                       Text(
-                        'View caption & interactions',
+                        'View full caption',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: Theme.of(
                             context,
