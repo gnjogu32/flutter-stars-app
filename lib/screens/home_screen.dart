@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
-import '../services/notification_service.dart';
 import '../services/chat_service.dart';
-import 'notifications_screen.dart';
+import '../widgets/search_overlay.dart';
 import 'profile_screen.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_skeleton.dart';
@@ -20,11 +19,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final NotificationService _notificationService = NotificationService();
   Stream<DocumentSnapshot>? _currentUserStream;
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
   Stream<QuerySnapshot>? _postsStream;
+  bool _showSearch = false;
 
   @override
   void initState() {
@@ -60,58 +59,11 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         elevation: 0,
         actions: [
-          StreamBuilder<int>(
-            stream: _auth.currentUser == null
-                ? null
-                : _notificationService.getUnreadCountStream(
-                    _auth.currentUser!.uid,
-                  ),
-            builder: (context, snapshot) {
-              final unreadCount = snapshot.data ?? 0;
-              return IconButton(
-                tooltip: 'Notifications',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const NotificationsScreen(),
-                    ),
-                  );
-                },
-                icon: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(Icons.notifications_none),
-                    if (unreadCount > 0)
-                      Positioned(
-                        right: -6,
-                        top: -6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          child: Text(
-                            unreadCount > 99 ? '99+' : '$unreadCount',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Search',
+            onPressed: () {
+              setState(() => _showSearch = true);
             },
           ),
           StreamBuilder<int>(
@@ -212,65 +164,65 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        key: _refreshKey,
-        onRefresh: _refresh,
-        child: StreamBuilder<QuerySnapshot>(
-          stream: _postsStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const PostFeedSkeleton();
-            }
-
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
-
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: SizedBox(
-                    height: constraints.maxHeight,
-                    child: const Center(
-                      child: Text(
-                        'No posts yet. Follow talented stars to see their work!',
+      body: Stack(
+        children: [
+          RefreshIndicator(
+            key: _refreshKey,
+            onRefresh: _refresh,
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _postsStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const PostFeedSkeleton();
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: SizedBox(
+                        height: constraints.maxHeight,
+                        child: const Center(
+                          child: Text(
+                            'No posts yet. Follow talented stars to see their work!',
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            }
-
-            final posts = snapshot.data!.docs
-                .map(
-                  (doc) =>
-                      PostModel.fromJson(doc.data() as Map<String, dynamic>),
-                )
-                .toList();
-
-            return ListView.builder(
-              itemCount: posts.length + 1, // +1 for trending section
-              physics: const ClampingScrollPhysics(),
-              itemBuilder: (context, index) {
-                // Show trending section at the top
-                if (index == 0) {
-                  return TrendingStreamSection(
-                    currentUserId: _auth.currentUser?.uid ?? '',
                   );
                 }
-
-                // Adjust index for posts list
-                final postIndex = index - 1;
-                return PostWidget(
-                  key: ValueKey(posts[postIndex].postId),
-                  post: posts[postIndex],
-                  currentUserId: _auth.currentUser?.uid ?? '',
+                final posts = snapshot.data!.docs
+                    .map(
+                      (doc) => PostModel.fromJson(
+                        doc.data() as Map<String, dynamic>,
+                      ),
+                    )
+                    .toList();
+                return ListView.builder(
+                  itemCount: posts.length + 1, // +1 for trending section
+                  physics: const ClampingScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return TrendingStreamSection(
+                        currentUserId: _auth.currentUser?.uid ?? '',
+                      );
+                    }
+                    final postIndex = index - 1;
+                    return PostWidget(
+                      key: ValueKey(posts[postIndex].postId),
+                      post: posts[postIndex],
+                      currentUserId: _auth.currentUser?.uid ?? '',
+                    );
+                  },
                 );
               },
-            );
-          },
-        ),
+            ),
+          ),
+          if (_showSearch)
+            SearchOverlay(onClose: () => setState(() => _showSearch = false)),
+        ],
       ),
     );
   }
