@@ -231,6 +231,16 @@ class _ChatScreenState extends State<ChatScreen> {
     final composerBottomInset = _showEmojiPanel ? 0.0 : keyboardInset;
     final theme = Theme.of(context);
 
+    // Responsive sizing
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isTablet = screenWidth > 600;
+    final isLandscape = screenHeight < screenWidth;
+    final emojiPanelHeight = isLandscape ? 160.0 : 240.0;
+    final messageBubbleMaxWidth = isTablet
+        ? screenWidth * 0.5
+        : screenWidth * 0.75;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -278,7 +288,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     return AnimationUtils.slideUpAnimation(
                       duration: const Duration(milliseconds: 300),
                       delayMilliseconds: 0,
-                      child: _buildMessageBubble(displayMessages[index]),
+                      child: _buildMessageBubble(
+                        displayMessages[index],
+                        messageBubbleMaxWidth,
+                      ),
                     );
                   },
                 );
@@ -356,7 +369,7 @@ class _ChatScreenState extends State<ChatScreen> {
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOut,
-              height: _showEmojiPanel ? 240 : 0,
+              height: _showEmojiPanel ? emojiPanelHeight : 0,
               child: _showEmojiPanel
                   ? Container(
                       color: theme.colorScheme.surfaceContainerHighest,
@@ -365,8 +378,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: GridView.builder(
                           padding: EdgeInsets.zero,
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 8,
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: isTablet ? 12 : 8,
                                 childAspectRatio: 1.2,
                               ),
                           itemCount: _quickEmojis.length,
@@ -402,46 +415,54 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: theme.colorScheme.surface,
                   border: Border(top: BorderSide(color: Colors.grey.shade200)),
                 ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: _toggleEmojiPanel,
-                      icon: Icon(
-                        _showEmojiPanel
-                            ? Icons.keyboard_outlined
-                            : Icons.emoji_emotions_outlined,
-                      ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isTablet ? 600 : double.infinity,
                     ),
-                    Expanded(
-                      child: TextField(
-                        focusNode: _messageFocusNode,
-                        controller: _messageController,
-                        onTap: _hideEmojiPanelOnInputTap,
-                        decoration: InputDecoration(
-                          hintText: 'Type a message...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                          fillColor: theme.colorScheme.surfaceContainerHighest,
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: _toggleEmojiPanel,
+                          icon: Icon(
+                            _showEmojiPanel
+                                ? Icons.keyboard_outlined
+                                : Icons.emoji_emotions_outlined,
                           ),
                         ),
-                        maxLines: null,
-                      ),
+                        Expanded(
+                          child: TextField(
+                            focusNode: _messageFocusNode,
+                            controller: _messageController,
+                            onTap: _hideEmojiPanelOnInputTap,
+                            decoration: InputDecoration(
+                              hintText: 'Type a message...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              fillColor:
+                                  theme.colorScheme.surfaceContainerHighest,
+                              filled: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            maxLines: null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        AnimationUtils.scaleButtonAnimation(
+                          onTap: _isSending ? () {} : _sendMessage,
+                          child: IconButton(
+                            icon: const Icon(Icons.send),
+                            onPressed: _isSending ? null : _sendMessage,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    AnimationUtils.scaleButtonAnimation(
-                      onTap: _isSending ? () {} : _sendMessage,
-                      child: IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: _isSending ? null : _sendMessage,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -451,7 +472,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(MessageModel message) {
+  Widget _buildMessageBubble(MessageModel message, double maxWidth) {
     final isCurrentUser = message.senderId == _auth.currentUser?.uid;
     final theme = Theme.of(context);
     final alignment = isCurrentUser
@@ -475,58 +496,64 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         child: Align(
           alignment: alignment,
-          child: Column(
-            crossAxisAlignment: isCurrentUser
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Column(
+              crossAxisAlignment: isCurrentUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    message.content,
+                    style: TextStyle(color: textColor),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  message.content,
-                  style: TextStyle(color: textColor),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      timeago.format(message.sentAt),
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    if (isCurrentUser) ...[
-                      const SizedBox(width: 4),
-                      Icon(
-                        message.isRead ? Icons.done_all : Icons.done,
-                        size: 14,
-                        color: message.isRead ? Colors.blue : Colors.grey,
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        timeago.format(message.sentAt),
+                        style: Theme.of(context).textTheme.labelSmall,
                       ),
-                      if (message.isRead && message.readAt != null) ...[
+                      if (isCurrentUser) ...[
                         const SizedBox(width: 4),
-                        Text(
-                          'Read ${timeago.format(message.readAt!)}',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                fontSize: 10,
-                                color: Colors.blue.withValues(alpha: 0.7),
-                              ),
+                        Icon(
+                          message.isRead ? Icons.done_all : Icons.done,
+                          size: 14,
+                          color: message.isRead ? Colors.blue : Colors.grey,
                         ),
+                        if (message.isRead && message.readAt != null) ...[
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Read ${timeago.format(message.readAt!)}',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    fontSize: 10,
+                                    color: Colors.blue.withValues(alpha: 0.7),
+                                  ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
