@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
-import 'discover_screen.dart';
+import '../services/chat_service.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/post_widget.dart';
@@ -114,20 +114,54 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Search',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const DiscoverScreen()),
+          StreamBuilder<int>(
+            stream: _auth.currentUser == null
+                ? null
+                : Stream.fromFuture(
+                    ChatService().getUnreadMessageCount(_auth.currentUser!.uid),
+                  ),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+              return IconButton(
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.chat_bubble_outline),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: -6,
+                        top: -6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                tooltip: 'Chat',
+                onPressed: () {
+                  Navigator.of(context).pushNamed('/chat');
+                },
               );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline),
-            tooltip: 'Chat',
-            onPressed: () {
-              Navigator.of(context).pushNamed('/chat');
             },
           ),
           StreamBuilder<DocumentSnapshot>(
