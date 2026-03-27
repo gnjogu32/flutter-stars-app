@@ -3,5 +3,6 @@
     "terminal.integrated.commandsToSkipShell": [
         ""
     ],
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "workbench.browser.enableChatTools": true
 }

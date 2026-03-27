@@ -50,6 +50,222 @@ class _PostWidgetState extends State<PostWidget> {
       ? widget.post.originalAuthorId!.trim()
       : widget.post.authorId;
 
+  void _showPostDetailsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Author section
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: _openAuthorProfile,
+                    child: CircleAvatar(
+                      backgroundImage: _ownerImageUrl != null
+                          ? NetworkImage(_ownerImageUrl!)
+                          : null,
+                      child: _ownerImageUrl == null
+                          ? const Icon(Icons.person)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _openAuthorProfile,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _ownerName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (widget.post.talent != null)
+                            Text(
+                              widget.post.talent!,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Post Caption/Content
+              if (widget.post.repostCaption != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Original post by ${widget.post.originalAuthorName ?? 'Unknown'}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ExpandableText(
+                        widget.post.content,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        trimLines: 5,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Your caption:',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ExpandableText(
+                  widget.post.repostCaption!,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  trimLines: 5,
+                ),
+              ] else ...[
+                ExpandableText(
+                  widget.post.content,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontSize: 16),
+                  trimLines: 10,
+                ),
+              ],
+              const SizedBox(height: 24),
+              Divider(color: Theme.of(context).dividerColor),
+              const SizedBox(height: 12),
+              // Interactions Row
+              Row(
+                children: [
+                  Expanded(
+                    child: AnimationUtils.scaleButtonAnimation(
+                      onTap: _toggleLike,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedScale(
+                            duration: const Duration(milliseconds: 200),
+                            scale: _isLiked ? 1.2 : 1.0,
+                            child: Icon(
+                              _isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: _isLiked ? Colors.red : null,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            style: Theme.of(context).textTheme.bodyLarge!
+                                .copyWith(
+                                  color: _isLiked ? Colors.red : null,
+                                  fontWeight: _isLiked
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                            child: Text('$_likeCount'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: AnimationUtils.scaleButtonAnimation(
+                      onTap: () async {
+                        Navigator.pop(context);
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) => CommentsBottomSheet(
+                            postId: widget.post.postId,
+                            postAuthorId: _ownerId,
+                            currentUserId: widget.currentUserId,
+                          ),
+                        );
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.comment_outlined, size: 28),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${widget.post.commentCount}',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: AnimationUtils.scaleButtonAnimation(
+                      onTap: _repostToFeed,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.repeat, size: 28),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${widget.post.repostCount}',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: AnimationUtils.scaleButtonAnimation(
+                      onTap: () => _showShareDialog(),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.share_outlined, size: 28),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Share',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   String get _ownerName => _isSharedPost
       ? (widget.post.originalAuthorName ?? widget.post.authorName).trim()
       : widget.post.authorName;
@@ -691,64 +907,75 @@ class _PostWidgetState extends State<PostWidget> {
             const SizedBox(height: 12),
             // Original Content (for reposts, show as attribution)
             if (widget.post.repostCaption != null) ...[
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 0.5,
+              GestureDetector(
+                onTap: _showPostDetailsSheet,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 0.5,
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Original post by ${widget.post.originalAuthorName ?? 'Unknown'}',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Original post by ${widget.post.originalAuthorName ?? 'Unknown'}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    ExpandableText(
-                      widget.post.content,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      trimLines: 3,
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      ExpandableText(
+                        widget.post.content,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        trimLines: 2,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.only(left: 4.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Your caption:',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.w500,
+              GestureDetector(
+                onTap: _showPostDetailsSheet,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Your caption:',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    ExpandableText(
-                      widget.post.repostCaption!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 4),
+                      ExpandableText(
+                        widget.post.repostCaption!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        trimLines: 2,
                       ),
-                      trimLines: 3,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
             ] else ...[
               // Regular post content
-              ExpandableText(
-                widget.post.content,
-                style: Theme.of(context).textTheme.bodyMedium,
-                trimLines: 4,
+              GestureDetector(
+                onTap: _showPostDetailsSheet,
+                child: ExpandableText(
+                  widget.post.content,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  trimLines: 3,
+                ),
               ),
               const SizedBox(height: 12),
             ],
@@ -852,89 +1079,34 @@ class _PostWidgetState extends State<PostWidget> {
                       ),
                     ),
             const SizedBox(height: 12),
-            // Interactions
-            Row(
-              children: [
-                // Like Button
-                Expanded(
-                  child: AnimationUtils.scaleButtonAnimation(
-                    onTap: _toggleLike,
-                    child: Row(
-                      children: [
-                        AnimatedScale(
-                          duration: const Duration(milliseconds: 200),
-                          scale: _isLiked ? 1.2 : 1.0,
-                          child: Icon(
-                            _isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: _isLiked ? Colors.red : null,
-                          ),
+            // See Details Button
+            SizedBox(
+              width: double.infinity,
+              child: AnimationUtils.scaleButtonAnimation(
+                onTap: _showPostDetailsSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.expand_less),
+                      const SizedBox(width: 8),
+                      Text(
+                        'View caption & interactions',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                         ),
-                        const SizedBox(width: 4),
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: Theme.of(context).textTheme.bodyMedium!
-                              .copyWith(
-                                color: _isLiked ? Colors.red : null,
-                                fontWeight: _isLiked
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                          child: Text('$_likeCount'),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-                // Comment Button
-                Expanded(
-                  child: AnimationUtils.scaleButtonAnimation(
-                    onTap: () async {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (context) => CommentsBottomSheet(
-                          postId: widget.post.postId,
-                          postAuthorId: _ownerId,
-                          currentUserId: widget.currentUserId,
-                        ),
-                      );
-                    },
-                    child: Row(
-                      children: [
-                        const Icon(Icons.comment_outlined),
-                        const SizedBox(width: 4),
-                        Text('${widget.post.commentCount}'),
-                      ],
-                    ),
-                  ),
-                ),
-                // Repost Count
-                Expanded(
-                  child: AnimationUtils.scaleButtonAnimation(
-                    onTap: _repostToFeed,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.repeat),
-                        const SizedBox(width: 4),
-                        Text('${widget.post.repostCount}'),
-                      ],
-                    ),
-                  ),
-                ),
-                // Share Button
-                Expanded(
-                  child: AnimationUtils.scaleButtonAnimation(
-                    onTap: () => _showShareDialog(),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.share_outlined),
-                        SizedBox(width: 4),
-                        Text('Share'),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
