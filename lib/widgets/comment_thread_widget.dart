@@ -446,7 +446,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                           'Hide replies',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.primary,
-                        A    fontStyle: FontStyle.italic,
+                        fontStyle: FontStyle.italic,
                           ),
                         ),
                       ),
@@ -730,7 +730,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
         _replyEditFocusNodes[reply.commentId] = FocusNode();
         _replyEditEmojiPanels[reply.commentId] = false;
       });
-      Future.delayed(Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) FocusScope.of(context).requestFocus(_replyEditFocusNodes[reply.commentId]);
       });
     }
