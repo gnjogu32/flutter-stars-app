@@ -20,6 +20,7 @@ import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
 import 'expandable_text.dart';
 import 'keyboard_prompt_banner.dart';
+import 'full_screen_video_player.dart';
 
 class PostWidget extends StatefulWidget {
   final PostModel post;
@@ -1204,6 +1205,7 @@ class _PostWidgetState extends State<PostWidget> {
                 onOpenDetails: _showPostDetailsSheet,
                 onFirstPlay: _incrementVideoViewCount,
                 canSaveMedia: _ownerId == widget.currentUserId,
+                enableFullscreen: true,
               ),
             if (widget.post.videoUrl != null) const SizedBox(height: 12),
             if (widget.post.videoUrl != null)
@@ -1735,6 +1737,7 @@ class _AudioPlayerState extends State<_AudioPlayer> {
 
 // ── Video player widget ────────────────────────────────────────────────────
 class _VideoPlayer extends StatefulWidget {
+  final bool enableFullscreen;
   final String videoUrl;
   final VoidCallback onOpenProfile;
   final VoidCallback onOpenDetails;
@@ -1747,6 +1750,7 @@ class _VideoPlayer extends StatefulWidget {
     required this.onOpenDetails,
     required this.onFirstPlay,
     required this.canSaveMedia,
+    this.enableFullscreen = true,
   });
 
   @override
@@ -1754,6 +1758,14 @@ class _VideoPlayer extends StatefulWidget {
 }
 
 class _VideoPlayerState extends State<_VideoPlayer> {
+  void _openFullScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FullScreenVideoPlayer(videoUrl: widget.videoUrl),
+      ),
+    );
+  }
+
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _showControls = true;
@@ -1894,6 +1906,7 @@ class _VideoPlayerState extends State<_VideoPlayer> {
               child: VideoPlayer(_controller),
             ),
           ),
+          // Video controls overlay
           if (_showControls)
             Positioned.fill(
               child: Container(
@@ -1931,11 +1944,105 @@ class _VideoPlayerState extends State<_VideoPlayer> {
                         ),
                         onPressed: () => _seekBy(const Duration(seconds: 10)),
                       ),
+                      if (widget.enableFullscreen)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.fullscreen,
+                            color: Colors.white,
+                            size: 38,
+                          ),
+                          onPressed: _openFullScreen,
+                        ),
                     ],
                   ),
                 ),
               ),
             ),
+          // Author details (bottom overlay)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: widget.onOpenProfile,
+                    child: const CircleAvatar(
+                      radius: 16,
+                      child: Icon(Icons.person, color: Colors.white),
+                      backgroundColor: Colors.transparent,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Author',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.info_outline, color: Colors.white),
+                    onPressed: widget.onOpenDetails,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Right interactions column
+          Positioned(
+            right: 8,
+            bottom: 80,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _controller.value.isPlaying
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: Colors.redAccent,
+                    size: 30,
+                  ),
+                  onPressed: () {}, // TODO: Hook up like action
+                ),
+                const SizedBox(height: 14),
+                IconButton(
+                  icon: const Icon(
+                    Icons.comment_outlined,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  onPressed: () {}, // TODO: Hook up comment action
+                ),
+                const SizedBox(height: 14),
+                IconButton(
+                  icon: const Icon(Icons.repeat, color: Colors.white, size: 28),
+                  onPressed: () {}, // TODO: Hook up repost action
+                ),
+                const SizedBox(height: 14),
+                IconButton(
+                  icon: const Icon(
+                    Icons.share_outlined,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  onPressed: () {}, // TODO: Hook up share action
+                ),
+              ],
+            ),
+          ),
+          // Profile and save icons (top corners)
           Positioned(
             top: 8,
             right: 8,
@@ -1978,9 +2085,10 @@ class _VideoPlayerState extends State<_VideoPlayer> {
                 ),
               ),
             ),
+          // Video progress bar (only with controls)
           if (_showControls)
             Positioned(
-              bottom: 8,
+              bottom: 60,
               left: 8,
               right: 8,
               child: Row(

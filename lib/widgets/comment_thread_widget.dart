@@ -116,152 +116,48 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     );
   }
 
-  Future<void> _editComment() async {
-    final controller = TextEditingController(text: widget.comment.content);
-    final focusNode = FocusNode();
-    final messenger = ScaffoldMessenger.of(context);
-    var showEmojiPanel = false;
-    await showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          final keyboardInset = MediaQuery.viewInsetsOf(dialogContext).bottom;
-          final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
-          return AlertDialog(
-            title: const Text('Edit Comment'),
-            content: AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(bottom: composerBottomInset),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            setDialogState(
-                              () => showEmojiPanel = !showEmojiPanel,
-                            );
-                            if (showEmojiPanel) {
-                              focusNode.unfocus();
-                              SystemChannels.textInput.invokeMethod(
-                                'TextInput.hide',
-                              );
-                            } else {
-                              FocusScope.of(
-                                dialogContext,
-                              ).requestFocus(focusNode);
-                            }
-                          },
-                          icon: Icon(
-                            showEmojiPanel
-                                ? Icons.keyboard_outlined
-                                : Icons.emoji_emotions_outlined,
-                          ),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            onTap: () {
-                              if (showEmojiPanel) {
-                                setDialogState(() => showEmojiPanel = false);
-                              }
-                            },
-                            maxLines: null,
-                            decoration: InputDecoration(
-                              hintText: 'Edit your comment...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      height: showEmojiPanel ? 180 : 0,
-                      child: showEmojiPanel
-                          ? GridView.builder(
-                              padding: const EdgeInsets.only(top: 8),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 8,
-                                    childAspectRatio: 1.2,
-                                  ),
-                              itemCount: _quickEmojis.length,
-                              itemBuilder: (context, index) {
-                                final emoji = _quickEmojis[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () {
-                                    final currentText = controller.text;
-                                    final currentSelection =
-                                        controller.selection;
-                                    final start = currentSelection.start >= 0
-                                        ? currentSelection.start
-                                        : currentText.length;
-                                    final end = currentSelection.end >= 0
-                                        ? currentSelection.end
-                                        : currentText.length;
-                                    final newText = currentText.replaceRange(
-                                      start,
-                                      end,
-                                      emoji,
-                                    );
-                                    controller.value = TextEditingValue(
-                                      text: newText,
-                                      selection: TextSelection.collapsed(
-                                        offset: start + emoji.length,
-                                      ),
-                                    );
-                                  },
-                                  child: Center(
-                                    child: Text(
-                                      emoji,
-                                      style: const TextStyle(fontSize: 24),
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  await _commentService.updateComment(
-                    commentId: widget.comment.commentId,
-                    content: controller.text.trim(),
-                    authorId: widget.currentUserId,
-                  );
-                  if (!mounted || !dialogContext.mounted) return;
-                  Navigator.pop(dialogContext);
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Comment updated')),
-                  );
-                },
-                child: const Text('Update'),
-              ),
-            ],
-          );
-        },
-      ),
+  bool _isEditing = false;
+  late TextEditingController _editController;
+  late FocusNode _editFocusNode;
+  bool _showEditEmojiPanel = false;
+
+  void _startEdit() {
+    setState(() {
+      _isEditing = true;
+      _editController = TextEditingController(text: widget.comment.content);
+      _editFocusNode = FocusNode();
+      _showEditEmojiPanel = false;
+    });
+    Future.delayed(Duration(milliseconds: 100), () {
+      if (mounted) FocusScope.of(context).requestFocus(_editFocusNode);
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _isEditing = false;
+      _editController.dispose();
+      _editFocusNode.dispose();
+      _showEditEmojiPanel = false;
+    });
+  }
+
+  Future<void> _saveEdit() async {
+    await _commentService.updateComment(
+      commentId: widget.comment.commentId,
+      content: _editController.text.trim(),
+      authorId: widget.currentUserId,
     );
-    controller.dispose();
-    focusNode.dispose();
+    if (!mounted) return;
+    setState(() {
+      _isEditing = false;
+      _editController.dispose();
+      _editFocusNode.dispose();
+      _showEditEmojiPanel = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Comment updated')),
+    );
   }
 
   @override
@@ -320,11 +216,90 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               fontStyle: FontStyle.italic,
                             ),
                           ),
-                        ExpandableText(
-                          widget.comment.content,
-                          style: theme.textTheme.bodySmall,
-                          trimLines: 3,
-                        ),
+                        if (_isEditing)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() => _showEditEmojiPanel = !_showEditEmojiPanel);
+                                      if (_showEditEmojiPanel) {
+                                        _editFocusNode.unfocus();
+                                        SystemChannels.textInput.invokeMethod('TextInput.hide');
+                                      } else {
+                                        FocusScope.of(context).requestFocus(_editFocusNode);
+                                      }
+                                    },
+                                    icon: Icon(_showEditEmojiPanel ? Icons.keyboard_outlined : Icons.emoji_emotions_outlined),
+                                  ),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _editController,
+                                      focusNode: _editFocusNode,
+                                      onTap: () {
+                                        if (_showEditEmojiPanel) setState(() => _showEditEmojiPanel = false);
+                                      },
+                                      maxLines: null,
+                                      decoration: InputDecoration(
+                                        hintText: 'Edit your comment...',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeOut,
+                                height: _showEditEmojiPanel ? 180 : 0,
+                                child: _showEditEmojiPanel
+                                    ? GridView.builder(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 8,
+                                          childAspectRatio: 1.2,
+                                        ),
+                                        itemCount: _quickEmojis.length,
+                                        itemBuilder: (context, index) {
+                                          final emoji = _quickEmojis[index];
+                                          return InkWell(
+                                            borderRadius: BorderRadius.circular(8),
+                                            onTap: () {
+                                              final currentText = _editController.text;
+                                              final currentSelection = _editController.selection;
+                                              final start = currentSelection.start >= 0 ? currentSelection.start : currentText.length;
+                                              final end = currentSelection.end >= 0 ? currentSelection.end : currentText.length;
+                                              final newText = currentText.replaceRange(start, end, emoji);
+                                              _editController.value = TextEditingValue(
+                                                text: newText,
+                                                selection: TextSelection.collapsed(offset: start + emoji.length),
+                                              );
+                                            },
+                                            child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                                          );
+                                        },
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                              Row(
+                                children: [
+                                  TextButton(onPressed: _cancelEdit, child: const Text('Cancel')),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(onPressed: _saveEdit, child: const Text('Update')),
+                                ],
+                              ),
+                            ],
+                          )
+                        else
+                          ExpandableText(
+                            widget.comment.content,
+                            style: theme.textTheme.bodySmall,
+                            trimLines: 3,
+                          ),
                         if (widget.comment.isEdited)
                           Text(
                             'Edited ${timeago.format(widget.comment.editedAt ?? widget.comment.createdAt)}',
@@ -386,7 +361,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     PopupMenuButton(
                       itemBuilder: (context) => [
                         PopupMenuItem(
-                          onTap: _editComment,
+                          onTap: _startEdit,
                           child: const Row(
                             children: [
                               Icon(Icons.edit, size: 16),
@@ -471,7 +446,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                           'Hide replies',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.primary,
-                            fontStyle: FontStyle.italic,
+                        A    fontStyle: FontStyle.italic,
                           ),
                         ),
                       ),
@@ -488,6 +463,11 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
 
   Widget _buildReplyWidget(CommentModel reply, ThemeData theme) {
     bool replyIsLiked = reply.isLikedBy(widget.currentUserId);
+    // Inline edit state for replies
+    final isReplyEditing = _replyEditId == reply.commentId;
+    final replyEditController = _replyEditControllers[reply.commentId] ?? TextEditingController(text: reply.content);
+    final replyEditFocusNode = _replyEditFocusNodes[reply.commentId] ?? FocusNode();
+    final showReplyEditEmojiPanel = _replyEditEmojiPanels[reply.commentId] ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -530,7 +510,94 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(reply.content, style: theme.textTheme.bodySmall),
+                  if (isReplyEditing)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _replyEditEmojiPanels[reply.commentId] = !showReplyEditEmojiPanel;
+                                });
+                                if (!showReplyEditEmojiPanel) {
+                                  replyEditFocusNode.unfocus();
+                                  SystemChannels.textInput.invokeMethod('TextInput.hide');
+                                } else {
+                                  FocusScope.of(context).requestFocus(replyEditFocusNode);
+                                }
+                              },
+                              icon: Icon(showReplyEditEmojiPanel ? Icons.keyboard_outlined : Icons.emoji_emotions_outlined),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: replyEditController,
+                                focusNode: replyEditFocusNode,
+                                onTap: () {
+                                  if (showReplyEditEmojiPanel) setState(() => _replyEditEmojiPanels[reply.commentId] = false);
+                                },
+                                maxLines: null,
+                                decoration: InputDecoration(
+                                  hintText: 'Edit your reply...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          height: showReplyEditEmojiPanel ? 180 : 0,
+                          child: showReplyEditEmojiPanel
+                              ? GridView.builder(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 8,
+                                    childAspectRatio: 1.2,
+                                  ),
+                                  itemCount: _quickEmojis.length,
+                                  itemBuilder: (context, index) {
+                                    final emoji = _quickEmojis[index];
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () {
+                                        final currentText = replyEditController.text;
+                                        final currentSelection = replyEditController.selection;
+                                        final start = currentSelection.start >= 0 ? currentSelection.start : currentText.length;
+                                        final end = currentSelection.end >= 0 ? currentSelection.end : currentText.length;
+                                        final newText = currentText.replaceRange(start, end, emoji);
+                                        replyEditController.value = TextEditingValue(
+                                          text: newText,
+                                          selection: TextSelection.collapsed(offset: start + emoji.length),
+                                        );
+                                      },
+                                      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                                    );
+                                  },
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: () => _cancelReplyEdit(reply.commentId),
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () => _saveReplyEdit(reply),
+                              child: const Text('Update'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  else
+                    Text(reply.content, style: theme.textTheme.bodySmall),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -616,6 +683,31 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                           ],
                         ),
                       ),
+                      if (widget.currentUserId == reply.authorId)
+                        PopupMenuButton(
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              onTap: () => _startReplyEdit(reply),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.edit, size: 14),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              onTap: () => _deleteReply(reply.commentId),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.delete, size: 14, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ],
@@ -625,5 +717,71 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
         ),
       ],
     );
+    // Reply edit state
+    String? _replyEditId;
+    final Map<String, TextEditingController> _replyEditControllers = {};
+    final Map<String, FocusNode> _replyEditFocusNodes = {};
+    final Map<String, bool> _replyEditEmojiPanels = {};
+
+    void _startReplyEdit(CommentModel reply) {
+      setState(() {
+        _replyEditId = reply.commentId;
+        _replyEditControllers[reply.commentId] = TextEditingController(text: reply.content);
+        _replyEditFocusNodes[reply.commentId] = FocusNode();
+        _replyEditEmojiPanels[reply.commentId] = false;
+      });
+      Future.delayed(Duration(milliseconds: 100), () {
+        if (mounted) FocusScope.of(context).requestFocus(_replyEditFocusNodes[reply.commentId]);
+      });
+    }
+
+    void _cancelReplyEdit(String commentId) {
+      setState(() {
+        _replyEditId = null;
+        _replyEditControllers[commentId]?.dispose();
+        _replyEditFocusNodes[commentId]?.dispose();
+        _replyEditEmojiPanels[commentId] = false;
+        _replyEditControllers.remove(commentId);
+        _replyEditFocusNodes.remove(commentId);
+      });
+    }
+
+    Future<void> _saveReplyEdit(CommentModel reply) async {
+      final controller = _replyEditControllers[reply.commentId];
+      if (controller == null) return;
+      await _commentService.updateComment(
+        commentId: reply.commentId,
+        content: controller.text.trim(),
+        authorId: widget.currentUserId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _replyEditId = null;
+        _replyEditControllers[reply.commentId]?.dispose();
+        _replyEditFocusNodes[reply.commentId]?.dispose();
+        _replyEditEmojiPanels[reply.commentId] = false;
+        _replyEditControllers.remove(reply.commentId);
+        _replyEditFocusNodes.remove(reply.commentId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reply updated')),
+      );
+    }
+
+    void _deleteReply(String commentId) async {
+      await _commentService.deleteComment(commentId: commentId, postId: widget.postId);
+      if (!mounted) return;
+      setState(() {
+        _replyEditId = null;
+        _replyEditControllers[commentId]?.dispose();
+        _replyEditFocusNodes[commentId]?.dispose();
+        _replyEditEmojiPanels[commentId] = false;
+        _replyEditControllers.remove(commentId);
+        _replyEditFocusNodes.remove(commentId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reply deleted')),
+      );
+    }
   }
 }
