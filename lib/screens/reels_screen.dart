@@ -649,16 +649,53 @@ class _ReelItemState extends State<_ReelItem> {
 
   Future<void> _openComments() async {
     if (!mounted) return;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => CommentsBottomSheet(
-        postId: widget.post.postId,
-        postAuthorId: _ownerId,
-        currentUserId: _activeUserId,
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => FullScreenCommentsPage(
+          postId: widget.post.postId,
+          postAuthorId: _ownerId,
+          currentUserId: _activeUserId,
+        ),
       ),
     );
   }
+// --- Fullscreen Comments Page ---
+class FullScreenCommentsPage extends StatelessWidget {
+  final String postId;
+  final String postAuthorId;
+  final String currentUserId;
+
+  const FullScreenCommentsPage({
+    super.key,
+    required this.postId,
+    required this.postAuthorId,
+    required this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text('Comments'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: CommentsBottomSheet(
+          postId: postId,
+          postAuthorId: postAuthorId,
+          currentUserId: currentUserId,
+        ),
+      ),
+    );
+  }
+}
 
   Future<void> _openInteractionsSheet() async {
     if (!mounted) return;

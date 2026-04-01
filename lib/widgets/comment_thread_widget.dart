@@ -399,10 +399,10 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   Widget _buildReplyWidget(CommentModel reply, ThemeData theme) {
     bool replyIsLiked = reply.isLikedBy(widget.currentUserId);
     // Inline edit state for replies
-    final isReplyEditing = _replyEditId == reply.commentId;
-    final replyEditController = _replyEditControllers[reply.commentId] ?? TextEditingController(text: reply.content);
-    final replyEditFocusNode = _replyEditFocusNodes[reply.commentId] ?? FocusNode();
-    final showReplyEditEmojiPanel = _replyEditEmojiPanels[reply.commentId] ?? false;
+    final isReplyEditing = replyEditId == reply.commentId;
+    final replyEditController = replyEditControllers[reply.commentId] ?? TextEditingController(text: reply.content);
+    final replyEditFocusNode = replyEditFocusNodes[reply.commentId] ?? FocusNode();
+    final showReplyEditEmojiPanel = replyEditEmojiPanels[reply.commentId] ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,7 +454,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                             IconButton(
                               onPressed: () {
                                 setState(() {
-                                  _replyEditEmojiPanels[reply.commentId] = !showReplyEditEmojiPanel;
+                                  replyEditEmojiPanels[reply.commentId] = !showReplyEditEmojiPanel;
                                 });
                                 if (!showReplyEditEmojiPanel) {
                                   replyEditFocusNode.unfocus();
@@ -470,7 +470,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 controller: replyEditController,
                                 focusNode: replyEditFocusNode,
                                 onTap: () {
-                                  if (showReplyEditEmojiPanel) setState(() => _replyEditEmojiPanels[reply.commentId] = false);
+                                  if (showReplyEditEmojiPanel) setState(() => replyEditEmojiPanels[reply.commentId] = false);
                                 },
                                 maxLines: null,
                                 decoration: InputDecoration(
@@ -519,12 +519,12 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                         Row(
                           children: [
                             TextButton(
-                              onPressed: () => _cancelReplyEdit(reply.commentId),
+                              onPressed: () => cancelReplyEdit(reply.commentId),
                               child: const Text('Cancel'),
                             ),
                             const SizedBox(width: 8),
                             ElevatedButton(
-                              onPressed: () => _saveReplyEdit(reply),
+                              onPressed: () => saveReplyEdit(reply),
                               child: const Text('Update'),
                             ),
                           ],
@@ -622,7 +622,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                         PopupMenuButton(
                           itemBuilder: (context) => [
                             PopupMenuItem(
-                              onTap: () => _startReplyEdit(reply),
+                              onTap: () => startReplyEdit(reply),
                               child: const Row(
                                 children: [
                                   Icon(Icons.edit, size: 14),
@@ -632,7 +632,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               ),
                             ),
                             PopupMenuItem(
-                              onTap: () => _deleteReply(reply.commentId),
+                              onTap: () => deleteReply(reply.commentId),
                               child: const Row(
                                 children: [
                                   Icon(Icons.delete, size: 14, color: Colors.red),
@@ -653,36 +653,36 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
       ],
     );
     // Reply edit state
-    String? _replyEditId;
-    final Map<String, TextEditingController> _replyEditControllers = {};
-    final Map<String, FocusNode> _replyEditFocusNodes = {};
-    final Map<String, bool> _replyEditEmojiPanels = {};
+    String? replyEditId;
+    final Map<String, TextEditingController> replyEditControllers = {};
+    final Map<String, FocusNode> replyEditFocusNodes = {};
+    final Map<String, bool> replyEditEmojiPanels = {};
 
-    void _startReplyEdit(CommentModel reply) {
+    void startReplyEdit(CommentModel reply) {
       setState(() {
-        _replyEditId = reply.commentId;
-        _replyEditControllers[reply.commentId] = TextEditingController(text: reply.content);
-        _replyEditFocusNodes[reply.commentId] = FocusNode();
-        _replyEditEmojiPanels[reply.commentId] = false;
+        replyEditId = reply.commentId;
+        replyEditControllers[reply.commentId] = TextEditingController(text: reply.content);
+        replyEditFocusNodes[reply.commentId] = FocusNode();
+        replyEditEmojiPanels[reply.commentId] = false;
       });
       Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) FocusScope.of(context).requestFocus(_replyEditFocusNodes[reply.commentId]);
+        if (mounted) FocusScope.of(context).requestFocus(replyEditFocusNodes[reply.commentId]);
       });
     }
 
-    void _cancelReplyEdit(String commentId) {
+    void cancelReplyEdit(String commentId) {
       setState(() {
-        _replyEditId = null;
-        _replyEditControllers[commentId]?.dispose();
-        _replyEditFocusNodes[commentId]?.dispose();
-        _replyEditEmojiPanels[commentId] = false;
-        _replyEditControllers.remove(commentId);
-        _replyEditFocusNodes.remove(commentId);
+        replyEditId = null;
+        replyEditControllers[commentId]?.dispose();
+        replyEditFocusNodes[commentId]?.dispose();
+        replyEditEmojiPanels[commentId] = false;
+        replyEditControllers.remove(commentId);
+        replyEditFocusNodes.remove(commentId);
       });
     }
 
-    Future<void> _saveReplyEdit(CommentModel reply) async {
-      final controller = _replyEditControllers[reply.commentId];
+    Future<void> saveReplyEdit(CommentModel reply) async {
+      final controller = replyEditControllers[reply.commentId];
       if (controller == null) return;
       await _commentService.updateComment(
         commentId: reply.commentId,
@@ -691,28 +691,28 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
       );
       if (!mounted) return;
       setState(() {
-        _replyEditId = null;
-        _replyEditControllers[reply.commentId]?.dispose();
-        _replyEditFocusNodes[reply.commentId]?.dispose();
-        _replyEditEmojiPanels[reply.commentId] = false;
-        _replyEditControllers.remove(reply.commentId);
-        _replyEditFocusNodes.remove(reply.commentId);
+        replyEditId = null;
+        replyEditControllers[reply.commentId]?.dispose();
+        replyEditFocusNodes[reply.commentId]?.dispose();
+        replyEditEmojiPanels[reply.commentId] = false;
+        replyEditControllers.remove(reply.commentId);
+        replyEditFocusNodes.remove(reply.commentId);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Reply updated')),
       );
     }
 
-    void _deleteReply(String commentId) async {
+    void deleteReply(String commentId) async {
       await _commentService.deleteComment(commentId: commentId, postId: widget.postId);
       if (!mounted) return;
       setState(() {
-        _replyEditId = null;
-        _replyEditControllers[commentId]?.dispose();
-        _replyEditFocusNodes[commentId]?.dispose();
-        _replyEditEmojiPanels[commentId] = false;
-        _replyEditControllers.remove(commentId);
-        _replyEditFocusNodes.remove(commentId);
+        replyEditId = null;
+        replyEditControllers[commentId]?.dispose();
+        replyEditFocusNodes[commentId]?.dispose();
+        replyEditEmojiPanels[commentId] = false;
+        replyEditControllers.remove(commentId);
+        replyEditFocusNodes.remove(commentId);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Reply deleted')),
