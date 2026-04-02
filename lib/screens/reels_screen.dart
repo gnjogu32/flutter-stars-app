@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'full_screen_comments_page.dart';
 
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
@@ -12,7 +13,6 @@ import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
 import '../services/share_service.dart';
 import '../services/user_service.dart';
-import '../widgets/comments_bottom_sheet.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/keyboard_prompt_banner.dart';
 import 'profile_screen.dart';
@@ -660,42 +660,6 @@ class _ReelItemState extends State<_ReelItem> {
       ),
     );
   }
-// --- Fullscreen Comments Page ---
-class FullScreenCommentsPage extends StatelessWidget {
-  final String postId;
-  final String postAuthorId;
-  final String currentUserId;
-
-  const FullScreenCommentsPage({
-    super.key,
-    required this.postId,
-    required this.postAuthorId,
-    required this.currentUserId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('Comments'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: CommentsBottomSheet(
-          postId: postId,
-          postAuthorId: postAuthorId,
-          currentUserId: currentUserId,
-        ),
-      ),
-    );
-  }
-}
 
   Future<void> _openInteractionsSheet() async {
     if (!mounted) return;

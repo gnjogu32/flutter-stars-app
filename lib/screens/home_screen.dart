@@ -162,6 +162,13 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.of(context).pushNamed('/create-post');
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            tooltip: 'Notifications',
+            onPressed: () {
+              Navigator.of(context).pushNamed('/notifications');
+            },
+          ),
         ],
       ),
       body: Stack(

@@ -5,19 +5,20 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory =
-    rootProject.layout.buildDirectory
-        .dir("../../build")
-        .get()
-rootProject.layout.buildDirectory.value(newBuildDir)
+// Set the build directory to the standard Flutter location (root_project/build)
+val rootBuildDir = rootProject.layout.projectDirectory.dir("../build")
+rootProject.layout.buildDirectory.value(rootBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    val subprojectBuildDir = rootBuildDir.dir(project.name)
+    project.layout.buildDirectory.value(subprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
+
+// Removed afterEvaluate block to fix Gradle build error
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)

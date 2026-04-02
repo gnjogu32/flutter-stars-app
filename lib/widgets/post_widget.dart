@@ -1975,8 +1975,8 @@ class _VideoPlayerState extends State<_VideoPlayer> {
                     onTap: widget.onOpenProfile,
                     child: const CircleAvatar(
                       radius: 16,
-                      child: Icon(Icons.person, color: Colors.white),
                       backgroundColor: Colors.transparent,
+                      child: Icon(Icons.person, color: Colors.white),
                     ),
                   ),
                   const SizedBox(width: 10),

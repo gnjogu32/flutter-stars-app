@@ -55,7 +55,7 @@ class _SearchOverlayState extends State<SearchOverlay>
     final postSnap = await FirebaseFirestore.instance
         .collection('posts')
         .where('content', isGreaterThanOrEqualTo: query)
-        .where('content', isLessThan: query + 'z')
+        .where('content', isLessThan: '${query}z')
         .limit(20)
         .get();
     final posts = postSnap.docs

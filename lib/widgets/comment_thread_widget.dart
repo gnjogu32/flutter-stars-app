@@ -28,6 +28,38 @@ class CommentThreadWidget extends StatefulWidget {
 
 class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   late bool _isLiked;
+  final CommentService _commentService = CommentService();
+  static const List<String> _quickEmojis = [
+    '😀',
+    '😁',
+    '😂',
+    '🤣',
+    '😊',
+    '😍',
+    '🥳',
+    '😎',
+    '🤔',
+    '👏',
+    '🔥',
+    '💯',
+    '✨',
+    '🙌',
+    '👍',
+    '🙏',
+    '❤️',
+    '💙',
+    '💚',
+    '🎉',
+    '😢',
+    '😡',
+    '🤝',
+    '💫',
+  ];
+  bool _showReplies = false;
+  String? replyEditId;
+  final Map<String, TextEditingController> replyEditControllers = {};
+  final Map<String, FocusNode> replyEditFocusNodes = {};
+  final Map<String, bool> replyEditEmojiPanels = {};
   void _deleteComment() {
     showDialog(
       context: context,
@@ -55,6 +87,17 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   late TextEditingController _editController;
   late FocusNode _editFocusNode;
   bool _showEditEmojiPanel = false;
+
+  void _toggleLike() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+    setState(() {
+      _isLiked = !_isLiked;
+    });
+    // Add your like/unlike logic here if needed
+  }
 
   void _startEdit() {
     setState(() {
@@ -90,9 +133,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
       _editFocusNode.dispose();
       _showEditEmojiPanel = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Comment updated')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Comment updated')));
   }
 
   @override
@@ -159,28 +202,44 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 children: [
                                   IconButton(
                                     onPressed: () {
-                                      setState(() => _showEditEmojiPanel = !_showEditEmojiPanel);
+                                      setState(
+                                        () => _showEditEmojiPanel =
+                                            !_showEditEmojiPanel,
+                                      );
                                       if (_showEditEmojiPanel) {
                                         _editFocusNode.unfocus();
-                                        SystemChannels.textInput.invokeMethod('TextInput.hide');
+                                        SystemChannels.textInput.invokeMethod(
+                                          'TextInput.hide',
+                                        );
                                       } else {
-                                        FocusScope.of(context).requestFocus(_editFocusNode);
+                                        FocusScope.of(
+                                          context,
+                                        ).requestFocus(_editFocusNode);
                                       }
                                     },
-                                    icon: Icon(_showEditEmojiPanel ? Icons.keyboard_outlined : Icons.emoji_emotions_outlined),
+                                    icon: Icon(
+                                      _showEditEmojiPanel
+                                          ? Icons.keyboard_outlined
+                                          : Icons.emoji_emotions_outlined,
+                                    ),
                                   ),
                                   Expanded(
                                     child: TextField(
                                       controller: _editController,
                                       focusNode: _editFocusNode,
                                       onTap: () {
-                                        if (_showEditEmojiPanel) setState(() => _showEditEmojiPanel = false);
+                                        if (_showEditEmojiPanel)
+                                          setState(
+                                            () => _showEditEmojiPanel = false,
+                                          );
                                       },
                                       maxLines: null,
                                       decoration: InputDecoration(
                                         hintText: 'Edit your comment...',
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -194,27 +253,55 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 child: _showEditEmojiPanel
                                     ? GridView.builder(
                                         padding: const EdgeInsets.only(top: 8),
-                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 8,
-                                          childAspectRatio: 1.2,
-                                        ),
+                                        gridDelegate:
+                                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: 8,
+                                              childAspectRatio: 1.2,
+                                            ),
                                         itemCount: _quickEmojis.length,
                                         itemBuilder: (context, index) {
                                           final emoji = _quickEmojis[index];
                                           return InkWell(
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                             onTap: () {
-                                              final currentText = _editController.text;
-                                              final currentSelection = _editController.selection;
-                                              final start = currentSelection.start >= 0 ? currentSelection.start : currentText.length;
-                                              final end = currentSelection.end >= 0 ? currentSelection.end : currentText.length;
-                                              final newText = currentText.replaceRange(start, end, emoji);
-                                              _editController.value = TextEditingValue(
+                                              final currentText =
+                                                  _editController.text;
+                                              final currentSelection =
+                                                  _editController.selection;
+                                              final start =
+                                                  currentSelection.start >= 0
+                                                  ? currentSelection.start
+                                                  : currentText.length;
+                                              final end =
+                                                  currentSelection.end >= 0
+                                                  ? currentSelection.end
+                                                  : currentText.length;
+                                              final newText = currentText
+                                                  .replaceRange(
+                                                    start,
+                                                    end,
+                                                    emoji,
+                                                  );
+                                              _editController
+                                                  .value = TextEditingValue(
                                                 text: newText,
-                                                selection: TextSelection.collapsed(offset: start + emoji.length),
+                                                selection:
+                                                    TextSelection.collapsed(
+                                                      offset:
+                                                          start + emoji.length,
+                                                    ),
                                               );
                                             },
-                                            child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                                            child: Center(
+                                              child: Text(
+                                                emoji,
+                                                style: const TextStyle(
+                                                  fontSize: 24,
+                                                ),
+                                              ),
+                                            ),
                                           );
                                         },
                                       )
@@ -222,9 +309,15 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               ),
                               Row(
                                 children: [
-                                  TextButton(onPressed: _cancelEdit, child: const Text('Cancel')),
+                                  TextButton(
+                                    onPressed: _cancelEdit,
+                                    child: const Text('Cancel'),
+                                  ),
                                   const SizedBox(width: 8),
-                                  ElevatedButton(onPressed: _saveEdit, child: const Text('Update')),
+                                  ElevatedButton(
+                                    onPressed: _saveEdit,
+                                    child: const Text('Update'),
+                                  ),
                                 ],
                               ),
                             ],
@@ -381,7 +474,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                           'Hide replies',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.primary,
-                        fontStyle: FontStyle.italic,
+                            fontStyle: FontStyle.italic,
                           ),
                         ),
                       ),
@@ -400,9 +493,13 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     bool replyIsLiked = reply.isLikedBy(widget.currentUserId);
     // Inline edit state for replies
     final isReplyEditing = replyEditId == reply.commentId;
-    final replyEditController = replyEditControllers[reply.commentId] ?? TextEditingController(text: reply.content);
-    final replyEditFocusNode = replyEditFocusNodes[reply.commentId] ?? FocusNode();
-    final showReplyEditEmojiPanel = replyEditEmojiPanels[reply.commentId] ?? false;
+    final replyEditController =
+        replyEditControllers[reply.commentId] ??
+        TextEditingController(text: reply.content);
+    final replyEditFocusNode =
+        replyEditFocusNodes[reply.commentId] ?? FocusNode();
+    final showReplyEditEmojiPanel =
+        replyEditEmojiPanels[reply.commentId] ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,23 +551,38 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                             IconButton(
                               onPressed: () {
                                 setState(() {
-                                  replyEditEmojiPanels[reply.commentId] = !showReplyEditEmojiPanel;
+                                  replyEditEmojiPanels[reply.commentId] =
+                                      !showReplyEditEmojiPanel;
                                 });
                                 if (!showReplyEditEmojiPanel) {
                                   replyEditFocusNode.unfocus();
-                                  SystemChannels.textInput.invokeMethod('TextInput.hide');
+                                  SystemChannels.textInput.invokeMethod(
+                                    'TextInput.hide',
+                                  );
                                 } else {
-                                  FocusScope.of(context).requestFocus(replyEditFocusNode);
+                                  FocusScope.of(
+                                    context,
+                                  ).requestFocus(replyEditFocusNode);
                                 }
                               },
-                              icon: Icon(showReplyEditEmojiPanel ? Icons.keyboard_outlined : Icons.emoji_emotions_outlined),
+                              icon: Icon(
+                                showReplyEditEmojiPanel
+                                    ? Icons.keyboard_outlined
+                                    : Icons.emoji_emotions_outlined,
+                              ),
                             ),
                             Expanded(
                               child: TextField(
                                 controller: replyEditController,
                                 focusNode: replyEditFocusNode,
                                 onTap: () {
-                                  if (showReplyEditEmojiPanel) setState(() => replyEditEmojiPanels[reply.commentId] = false);
+                                  if (showReplyEditEmojiPanel)
+                                    setState(
+                                      () =>
+                                          replyEditEmojiPanels[reply
+                                                  .commentId] =
+                                              false,
+                                    );
                                 },
                                 maxLines: null,
                                 decoration: InputDecoration(
@@ -490,27 +602,44 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                           child: showReplyEditEmojiPanel
                               ? GridView.builder(
                                   padding: const EdgeInsets.only(top: 8),
-                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 8,
-                                    childAspectRatio: 1.2,
-                                  ),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 8,
+                                        childAspectRatio: 1.2,
+                                      ),
                                   itemCount: _quickEmojis.length,
                                   itemBuilder: (context, index) {
                                     final emoji = _quickEmojis[index];
                                     return InkWell(
                                       borderRadius: BorderRadius.circular(8),
                                       onTap: () {
-                                        final currentText = replyEditController.text;
-                                        final currentSelection = replyEditController.selection;
-                                        final start = currentSelection.start >= 0 ? currentSelection.start : currentText.length;
-                                        final end = currentSelection.end >= 0 ? currentSelection.end : currentText.length;
-                                        final newText = currentText.replaceRange(start, end, emoji);
-                                        replyEditController.value = TextEditingValue(
+                                        final currentText =
+                                            replyEditController.text;
+                                        final currentSelection =
+                                            replyEditController.selection;
+                                        final start =
+                                            currentSelection.start >= 0
+                                            ? currentSelection.start
+                                            : currentText.length;
+                                        final end = currentSelection.end >= 0
+                                            ? currentSelection.end
+                                            : currentText.length;
+                                        final newText = currentText
+                                            .replaceRange(start, end, emoji);
+                                        replyEditController
+                                            .value = TextEditingValue(
                                           text: newText,
-                                          selection: TextSelection.collapsed(offset: start + emoji.length),
+                                          selection: TextSelection.collapsed(
+                                            offset: start + emoji.length,
+                                          ),
                                         );
                                       },
-                                      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                                      child: Center(
+                                        child: Text(
+                                          emoji,
+                                          style: const TextStyle(fontSize: 24),
+                                        ),
+                                      ),
                                     );
                                   },
                                 )
@@ -635,9 +764,16 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               onTap: () => deleteReply(reply.commentId),
                               child: const Row(
                                 children: [
-                                  Icon(Icons.delete, size: 14, color: Colors.red),
+                                  Icon(
+                                    Icons.delete,
+                                    size: 14,
+                                    color: Colors.red,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('Delete', style: TextStyle(color: Colors.red)),
+                                  Text(
+                                    'Delete',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ],
                               ),
                             ),
@@ -652,71 +788,75 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
         ),
       ],
     );
-    // Reply edit state
-    String? replyEditId;
-    final Map<String, TextEditingController> replyEditControllers = {};
-    final Map<String, FocusNode> replyEditFocusNodes = {};
-    final Map<String, bool> replyEditEmojiPanels = {};
+  }
 
-    void startReplyEdit(CommentModel reply) {
-      setState(() {
-        replyEditId = reply.commentId;
-        replyEditControllers[reply.commentId] = TextEditingController(text: reply.content);
-        replyEditFocusNodes[reply.commentId] = FocusNode();
-        replyEditEmojiPanels[reply.commentId] = false;
-      });
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) FocusScope.of(context).requestFocus(replyEditFocusNodes[reply.commentId]);
-      });
-    }
-
-    void cancelReplyEdit(String commentId) {
-      setState(() {
-        replyEditId = null;
-        replyEditControllers[commentId]?.dispose();
-        replyEditFocusNodes[commentId]?.dispose();
-        replyEditEmojiPanels[commentId] = false;
-        replyEditControllers.remove(commentId);
-        replyEditFocusNodes.remove(commentId);
-      });
-    }
-
-    Future<void> saveReplyEdit(CommentModel reply) async {
-      final controller = replyEditControllers[reply.commentId];
-      if (controller == null) return;
-      await _commentService.updateComment(
-        commentId: reply.commentId,
-        content: controller.text.trim(),
-        authorId: widget.currentUserId,
+  // Reply edit state methods (moved to class scope)
+  void startReplyEdit(CommentModel reply) {
+    setState(() {
+      replyEditId = reply.commentId;
+      replyEditControllers[reply.commentId] = TextEditingController(
+        text: reply.content,
       );
-      if (!mounted) return;
-      setState(() {
-        replyEditId = null;
-        replyEditControllers[reply.commentId]?.dispose();
-        replyEditFocusNodes[reply.commentId]?.dispose();
-        replyEditEmojiPanels[reply.commentId] = false;
-        replyEditControllers.remove(reply.commentId);
-        replyEditFocusNodes.remove(reply.commentId);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reply updated')),
-      );
-    }
+      replyEditFocusNodes[reply.commentId] = FocusNode();
+      replyEditEmojiPanels[reply.commentId] = false;
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted)
+        FocusScope.of(
+          context,
+        ).requestFocus(replyEditFocusNodes[reply.commentId]);
+    });
+  }
 
-    void deleteReply(String commentId) async {
-      await _commentService.deleteComment(commentId: commentId, postId: widget.postId);
-      if (!mounted) return;
-      setState(() {
-        replyEditId = null;
-        replyEditControllers[commentId]?.dispose();
-        replyEditFocusNodes[commentId]?.dispose();
-        replyEditEmojiPanels[commentId] = false;
-        replyEditControllers.remove(commentId);
-        replyEditFocusNodes.remove(commentId);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reply deleted')),
-      );
-    }
+  void cancelReplyEdit(String commentId) {
+    setState(() {
+      replyEditId = null;
+      replyEditControllers[commentId]?.dispose();
+      replyEditFocusNodes[commentId]?.dispose();
+      replyEditEmojiPanels[commentId] = false;
+      replyEditControllers.remove(commentId);
+      replyEditFocusNodes.remove(commentId);
+    });
+  }
+
+  Future<void> saveReplyEdit(CommentModel reply) async {
+    final controller = replyEditControllers[reply.commentId];
+    if (controller == null) return;
+    await _commentService.updateComment(
+      commentId: reply.commentId,
+      content: controller.text.trim(),
+      authorId: widget.currentUserId,
+    );
+    if (!mounted) return;
+    setState(() {
+      replyEditId = null;
+      replyEditControllers[reply.commentId]?.dispose();
+      replyEditFocusNodes[reply.commentId]?.dispose();
+      replyEditEmojiPanels[reply.commentId] = false;
+      replyEditControllers.remove(reply.commentId);
+      replyEditFocusNodes.remove(reply.commentId);
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Reply updated')));
+  }
+
+  void deleteReply(String commentId) async {
+    await _commentService.deleteComment(
+      commentId: commentId,
+      postId: widget.postId,
+    );
+    if (!mounted) return;
+    setState(() {
+      replyEditId = null;
+      replyEditControllers[commentId]?.dispose();
+      replyEditFocusNodes[commentId]?.dispose();
+      replyEditEmojiPanels[commentId] = false;
+      replyEditControllers.remove(commentId);
+      replyEditFocusNodes.remove(commentId);
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Reply deleted')));
   }
 }
