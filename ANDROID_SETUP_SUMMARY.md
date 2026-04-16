@@ -416,6 +416,6 @@ Everything is in place for professional Android testing and deployment of your S
 
 **Created:** December 2025  
 **Starpage Version:** 1.0.0+1  
-**Package:** starpage.com  
+**Package:** com.starpage.app  
 **Min Android Version:** 5.0+ (API 21)  
-**Target Android Version:** 14+ (API 34)
+**Target Android Version:** 16+ (API 36)

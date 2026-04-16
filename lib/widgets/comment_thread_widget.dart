@@ -228,10 +228,11 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                       controller: _editController,
                                       focusNode: _editFocusNode,
                                       onTap: () {
-                                        if (_showEditEmojiPanel)
+                                        if (_showEditEmojiPanel) {
                                           setState(
                                             () => _showEditEmojiPanel = false,
                                           );
+                                        }
                                       },
                                       maxLines: null,
                                       decoration: InputDecoration(
@@ -576,13 +577,14 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 controller: replyEditController,
                                 focusNode: replyEditFocusNode,
                                 onTap: () {
-                                  if (showReplyEditEmojiPanel)
+                                  if (showReplyEditEmojiPanel) {
                                     setState(
                                       () =>
                                           replyEditEmojiPanels[reply
                                                   .commentId] =
                                               false,
                                     );
+                                  }
                                 },
                                 maxLines: null,
                                 decoration: InputDecoration(
@@ -801,10 +803,11 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
       replyEditEmojiPanels[reply.commentId] = false;
     });
     Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted)
+      if (mounted) {
         FocusScope.of(
           context,
         ).requestFocus(replyEditFocusNodes[reply.commentId]);
+      }
     });
   }
 

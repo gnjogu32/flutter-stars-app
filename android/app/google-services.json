@@ -1,15 +1,16 @@
 {
   "project_info": {
     "project_number": "246255479274",
+    "firebase_url": "https://starpage-ed409-default-rtdb.firebaseio.com",
     "project_id": "starpage-ed409",
     "storage_bucket": "starpage-ed409.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:246255479274:android:4716e34e32af514b862a93",
+        "mobilesdk_app_id": "1:246255479274:android:177b790682bb5b59862a93",
         "android_client_info": {
-          "package_name": "starpage.com"
+          "package_name": "com.starpage.app"
         }
       },
       "oauth_client": [],
