@@ -53,7 +53,12 @@ class PushNotificationService {
     const initSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
-    await _localNotifications.initialize(settings: initSettings);
+    await _localNotifications.initialize(
+      settings: initSettings,
+      onDidReceiveNotificationResponse: (details) {
+        _handleNotificationPayload(details.payload, navigatorKey);
+      },
+    );
 
     // 4️⃣ Request permission (Android 13+, iOS)
     await FirebaseMessaging.instance.requestPermission(

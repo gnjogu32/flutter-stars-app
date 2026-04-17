@@ -289,24 +289,26 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                                     start,
                                                     end,
                                                     emoji,
-                                                  );
-                                              _editController
+                                                      if (widget.comments == null || widget.comments!.isEmpty) {
+                                                        return Center(child: Text('No comments yet.'));
+                                                      }
                                                   .value = TextEditingValue(
-                                                text: newText,
-                                                selection:
-                                                    TextSelection.collapsed(
-                                                      offset:
-                                                          start + emoji.length,
-                                                    ),
-                                              );
-                                            },
-                                            child: Center(
-                                              child: Text(
-                                                emoji,
-                                                style: const TextStyle(
-                                                  fontSize: 24,
-                                                ),
-                                              ),
+                                                      return ListView.builder(
+                                                        itemCount: widget.comments!.length,
+                                                        itemBuilder: (context, index) {
+                                                          final comment = widget.comments![index];
+                                                          if (comment.replies != null && comment.replies!.isNotEmpty) {
+                                                            return ExpansionTile(
+                                                              title: Text(comment.text),
+                                                              children: comment.replies!
+                                                                  .map((reply) => ListTile(title: Text(reply.text)))
+                                                                  .toList(),
+                                                            );
+                                                          } else {
+                                                            return ListTile(title: Text(comment.text));
+                                                          }
+                                                        },
+                                                      );
                                             ),
                                           );
                                         },

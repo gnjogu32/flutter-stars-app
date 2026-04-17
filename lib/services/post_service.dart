@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -9,7 +9,7 @@ import 'notification_service.dart';
 
 class PostService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  // final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final NotificationService _notificationService = NotificationService();
 
@@ -28,21 +28,15 @@ class PostService {
     required List<XFile> imageFiles,
     required Map<String, Uint8List> imageBytes, // Pre-loaded bytes
     required String? talent,
-    XFile? audioFile,
-    Uint8List? audioBytes,
-    XFile? videoFile,
-    Uint8List? videoBytes,
+    // Audio/video upload removed
   }) async {
     try {
       // Validate input
-      if (content.isEmpty &&
-          imageFiles.isEmpty &&
-          audioFile == null &&
-          videoFile == null) {
-        throw Exception('Post must have content, images, audio, or video');
+      if (content.isEmpty && imageFiles.isEmpty) {
+        throw Exception('Post must have content or images');
       }
 
-      // Upload images to Firebase Storage
+      // Upload images to Firebase Storage (DISABLED)
       List<String> imageUrls = [];
       String? audioUrl;
       String? videoUrl;
@@ -72,101 +66,12 @@ class PostService {
         _debugLog('DEBUG: Token refresh failed: $e');
       }
 
-      _debugLog('DEBUG: Storage bucket: ${_storage.bucket}');
+      // Storage bucket debug removed
 
       // Generate postId for the upload path (will be used in Firestore too)
       final postId = _firestore.collection('posts').doc().id;
 
-      // Upload audio if provided
-      if (audioFile != null && audioBytes != null) {
-        try {
-          final fileName =
-              '${DateTime.now().millisecondsSinceEpoch}_${audioFile.name}';
-          final uploadPath = 'posts/$authorId/$postId/audio/$fileName';
-          final ref = _storage.ref().child(uploadPath);
-
-          _debugLog('DEBUG: Uploading audio to: $uploadPath');
-
-          final metadata = SettableMetadata(
-            contentType: audioFile.mimeType ?? 'audio/mpeg',
-            customMetadata: {'uploadedBy': authorId},
-          );
-
-          await ref.putData(audioBytes, metadata);
-          audioUrl = await ref.getDownloadURL();
-          _debugLog('DEBUG: Audio upload successful: $audioUrl');
-        } catch (e) {
-          _debugLog('DEBUG: Audio upload failed: $e');
-          throw Exception('Failed to upload audio: $e');
-        }
-      }
-
-      // Upload video if provided
-      if (videoFile != null && videoBytes != null) {
-        try {
-          final fileName =
-              '${DateTime.now().millisecondsSinceEpoch}_${videoFile.name}';
-          final uploadPath = 'posts/$authorId/$postId/video/$fileName';
-          final ref = _storage.ref().child(uploadPath);
-
-          _debugLog('DEBUG: Uploading video to: $uploadPath');
-
-          final metadata = SettableMetadata(
-            contentType: videoFile.mimeType ?? 'video/mp4',
-            customMetadata: {'uploadedBy': authorId},
-          );
-
-          await ref.putData(videoBytes, metadata);
-          videoUrl = await ref.getDownloadURL();
-          _debugLog('DEBUG: Video upload successful: $videoUrl');
-        } catch (e) {
-          _debugLog('DEBUG: Video upload failed: $e');
-          throw Exception('Failed to upload video: $e');
-        }
-      }
-
-      for (int i = 0; i < imageFiles.length; i++) {
-        String? uploadPath; // Declare outside try block for error logging
-        try {
-          final imageFile = imageFiles[i];
-          // Match storage rule pattern: posts/{userId}/{postId}/{filename}
-          final fileName =
-              '${DateTime.now().millisecondsSinceEpoch}_${i}_${imageFile.name}';
-          uploadPath = 'posts/$authorId/$postId/$fileName';
-          final ref = _storage.ref().child(uploadPath);
-
-          // Debug logging
-          _debugLog('DEBUG: Uploading to path: $uploadPath');
-          _debugLog('DEBUG: Author ID: $authorId');
-          _debugLog('DEBUG: XFile path: ${imageFile.path}');
-          _debugLog('DEBUG: XFile name: ${imageFile.name}');
-
-          // Use pre-loaded bytes to avoid cache file deletion
-          final fileBytes = imageBytes[imageFile.path];
-          if (fileBytes == null) {
-            throw Exception('Image bytes not found for ${imageFile.path}');
-          }
-          _debugLog('DEBUG: Using pre-loaded ${fileBytes.length} bytes');
-
-          // Add metadata for the upload
-          final metadata = SettableMetadata(
-            contentType: 'image/jpeg',
-            customMetadata: {'uploadedBy': authorId},
-          );
-
-          await ref.putData(fileBytes, metadata);
-
-          final url = await ref.getDownloadURL();
-          imageUrls.add(url);
-          _debugLog('DEBUG: Upload successful: $url');
-        } catch (e) {
-          _debugLog('DEBUG: Upload failed - Error: $e');
-          _debugLog('DEBUG: Error type: ${e.runtimeType}');
-          _debugLog('DEBUG: Author ID was: $authorId');
-          _debugLog('DEBUG: Upload path was: $uploadPath');
-          throw Exception('Failed to upload image ${i + 1}: $e');
-        }
-      }
+      // Audio/video/image upload disabled (firebase_storage not available)
 
       // Create post document (postId already generated above)
       final now = DateTime.now();
@@ -283,15 +188,7 @@ class PostService {
   // Delete a post
   Future<void> deletePost(PostModel post) async {
     try {
-      // Delete images from storage
-      for (String imageUrl in post.imageUrls) {
-        try {
-          final ref = _storage.refFromURL(imageUrl);
-          await ref.delete();
-        } catch (e) {
-          // Continue if image deletion fails
-        }
-      }
+      // Storage deletion removed
 
       // Delete post document
       await _firestore.collection('posts').doc(post.postId).delete();

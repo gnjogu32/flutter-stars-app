@@ -4,5 +4,6 @@
         ""
     ],
     "java.configuration.updateBuildConfiguration": "automatic",
-    "workbench.browser.enableChatTools": true
+    "workbench.browser.enableChatTools": true,
+    "java.compile.nullAnalysis.mode": "automatic"
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+// import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
@@ -30,8 +30,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   final List<XFile> _selectedImages = [];
   final Map<String, Uint8List> _imageBytes = {}; // Store bytes immediately
-  XFile? _selectedAudio;
-  Uint8List? _audioBytes;
+  // Audio upload removed
   XFile? _selectedVideo;
   Uint8List? _videoBytes;
   String? _selectedTalent;
@@ -257,31 +256,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _pickAudio() async {
-    try {
-      final FilePickerResult? result = await FilePicker.pickFiles(
-        type: FileType.audio,
-        withData: true,
-      );
-
-      if (result == null || result.files.isEmpty) return;
-
-      final pickedPlatformFile = result.files.first;
-      final bytes = pickedPlatformFile.bytes;
-      XFile? audioFile;
-      if (pickedPlatformFile.path != null) {
-        audioFile = XFile(pickedPlatformFile.path!);
-      }
-
-      setState(() {
-        _selectedAudio = audioFile;
-        _audioBytes = bytes;
-        _errorMessage = null;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error picking audio: $e';
-      });
-    }
+    // Disabled: FilePicker not available
+    setState(() {
+      _errorMessage = 'Audio picking is disabled (file_picker not available)';
+    });
   }
 
   Future<void> _pickVideo() async {
@@ -310,7 +288,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     // Validation
     if (_contentController.text.trim().isEmpty &&
         _selectedImages.isEmpty &&
-        _selectedAudio == null &&
         _selectedVideo == null) {
       setState(() {
         _errorMessage =
@@ -361,7 +338,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       final trimmedContent = _contentController.text.trim();
       if (trimmedContent.isEmpty &&
           _selectedImages.isEmpty &&
-          _selectedAudio == null &&
           _selectedVideo == null) {
         throw Exception('Post must have content, images, audio, or video');
       }
@@ -374,10 +350,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         content: trimmedContent,
         imageFiles: List.from(_selectedImages),
         imageBytes: Map.from(_imageBytes),
-        audioFile: _selectedAudio,
-        audioBytes: _audioBytes,
-        videoFile: _selectedVideo,
-        videoBytes: _videoBytes,
+        // videoFile and videoBytes removed
         talent: _selectedTalent,
       );
 
@@ -387,8 +360,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         setState(() {
           _selectedImages.clear();
           _imageBytes.clear();
-          _selectedAudio = null;
-          _audioBytes = null;
           _selectedVideo = null;
           _videoBytes = null;
           _selectedTalent = null;
@@ -543,31 +514,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
               ],
             ),
-            if (_selectedAudio != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.music_note),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Audio: ${_selectedAudio!.name}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        _selectedAudio = null;
-                        _audioBytes = null;
-                      }),
-                      child: const Icon(Icons.close, size: 16),
-                    ),
-                  ],
-                ),
-              ),
+            // Audio UI removed
             if (_selectedVideo != null)
               Padding(
                 padding: const EdgeInsets.only(top: 12),

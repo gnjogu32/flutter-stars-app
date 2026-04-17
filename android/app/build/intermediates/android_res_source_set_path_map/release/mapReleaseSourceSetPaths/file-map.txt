@@ -1,0 +1,8 @@
+com.starpage.app-pngs-0 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\build\generated\res\pngs\release
+com.starpage.app-res-1 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\build\generated\res\processReleaseGoogleServices
+com.starpage.app-updated_navigation_xml-2 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\build\generated\updated_navigation_xml\release
+com.starpage.app-packageReleaseResources-3 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+com.starpage.app-packageReleaseResources-4 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+com.starpage.app-release-5 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.starpage.app-main-6 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\src\main\res
+com.starpage.app-release-7 C:\Users\user\Documents\flutter_application_stars\flutter_stars_app\android\app\src\release\res

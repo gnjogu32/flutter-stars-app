@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -14,7 +14,7 @@ class UserService {
   }
 
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  // Firebase Storage removed
 
   // Get user by UID
   Future<UserModel?> getUser(String uid) async {
@@ -111,79 +111,25 @@ class UserService {
     }
   }
 
-  // Upload profile image from pre-loaded bytes (prevents cache file deletion)
+  // Upload profile image from pre-loaded bytes (removed)
   Future<String?> uploadProfileImageFromBytes(
     String userId,
-    XFile imageFile,
-    Uint8List imageBytes,
+    dynamic imageFile,
+    dynamic imageBytes,
   ) async {
-    try {
-      final String fileName = 'profile_$userId.jpg';
-      final Reference storageRef = _storage
-          .ref()
-          .child('users')
-          .child(userId)
-          .child('avatar')
-          .child(fileName);
-
-      // Use pre-loaded bytes to avoid cache file deletion
-      final UploadTask uploadTask = storageRef.putData(imageBytes);
-      final TaskSnapshot snapshot = await uploadTask;
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      return downloadUrl;
-    } catch (e) {
-      rethrow;
-    }
+    // Stub: feature removed
+    return null;
   }
 
-  // Upload profile image to Firebase Storage (legacy method)
+  // Upload profile image to Firebase Storage (removed)
   Future<String?> uploadProfileImage(String userId, File imageFile) async {
-    try {
-      final String fileName = 'profile_$userId.jpg';
-      final Reference storageRef = _storage
-          .ref()
-          .child('users')
-          .child(userId)
-          .child('avatar')
-          .child(fileName);
-
-      late TaskSnapshot snapshot;
-
-      if (kIsWeb) {
-        // For web platform, read file as bytes
-        final Uint8List fileBytes = await imageFile.readAsBytes();
-        final UploadTask uploadTask = storageRef.putData(fileBytes);
-        snapshot = await uploadTask;
-      } else {
-        // For native platforms (iOS, Android, etc.)
-        final UploadTask uploadTask = storageRef.putFile(imageFile);
-        snapshot = await uploadTask;
-      }
-
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      return downloadUrl;
-    } catch (e) {
-      rethrow;
-    }
+    // Stub: feature removed
+    return null;
   }
 
-  // Delete old profile image from Firebase Storage
+  // Delete old profile image from Firebase Storage (removed)
   Future<void> deleteOldProfileImage(String userId) async {
-    try {
-      final String fileName = 'profile_$userId.jpg';
-      final Reference storageRef = _storage
-          .ref()
-          .child('users')
-          .child(userId)
-          .child('avatar')
-          .child(fileName);
-      await storageRef.delete();
-    } catch (e) {
-      // Silently fail if image doesn't exist
-      if (kDebugMode) print('Error deleting old profile image: $e');
-    }
+    // Stub: feature removed
   }
 
   // Update user profile with image URL
