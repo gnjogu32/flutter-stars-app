@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.starpage.app-mergeReleaseResources-61:/values-zu/values-zu.xml",
+            "outputFile": "com.starpage.app-mergeReleaseResources-57:/values-zu/values-zu.xml",
             "map": [
                 {
                     "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\d4837945ef4117a5d4f852bb9ba579ec\\workspace\\transformed\\play-services-base-18.9.0\\res\\values-zu\\values.xml",

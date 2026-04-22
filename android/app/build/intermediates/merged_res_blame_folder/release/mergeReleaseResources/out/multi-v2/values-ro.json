@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.starpage.app-mergeReleaseResources-61:/values-ro/values-ro.xml",
+            "outputFile": "com.starpage.app-mergeReleaseResources-57:/values-ro/values-ro.xml",
             "map": [
                 {
                     "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\51f0c102ac7c119d25d662d71c0d8ffe\\workspace\\transformed\\core-1.18.0\\res\\values-ro\\values-ro.xml",

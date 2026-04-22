@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+// import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
@@ -257,31 +257,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _pickAudio() async {
-    try {
-      final FilePickerResult? result = await FilePicker.pickFiles(
-        type: FileType.audio,
-        withData: true,
-      );
-
-      if (result == null || result.files.isEmpty) return;
-
-      final pickedPlatformFile = result.files.first;
-      final bytes = pickedPlatformFile.bytes;
-      XFile? audioFile;
-      if (pickedPlatformFile.path != null) {
-        audioFile = XFile(pickedPlatformFile.path!);
-      }
-
-      setState(() {
-        _selectedAudio = audioFile;
-        _audioBytes = bytes;
-        _errorMessage = null;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error picking audio: $e';
-      });
-    }
+    setState(() {
+      _errorMessage = 'Audio picking is not available.';
+    });
   }
 
   Future<void> _pickVideo() async {

@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.starpage.app-mergeReleaseResources-61:/values-fa/values-fa.xml",
+            "outputFile": "com.starpage.app-mergeReleaseResources-57:/values-fa/values-fa.xml",
             "map": [
                 {
                     "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\b61f140c0ccd411225533aa9b3a76dbd\\workspace\\transformed\\browser-1.4.0\\res\\values-fa\\values-fa.xml",

@@ -27,7 +27,7 @@
         value="android.app.Application" />
   </manifestPlaceholders>
   <artifact
-      classOutputs="build\intermediates\javac\release\compileReleaseJavaWithJavac\classes;build\tmp\kotlin-classes\release;build\kotlinToolingMetadata;build\intermediates\compile_r_class_jar\release\generateReleaseRFile\R.jar"
+      classOutputs="build\intermediates\javac\release\compileReleaseJavaWithJavac\classes;build\intermediates\compile_r_class_jar\release\generateReleaseRFile\R.jar"
       type="MAIN"
       applicationId="com.starpage.app"
       generatedSourceFolders="build\generated\ap_generated_sources\release\out"

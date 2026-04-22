@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.starpage.app-mergeReleaseResources-61:/values-v21/values-v21.xml",
+            "outputFile": "com.starpage.app-mergeReleaseResources-57:/values-v21/values-v21.xml",
             "map": [
                 {
                     "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\6d129ecc65d9221aee71114489e0a399\\workspace\\transformed\\credentials-play-services-auth-1.2.0-rc01\\res\\values-v21\\values-v21.xml",
@@ -23,7 +23,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\69cb0391320c92b0a5a8894a0029621a\\workspace\\transformed\\media-1.7.0\\res\\values-v21\\values-v21.xml",
+                    "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\3bb644e6e2564fd839d6532a819601c3\\workspace\\transformed\\media-1.1.0\\res\\values-v21\\values-v21.xml",
                     "from": {
                         "startLines": "2,5,8,11",
                         "startColumns": "4,4,4,4",

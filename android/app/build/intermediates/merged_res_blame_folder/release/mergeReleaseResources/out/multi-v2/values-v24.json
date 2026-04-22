@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.starpage.app-mergeReleaseResources-61:/values-v24/values-v24.xml",
+            "outputFile": "com.starpage.app-mergeReleaseResources-57:/values-v24/values-v24.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\69cb0391320c92b0a5a8894a0029621a\\workspace\\transformed\\media-1.7.0\\res\\values-v24\\values-v24.xml",
+                    "source": "C:\\Users\\user\\.gradle\\caches\\9.3.1\\transforms\\3bb644e6e2564fd839d6532a819601c3\\workspace\\transformed\\media-1.1.0\\res\\values-v24\\values-v24.xml",
                     "from": {
                         "startLines": "2,3,4,5",
                         "startColumns": "4,4,4,4",

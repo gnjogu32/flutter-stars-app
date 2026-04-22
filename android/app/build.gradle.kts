@@ -1,3 +1,6 @@
+import com.android.build.api.dsl.ApplicationExtension
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,9 +9,7 @@ plugins {
     id("com.google.firebase.appdistribution")
 }
 
-import com.android.build.api.dsl.ApplicationExtension
-
-extensions.configure<ApplicationExtension>("android") {
+android {
     namespace = "com.starpage.app"
     compileSdk = 36
     ndkVersion = "28.2.13676358"
@@ -27,13 +28,22 @@ extensions.configure<ApplicationExtension>("android") {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("release-keystore.jks")
+            storePassword = "@starpageflutterstarsapplication2026#!?"
+            keyAlias = "release"
+            keyPassword = "@starpageflutterstarsapplication2026#!?"
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
             firebaseAppDistribution {
-                appId = "YOUR_FIREBASE_APP_ID" // Update this with your actual Firebase App ID for com.starpage.app
+                appId = "1:1071477545934:android:8725890938b29f9c738e4a"
                 groups = "testers"
             }
         }
@@ -47,7 +57,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 
 flutter {

@@ -132,7 +132,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
           ),
           if (_replyTo != null)
             Container(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Row(
                 children: [

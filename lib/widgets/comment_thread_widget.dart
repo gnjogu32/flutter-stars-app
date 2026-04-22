@@ -501,6 +501,10 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
         replyEditFocusNodes[reply.commentId] ?? FocusNode();
     final showReplyEditEmojiPanel =
         replyEditEmojiPanels[reply.commentId] ?? false;
+    // Emoji list (should match main input)
+    const quickEmojis = [
+      '😀','😁','😂','🤣','😊','😍','🥳','😎','🤔','👏','🔥','💯','✨','🙌','👍','🙏','❤️','💙','💚','🎉','😢','😡','🤝','💫'
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,10 +548,14 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                   ),
                   const SizedBox(height: 2),
                   if (isReplyEditing)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    AnimatedPadding(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                      padding: MediaQuery.of(context).viewInsets,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                           children: [
                             IconButton(
                               onPressed: () {
@@ -579,10 +587,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 onTap: () {
                                   if (showReplyEditEmojiPanel) {
                                     setState(
-                                      () =>
-                                          replyEditEmojiPanels[reply
-                                                  .commentId] =
-                                              false,
+                                      () => replyEditEmojiPanels[reply.commentId] = false,
                                     );
                                   }
                                 },
@@ -609,39 +614,25 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                         crossAxisCount: 8,
                                         childAspectRatio: 1.2,
                                       ),
-                                  itemCount: _quickEmojis.length,
+                                  itemCount: quickEmojis.length,
                                   itemBuilder: (context, index) {
-                                    final emoji = _quickEmojis[index];
+                                    final emoji = quickEmojis[index];
                                     return InkWell(
                                       borderRadius: BorderRadius.circular(8),
                                       onTap: () {
-                                        final currentText =
-                                            replyEditController.text;
-                                        final currentSelection =
-                                            replyEditController.selection;
-                                        final start =
-                                            currentSelection.start >= 0
-                                            ? currentSelection.start
-                                            : currentText.length;
-                                        final end = currentSelection.end >= 0
-                                            ? currentSelection.end
-                                            : currentText.length;
-                                        final newText = currentText
-                                            .replaceRange(start, end, emoji);
-                                        replyEditController
-                                            .value = TextEditingValue(
+                                        final currentText = replyEditController.text;
+                                        final currentSelection = replyEditController.selection;
+                                        final start = currentSelection.start >= 0 ? currentSelection.start : currentText.length;
+                                        final end = currentSelection.end >= 0 ? currentSelection.end : currentText.length;
+                                        final newText = currentText.replaceRange(start, end, emoji);
+                                        replyEditController.value = TextEditingValue(
                                           text: newText,
                                           selection: TextSelection.collapsed(
                                             offset: start + emoji.length,
                                           ),
                                         );
                                       },
-                                      child: Center(
-                                        child: Text(
-                                          emoji,
-                                          style: const TextStyle(fontSize: 24),
-                                        ),
-                                      ),
+                                      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
                                     );
                                   },
                                 )

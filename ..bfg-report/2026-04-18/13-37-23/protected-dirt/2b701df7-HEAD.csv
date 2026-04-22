@@ -1,0 +1,4 @@
+1c58da3f2a3b75d2c572c60a63f15a49618956aa,DELETE,regular-file,android/app/build/intermediates/dex_metadata_directory/release/compileReleaseArtProfile/0/.dm,129,
+f5633e1bdfd55beef13208669fc3e6b08c10b8b2,DELETE,regular-file,android/app/build/intermediates/dex_metadata_directory/release/compileReleaseArtProfile/1/.dm,129,
+1c58da3f2a3b75d2c572c60a63f15a49618956aa,DELETE,regular-file,android/app/build/outputs/apk/release/baselineProfiles/0/app-release.dm,129,
+f5633e1bdfd55beef13208669fc3e6b08c10b8b2,DELETE,regular-file,android/app/build/outputs/apk/release/baselineProfiles/1/app-release.dm,129,
