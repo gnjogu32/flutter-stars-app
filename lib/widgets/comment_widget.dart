@@ -25,6 +25,77 @@ class CommentWidget extends StatefulWidget {
 }
 
 class _CommentWidgetState extends State<CommentWidget> {
+    Future<void> _showReplyDialog(CommentModel parent, String parentId, {String? replyToName}) async {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      final messenger = ScaffoldMessenger.of(context);
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final textColor = isDark ? Colors.white : Colors.black87;
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
+        title: Text(
+          replyToName != null ? 'Reply to @$replyToName' : 'Reply',
+          style: TextStyle(color: textColor),
+        ),
+        content: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          autofocus: true,
+          maxLines: null,
+          style: TextStyle(color: textColor),
+          decoration: InputDecoration(
+            hintText: 'Write your reply...',
+            hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final text = controller.text.trim();
+              if (text.isEmpty) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Reply cannot be empty')),
+                );
+                return;
+              }
+              try {
+                await CommentService().addComment(
+                  postId: parent.postId,
+                  authorId: widget.currentUserId,
+                  authorName: parent.authorName, // You may want to use current user's name
+                  authorImageUrl:
+                      parent.authorImageUrl, // You may want to use current user's image
+                  content: text,
+                  postAuthorId: parent.authorId,
+                  parentId: parentId,
+                  replyToName: replyToName,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Reply posted')),
+                  );
+                }
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              } catch (e) {
+                messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
+            child: const Text('Reply'),
+          ),
+        ],
+      ),
+    );
+      focusNode.dispose();
+      controller.dispose();
+    }
   late bool _isLiked;
   bool _showReplies = false;
   final CommentService _commentService = CommentService();
@@ -126,9 +197,13 @@ class _CommentWidgetState extends State<CommentWidget> {
         builder: (dialogContext, setDialogState) {
           final keyboardInset = MediaQuery.viewInsetsOf(dialogContext).bottom;
           final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+          final textColor = isDark ? Colors.white : Colors.black87;
 
           return AlertDialog(
-            title: const Text('Edit Comment'),
+            backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
+            title: Text('Edit Comment', style: TextStyle(color: textColor)),
             content: AnimatedPadding(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOut,
@@ -159,6 +234,7 @@ class _CommentWidgetState extends State<CommentWidget> {
                             showEmojiPanel
                                 ? Icons.keyboard_outlined
                                 : Icons.emoji_emotions_outlined,
+                            color: isDark ? Colors.white70 : Colors.black54,
                           ),
                         ),
                         Expanded(
@@ -171,8 +247,12 @@ class _CommentWidgetState extends State<CommentWidget> {
                               }
                             },
                             maxLines: null,
+                            style: TextStyle(color: textColor),
                             decoration: InputDecoration(
                               hintText: 'Edit your comment...',
+                              hintStyle: TextStyle(
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -281,15 +361,17 @@ class _CommentWidgetState extends State<CommentWidget> {
   }
 
   void _showMoreOptions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
+      backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit'),
+              leading: Icon(Icons.edit, color: isDark ? Colors.white70 : null),
+              title: Text('Edit', style: TextStyle(color: isDark ? Colors.white : null)),
               onTap: () {
                 Navigator.pop(context);
                 _editComment();
@@ -311,11 +393,25 @@ class _CommentWidgetState extends State<CommentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF23272F) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF353A45) : Colors.grey.shade300;
+    final textColor = isDark ? Colors.white : Colors.black87;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Card(
+        color: cardColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: borderColor, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           // Comment header: Author info and time
           Row(
             children: [
@@ -329,20 +425,23 @@ class _CommentWidgetState extends State<CommentWidget> {
                     : null,
               ),
               const SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.comment.authorName,
-                      style: const TextStyle(
+                      style: theme.textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        color: textColor,
                       ),
                     ),
                     Text(
                       timeago.format(widget.comment.createdAt),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -350,7 +449,7 @@ class _CommentWidgetState extends State<CommentWidget> {
               if (widget.comment.authorId == widget.currentUserId)
                 IconButton(
                   iconSize: 16,
-                  icon: const Icon(Icons.more_vert),
+                  icon: Icon(Icons.more_vert, color: isDark ? Colors.white70 : Colors.black54),
                   onPressed: _showMoreOptions,
                 ),
             ],
@@ -362,7 +461,7 @@ class _CommentWidgetState extends State<CommentWidget> {
             children: [
               ExpandableText(
                 widget.comment.content,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
                 trimLines: 3,
               ),
               if (widget.comment.isEdited)
@@ -370,9 +469,10 @@ class _CommentWidgetState extends State<CommentWidget> {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
                     'edited ${timeago.format(widget.comment.editedAt ?? widget.comment.updatedAt)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    style: theme.textTheme.bodySmall?.copyWith(
                       fontStyle: FontStyle.italic,
                       fontSize: 10,
+                      color: isDark ? Colors.white70 : Colors.black54,
                     ),
                   ),
                 ),
@@ -396,32 +496,31 @@ class _CommentWidgetState extends State<CommentWidget> {
                       widget.comment.likeCount > 0
                           ? '${widget.comment.likeCount}'
                           : '',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(color: textColor),
                     ),
                   ],
                 ),
               ),
-              if (widget.onReply != null) ...[
-                const SizedBox(width: 16),
-                GestureDetector(
-                  onTap: () =>
-                      widget.onReply!(widget.comment, widget.comment.commentId),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.reply,
-                        size: 14,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
+              const SizedBox(width: 16),
+              GestureDetector(
+                onTap: () => _showReplyDialog(widget.comment, widget.comment.commentId),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.reply,
+                      size: 14,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Reply',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark ? Colors.white60 : Colors.black54,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Reply',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ],
           ),
           // Replies section — root comments only
@@ -463,7 +562,9 @@ class _CommentWidgetState extends State<CommentWidget> {
                 );
               },
             ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -523,6 +624,11 @@ class _ReplyItemState extends State<_ReplyItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF23272F) : Colors.grey[50];
+    final borderColor = isDark ? const Color(0xFF353A45) : Colors.grey.shade300;
+    final textColor = isDark ? Colors.white : Colors.black87;
     return Padding(
       padding: const EdgeInsets.only(left: 24, top: 6, bottom: 2),
       child: Row(
@@ -532,15 +638,24 @@ class _ReplyItemState extends State<_ReplyItem> {
             width: 2,
             height: 46,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: borderColor,
               borderRadius: BorderRadius.circular(1),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: Card(
+              color: cardColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: borderColor, width: 1),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Row(
                   children: [
                     CircleAvatar(
@@ -556,17 +671,18 @@ class _ReplyItemState extends State<_ReplyItem> {
                     Expanded(
                       child: Text(
                         widget.reply.authorName,
-                        style: const TextStyle(
+                        style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                          color: textColor,
                         ),
                       ),
                     ),
                     Text(
                       timeago.format(widget.reply.createdAt),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(fontSize: 10),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -577,17 +693,15 @@ class _ReplyItemState extends State<_ReplyItem> {
                       children: [
                         TextSpan(
                           text: '@${widget.reply.replyToName} ',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
                         ),
                         TextSpan(
                           text: widget.reply.content,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(fontSize: 12),
+                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: textColor),
                         ),
                       ],
                     ),
@@ -595,9 +709,7 @@ class _ReplyItemState extends State<_ReplyItem> {
                 else
                   Text(
                     widget.reply.content,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(fontSize: 12),
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: textColor),
                   ),
                 const SizedBox(height: 4),
                 GestureDetector(
@@ -613,49 +725,116 @@ class _ReplyItemState extends State<_ReplyItem> {
                         const SizedBox(width: 4),
                         Text(
                           '${widget.reply.likeCount}',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(fontSize: 10),
+                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, color: textColor),
                         ),
                       ],
                     ],
                   ),
                 ),
-                if (widget.onReply != null) ...[
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: () => widget.onReply!(
-                      widget.reply,
-                      widget.reply.parentId.isEmpty
-                          ? widget.reply.commentId
-                          : widget.reply.parentId,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.reply,
-                          size: 12,
-                          color: Theme.of(context).colorScheme.primary,
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () async {
+                    final parentId = widget.reply.parentId.isEmpty
+                        ? widget.reply.commentId
+                        : widget.reply.parentId;
+                    final replyToName = widget.reply.authorName;
+                    final controller = TextEditingController();
+                    final focusNode = FocusNode();
+                    final messenger = ScaffoldMessenger.of(context);
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    final textColor = isDark ? Colors.white : Colors.black87;
+                    await showDialog(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
+                        title: Text(
+                          'Reply to @$replyToName',
+                          style: TextStyle(color: textColor),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Reply',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontSize: 10,
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                        content: TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          autofocus: true,
+                          maxLines: null,
+                          style: TextStyle(color: textColor),
+                          decoration: InputDecoration(
+                            hintText: 'Write your reply...',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final text = controller.text.trim();
+                              if (text.isEmpty) {
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('Reply cannot be empty')),
+                                );
+                                return;
+                              }
+                              try {
+                                await CommentService().addComment(
+                                  postId: widget.reply.postId,
+                                  authorId: widget.currentUserId,
+                                  authorName: widget.reply.authorName, // You may want to use current user's name
+                                  authorImageUrl: widget.reply.authorImageUrl, // You may want to use current user's image
+                                  content: text,
+                                  postAuthorId: widget.reply.authorId,
+                                  parentId: parentId,
+                                  replyToName: replyToName,
+                                );
+                                if (mounted) {
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Reply posted')),
+                                  );
+                                }
+                                if (dialogContext.mounted) {
+                                  Navigator.pop(dialogContext);
+                                }
+                              } catch (e) {
+                                messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+                              }
+                            },
+                            child: const Text('Reply'),
+                          ),
+                        ],
+                      ),
+                    );
+                    focusNode.dispose();
+                    controller.dispose();
+                  },
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.reply,
+                        size: 12,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Reply',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ],
             ),
           ),
-        ],
+        ),
       ),
-    );
+    ],
+  ),
+);
   }
 }

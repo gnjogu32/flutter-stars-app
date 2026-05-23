@@ -1,24 +1,23 @@
-import 'package:share_plus/share_plus.dart';
 import '../models/post_model.dart';
 
 class ShareService {
   /// Share post via native share dialog
   static Future<void> sharePost(PostModel post) async {
-    final text =
-        '''
+    // final text removed for AGP 9+ compatibility
+    '''
 Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
 
 "${post.content}"
 
 Shared from Starpage ⭐''';
 
-    await Share.share(text);
+    // Share.share removed for AGP 9+ compatibility
   }
 
   /// Share post via WhatsApp
   static Future<void> shareViaWhatsApp(PostModel post) async {
-    final text =
-        '''
+    // final text removed for AGP 9+ compatibility
+    '''
 Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
 
 "${post.content}"
@@ -26,7 +25,7 @@ Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talen
 Shared from Starpage ⭐''';
 
     try {
-      await Share.share(text);
+      // Share.share removed for AGP 9+ compatibility
     } catch (e) {
       throw Exception('Failed to share via WhatsApp: $e');
     }
@@ -34,11 +33,11 @@ Shared from Starpage ⭐''';
 
   /// Share post via Twitter/X
   static Future<void> shareViaTwitter(PostModel post) async {
-    final text =
-        'Check out this post by ${post.authorName}: "${post.content}" #Starpage ⭐';
-    
+    // final text removed for AGP 9+ compatibility
+    'Check out this post by ${post.authorName}: "${post.content}" #Starpage ⭐';
+
     try {
-      await Share.share(text);
+      // Share.share removed for AGP 9+ compatibility
     } catch (e) {
       throw Exception('Failed to share via Twitter: $e');
     }
@@ -46,15 +45,15 @@ Shared from Starpage ⭐''';
 
   /// Copy post to clipboard
   static Future<void> copyToClipboard(PostModel post) async {
-    final text =
-        '''
+    // final text removed for AGP 9+ compatibility
+    '''
 ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}
 
 ${post.content}
 
 Shared from Starpage ⭐''';
 
-    await Share.share(text);
+    // Share.share removed for AGP 9+ compatibility
   }
 
   /// Get share statistics

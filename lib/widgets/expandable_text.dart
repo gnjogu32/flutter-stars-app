@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as flutter;
 
-class ExpandableText extends StatefulWidget {
+class ExpandableText extends flutter.StatefulWidget {
   final String text;
-  final TextStyle? style;
+  final flutter.TextStyle? style;
   final int trimLines;
-  final TextStyle? actionStyle;
+  final flutter.TextStyle? actionStyle;
 
   const ExpandableText(
     this.text, {
@@ -15,53 +15,54 @@ class ExpandableText extends StatefulWidget {
   });
 
   @override
-  State<ExpandableText> createState() => _ExpandableTextState();
+  @override
+  flutter.State<ExpandableText> createState() => _ExpandableTextState();
 }
 
-class _ExpandableTextState extends State<ExpandableText> {
+class _ExpandableTextState extends flutter.State<ExpandableText> {
   bool _expanded = false;
 
   @override
-  Widget build(BuildContext context) {
+  flutter.Widget build(flutter.BuildContext context) {
     final text = widget.text.trim();
     if (text.isEmpty) {
-      return const SizedBox.shrink();
+      return const flutter.SizedBox.shrink();
     }
 
-    final defaultActionStyle = Theme.of(context).textTheme.labelMedium
+    final defaultActionStyle = flutter.Theme.of(context).textTheme.labelMedium
         ?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.w600,
+          color: flutter.Theme.of(context).colorScheme.primary,
+          fontWeight: flutter.FontWeight.w600,
         );
 
-    return LayoutBuilder(
+    return flutter.LayoutBuilder(
       builder: (context, constraints) {
-        final textPainter = TextPainter(
-          text: TextSpan(text: text, style: widget.style),
-          textDirection: TextDirection.ltr,
+        final textPainter = flutter.TextPainter(
+          text: flutter.TextSpan(text: text, style: widget.style),
+          textDirection: flutter.TextDirection.ltr,
           maxLines: widget.trimLines,
         )..layout(maxWidth: constraints.maxWidth);
 
         final hasOverflow = textPainter.didExceedMaxLines;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return flutter.Column(
+          crossAxisAlignment: flutter.CrossAxisAlignment.start,
           children: [
-            Text(
+            flutter.Text(
               text,
               style: widget.style,
               maxLines: _expanded ? null : widget.trimLines,
               overflow: _expanded
-                  ? TextOverflow.visible
-                  : TextOverflow.ellipsis,
+                  ? flutter.TextOverflow.visible
+                  : flutter.TextOverflow.ellipsis,
             ),
             if (hasOverflow)
-              GestureDetector(
+              flutter.GestureDetector(
                 onTap: () => setState(() => _expanded = !_expanded),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
+                behavior: flutter.HitTestBehavior.opaque,
+                child: flutter.Padding(
+                  padding: const flutter.EdgeInsets.only(top: 4),
+                  child: flutter.Text(
                     _expanded ? 'See less' : 'See more',
                     style: widget.actionStyle ?? defaultActionStyle,
                   ),

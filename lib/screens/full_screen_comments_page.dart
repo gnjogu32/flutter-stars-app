@@ -3,7 +3,7 @@ import '../models/comment_model.dart';
 import '../models/user_model.dart';
 import '../services/comment_service.dart';
 import '../services/user_service.dart';
-import '../widgets/comment_thread_widget.dart';
+import '../widgets/comment_thread_widget.dart' as custom;
 import '../utils/auth_guard.dart';
 
 class FullScreenCommentsPage extends StatefulWidget {
@@ -67,9 +67,11 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
         _replyParentId = null;
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to send comment: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send comment: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -118,7 +120,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
                   itemCount: comments.length,
                   itemBuilder: (context, index) {
                     final comment = comments[index];
-                    return CommentThreadWidget(
+                    return custom.CommentThreadWidget(
                       comment: comment,
                       currentUserId: widget.currentUserId,
                       postId: widget.postId,

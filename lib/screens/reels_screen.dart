@@ -2,14 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
 import 'full_screen_comments_page.dart';
 
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
 import '../services/repost_queue_service.dart';
 import '../services/analytics_service.dart';
-import '../utils/screen_awake_controller.dart';
+// import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
 import '../services/share_service.dart';
 import '../services/user_service.dart';
@@ -155,9 +154,7 @@ class _ReelItem extends StatefulWidget {
 }
 
 class _ReelItemState extends State<_ReelItem> {
-  late final VideoPlayerController _controller;
-  bool _isInitialized = false;
-  bool _holdsScreenAwake = false;
+  // Video player removed for AGP 9+ compatibility
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
@@ -201,55 +198,24 @@ class _ReelItemState extends State<_ReelItem> {
 
   bool get _canInteract => _activeUserId.isNotEmpty;
 
-  void _syncScreenAwakeWithPlayback() {
-    if (!_isInitialized) return;
-    final isPlaying = _controller.value.isPlaying;
-    if (isPlaying && !_holdsScreenAwake) {
-      ScreenAwakeController.acquire();
-      _holdsScreenAwake = true;
-    } else if (!isPlaying && _holdsScreenAwake) {
-      ScreenAwakeController.release();
-      _holdsScreenAwake = false;
-    }
-  }
+  // Video player logic removed for AGP 9+ compatibility
 
   @override
   void initState() {
     super.initState();
     _isLiked = widget.post.isLikedBy(_activeUserId);
     _likeCount = widget.post.likeCount;
-    _controller =
-        VideoPlayerController.networkUrl(Uri.parse(widget.post.videoUrl!))
-          ..addListener(_syncScreenAwakeWithPlayback)
-          ..setLooping(true)
-          ..initialize().then((_) async {
-            if (!mounted) return;
-            setState(() => _isInitialized = true);
-            if (widget.isActive) {
-              await _controller.play();
-              _syncScreenAwakeWithPlayback();
-            }
-          });
+    // Video player removed for AGP 9+ compatibility
   }
 
   @override
   void didUpdateWidget(covariant _ReelItem oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (!_isLikeUpdating) {
       _isLiked = widget.post.isLikedBy(_activeUserId);
       _likeCount = widget.post.likeCount;
     }
-
-    if (!_isInitialized) return;
-
-    if (widget.isActive && !oldWidget.isActive) {
-      _controller.play();
-      _syncScreenAwakeWithPlayback();
-    } else if (!widget.isActive && oldWidget.isActive) {
-      _controller.pause();
-      _syncScreenAwakeWithPlayback();
-    }
+    // Video player removed for AGP 9+ compatibility
   }
 
   Future<void> _toggleLike() async {
@@ -700,12 +666,7 @@ class _ReelItemState extends State<_ReelItem> {
 
   @override
   void dispose() {
-    if (_holdsScreenAwake) {
-      ScreenAwakeController.release();
-      _holdsScreenAwake = false;
-    }
-    _controller.removeListener(_syncScreenAwakeWithPlayback);
-    _controller.dispose();
+    // Video player removed for AGP 9+ compatibility
     super.dispose();
   }
 
@@ -717,28 +678,7 @@ class _ReelItemState extends State<_ReelItem> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (_isInitialized)
-          GestureDetector(
-            onTap: () {
-              if (_controller.value.isPlaying) {
-                _controller.pause();
-                _syncScreenAwakeWithPlayback();
-              } else {
-                _controller.play();
-                _syncScreenAwakeWithPlayback();
-              }
-            },
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller.value.size.width,
-                height: _controller.value.size.height,
-                child: VideoPlayer(_controller),
-              ),
-            ),
-          )
-        else
-          const Center(child: CircularProgressIndicator(color: Colors.white)),
+        // Video player removed for AGP 9+ compatibility
         Positioned(
           right: 12,
           bottom: 120,
@@ -852,18 +792,7 @@ class _ReelItemState extends State<_ReelItem> {
                     ),
                   ),
                 ],
-                if (_isInitialized) ...[
-                  const SizedBox(height: 8),
-                  VideoProgressIndicator(
-                    _controller,
-                    allowScrubbing: true,
-                    colors: const VideoProgressColors(
-                      playedColor: Colors.white,
-                      bufferedColor: Colors.white38,
-                      backgroundColor: Colors.white24,
-                    ),
-                  ),
-                ],
+                // Video progress indicator removed for AGP 9+ compatibility
               ],
             ),
           ),

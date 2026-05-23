@@ -82,7 +82,7 @@ class ChatService {
         triggeredBy: senderId,
         triggeredByName: senderName,
         triggeredByImageUrl: senderImageUrl,
-        type: 'direct_message',
+        type: 'message',
         content: '$senderName sent you a message',
       );
     } catch (e) {

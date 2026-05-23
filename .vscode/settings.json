@@ -4,6 +4,32 @@
         ""
     ],
     "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.gradle.enabled": true,
+    "java.import.gradle.wrapper.enabled": true,
+    "java.project.importHint": "android",
+    "java.import.gradle.java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
+    "gradle.autoDetect": "on",
+    "gradle.nestedProjects": true,
+    "gradle.projects": [
+        {
+            "path": "android"
+        }
+    ],
+    "gradle.reuseTerminals": true,
+    "gradle.showInUi": true,
+    "gradle.welcome": false,
     "workbench.browser.enableChatTools": true,
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.jdt.ls.vmargs": "-Xmx4G -XX:+UseG1GC -XX:+UseStringDeduplication",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-17",
+            "path": "C:\\Program Files\\Android\\Android Studio\\jbr",
+            "default": true
+        }
+    ],
+    "java.import.gradle.arguments": "--stacktrace",
+    "java.import.gradle.offline.enabled": false,
+    "java.errors.incompleteClasspath.severity": "ignore",
+    "java.project.importOnFirstTimeStartup": "automatic"
 }

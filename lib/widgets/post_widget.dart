@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gal/gal.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:video_player/video_player.dart';
 
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
@@ -14,12 +13,12 @@ import '../services/post_service.dart';
 import '../services/share_service.dart';
 import '../utils/animation_utils.dart';
 import '../utils/auth_guard.dart';
-import '../utils/screen_awake_controller.dart';
+// import '../utils/screen_awake_controller.dart';
 import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
 import 'expandable_text.dart';
 import 'keyboard_prompt_banner.dart';
-import 'full_screen_video_player.dart';
+// import 'full_screen_video_player.dart';
 
 class PostWidget extends StatefulWidget {
   final PostModel post;
@@ -42,7 +41,7 @@ class _PostWidgetState extends State<PostWidget> {
   bool _isFollowing = false;
   bool _isFollowLoading = false;
   bool _isReposting = false;
-  late int _videoViewCount;
+  // _videoViewCount removed for AGP 9+ compatibility
 
   static const List<String> _quickEmojis = [
     '😀',
@@ -159,40 +158,43 @@ class _PostWidgetState extends State<PostWidget> {
                       Expanded(
                         child: AnimationUtils.scaleButtonAnimation(
                           onTap: _toggleLike,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedScale(
-                                duration: const Duration(milliseconds: 200),
-                                scale: _isLiked ? 1.2 : 1.0,
-                                child: Icon(
-                                  _isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: _isLiked ? Colors.red : null,
-                                  size: 28,
+                          child: Semantics(
+                            label: _isLiked ? 'Unlike post' : 'Like post',
+                            button: true,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                AnimatedScale(
+                                  duration: const Duration(milliseconds: 200),
+                                  scale: _isLiked ? 1.2 : 1.0,
+                                  child: Icon(
+                                    _isLiked
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: _isLiked ? Colors.red : null,
+                                    size: 28,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: Theme.of(context).textTheme.bodyLarge!
-                                    .copyWith(
-                                      color: _isLiked ? Colors.red : null,
-                                      fontWeight: _isLiked
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                child: Text('$_likeCount'),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 200),
+                                  style: Theme.of(context).textTheme.bodyLarge!
+                                      .copyWith(
+                                        color: _isLiked ? Colors.red : null,
+                                        fontWeight: _isLiked
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                  child: Text('$_likeCount'),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       Expanded(
                         child: AnimationUtils.scaleButtonAnimation(
                           onTap: () async {
-                            Navigator.pop(context);
                             showModalBottomSheet(
                               context: context,
                               isScrollControlled: true,
@@ -203,48 +205,60 @@ class _PostWidgetState extends State<PostWidget> {
                               ),
                             );
                           },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.comment_outlined, size: 28),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${widget.post.commentCount}',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ],
+                          child: Semantics(
+                            label: 'View comments',
+                            button: true,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.comment_outlined, size: 28),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${widget.post.commentCount}',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       Expanded(
                         child: AnimationUtils.scaleButtonAnimation(
                           onTap: _repostToFeed,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.repeat, size: 28),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${widget.post.repostCount}',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ],
+                          child: Semantics(
+                            label: 'Repost to your feed',
+                            button: true,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.repeat, size: 28),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${widget.post.repostCount}',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       Expanded(
                         child: AnimationUtils.scaleButtonAnimation(
                           onTap: () => _showShareDialog(),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.share_outlined, size: 28),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Share',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ],
+                          child: Semantics(
+                            label: 'Share post',
+                            button: true,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.share_outlined, size: 28),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Share',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -318,7 +332,7 @@ class _PostWidgetState extends State<PostWidget> {
     super.initState();
     _isLiked = widget.post.isLikedBy(widget.currentUserId);
     _likeCount = widget.post.likeCount;
-    _videoViewCount = widget.post.videoViewCount;
+    // _videoViewCount removed for AGP 9+ compatibility
     if (_ownerId != widget.currentUserId) {
       _checkFollowState();
     }
@@ -331,25 +345,10 @@ class _PostWidgetState extends State<PostWidget> {
       _isLiked = widget.post.isLikedBy(widget.currentUserId);
       _likeCount = widget.post.likeCount;
     }
-    if (oldWidget.post.videoViewCount != widget.post.videoViewCount) {
-      _videoViewCount = widget.post.videoViewCount;
-    }
+    // _videoViewCount removed for AGP 9+ compatibility
   }
 
-  Future<void> _incrementVideoViewCount() async {
-    if (widget.currentUserId.isEmpty || widget.post.postId.isEmpty) return;
-    try {
-      await FirebaseFirestore.instance
-          .collection('posts')
-          .doc(widget.post.postId)
-          .update({'videoViewCount': FieldValue.increment(1)});
-      if (mounted) {
-        setState(() => _videoViewCount += 1);
-      }
-    } catch (e) {
-      debugPrint('Video view count update skipped: $e');
-    }
-  }
+  // _incrementVideoViewCount removed for AGP 9+ compatibility
 
   Future<void> _checkFollowState() async {
     try {
@@ -1022,13 +1021,17 @@ class _PostWidgetState extends State<PostWidget> {
               children: [
                 GestureDetector(
                   onTap: _openAuthorProfile,
-                  child: CircleAvatar(
-                    backgroundImage: _ownerImageUrl != null
-                        ? NetworkImage(_ownerImageUrl!)
-                        : null,
-                    child: _ownerImageUrl == null
-                        ? const Icon(Icons.person)
-                        : null,
+                  child: Semantics(
+                    label: 'View profile of $_ownerName',
+                    button: true,
+                    child: CircleAvatar(
+                      backgroundImage: _ownerImageUrl != null
+                          ? NetworkImage(_ownerImageUrl!)
+                          : null,
+                      child: _ownerImageUrl == null
+                          ? const Icon(Icons.person)
+                          : null,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1066,7 +1069,13 @@ class _PostWidgetState extends State<PostWidget> {
                       ),
                       if (_ownerId != widget.currentUserId) ...[
                         const SizedBox(width: 8),
-                        _buildFollowButton(),
+                        Semantics(
+                          label: _isFollowing
+                              ? 'Unfollow $_ownerName'
+                              : 'Follow $_ownerName',
+                          button: true,
+                          child: _buildFollowButton(),
+                        ),
                       ],
                     ],
                   ),
@@ -1187,33 +1196,7 @@ class _PostWidgetState extends State<PostWidget> {
               const SizedBox(height: 12),
             ],
             // Audio player removed for build troubleshooting
-            // Video player
-            if (widget.post.videoUrl != null)
-              _VideoPlayer(
-                videoUrl: widget.post.videoUrl!,
-                onOpenProfile: _openAuthorProfile,
-                onOpenDetails: _showPostDetailsSheet,
-                onFirstPlay: _incrementVideoViewCount,
-                canSaveMedia: _ownerId == widget.currentUserId,
-                enableFullscreen: true,
-              ),
-            if (widget.post.videoUrl != null) const SizedBox(height: 12),
-            if (widget.post.videoUrl != null)
-              Row(
-                children: [
-                  Icon(
-                    Icons.visibility_outlined,
-                    size: 18,
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$_videoViewCount views',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            if (widget.post.videoUrl != null) const SizedBox(height: 12),
+            // Video player removed for AGP 9+ compatibility
             // Images
             if (widget.post.imageUrls.isNotEmpty)
               widget.post.imageUrls.length == 1
@@ -1437,407 +1420,4 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
 // Audio player widget removed for build troubleshooting
 
 // ── Video player widget ────────────────────────────────────────────────────
-class _VideoPlayer extends StatefulWidget {
-  final bool enableFullscreen;
-  final String videoUrl;
-  final VoidCallback onOpenProfile;
-  final VoidCallback onOpenDetails;
-  final Future<void> Function() onFirstPlay;
-  final bool canSaveMedia;
-
-  const _VideoPlayer({
-    required this.videoUrl,
-    required this.onOpenProfile,
-    required this.onOpenDetails,
-    required this.onFirstPlay,
-    required this.canSaveMedia,
-    this.enableFullscreen = true,
-  });
-
-  @override
-  State<_VideoPlayer> createState() => _VideoPlayerState();
-}
-
-class _VideoPlayerState extends State<_VideoPlayer> {
-  void _openFullScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FullScreenVideoPlayer(videoUrl: widget.videoUrl),
-      ),
-    );
-  }
-
-  late VideoPlayerController _controller;
-  bool _isInitialized = false;
-  bool _showControls = true;
-  bool _isSavingVideo = false;
-  bool _hasTrackedView = false;
-  bool _holdsScreenAwake = false;
-
-  void _syncScreenAwakeWithPlayback() {
-    if (!_isInitialized) return;
-    final isPlaying = _controller.value.isPlaying;
-    if (isPlaying && !_holdsScreenAwake) {
-      ScreenAwakeController.acquire();
-      _holdsScreenAwake = true;
-    } else if (!isPlaying && _holdsScreenAwake) {
-      ScreenAwakeController.release();
-      _holdsScreenAwake = false;
-    }
-  }
-
-  void _videoListener() {
-    if (!mounted) return;
-    _syncScreenAwakeWithPlayback();
-    setState(() {
-      // Rebuild on playback position/buffering changes.
-    });
-  }
-
-  Future<void> _seekBy(Duration offset) async {
-    final value = _controller.value;
-    if (!value.isInitialized) return;
-
-    final duration = value.duration;
-    final target = value.position + offset;
-    final clamped = target < Duration.zero
-        ? Duration.zero
-        : (target > duration ? duration : target);
-    await _controller.seekTo(clamped);
-  }
-
-  Future<void> _togglePlayPause() async {
-    if (!_controller.value.isInitialized) return;
-    if (_controller.value.isPlaying) {
-      await _controller.pause();
-      _syncScreenAwakeWithPlayback();
-    } else {
-      if (!_hasTrackedView) {
-        _hasTrackedView = true;
-        await widget.onFirstPlay();
-      }
-      await _controller.play();
-      _syncScreenAwakeWithPlayback();
-    }
-  }
-
-  Future<void> _saveVideo() async {
-    setState(() => _isSavingVideo = true);
-    try {
-      final tempFile = File(
-        '${Directory.systemTemp.path}/starpage_${DateTime.now().millisecondsSinceEpoch}.mp4',
-      );
-      final client = HttpClient();
-      final request = await client.getUrl(Uri.parse(widget.videoUrl));
-      final response = await request.close();
-      final bytes = await consolidateHttpClientResponseBytes(response);
-      await tempFile.writeAsBytes(bytes);
-      await Gal.putVideo(tempFile.path, album: 'Starpage');
-      await tempFile.delete();
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Saved to gallery ✓')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isSavingVideo = false);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-      ..initialize()
-          .then((_) {
-            if (!mounted) return;
-            _controller.addListener(_videoListener);
-            setState(() => _isInitialized = true);
-          })
-          .catchError((error) {
-            debugPrint('Video initialization error: $error');
-          });
-  }
-
-  @override
-  void dispose() {
-    if (_holdsScreenAwake) {
-      ScreenAwakeController.release();
-      _holdsScreenAwake = false;
-    }
-    _controller.removeListener(_videoListener);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  String _formatDuration(Duration d) {
-    final minutes = d.inMinutes;
-    final seconds = d.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade300,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return GestureDetector(
-      onTap: widget.onOpenDetails,
-      onDoubleTap: () => setState(() => _showControls = !_showControls),
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: AspectRatio(
-              aspectRatio: _controller.value.aspectRatio,
-              child: VideoPlayer(_controller),
-            ),
-          ),
-          // Video controls overlay
-          if (_showControls)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.black26,
-                ),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.replay_10,
-                          color: Colors.white,
-                          size: 38,
-                        ),
-                        onPressed: () => _seekBy(const Duration(seconds: -10)),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          _controller.value.isPlaying
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_fill,
-                          color: Colors.white,
-                          size: 56,
-                        ),
-                        onPressed: _togglePlayPause,
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.forward_10,
-                          color: Colors.white,
-                          size: 38,
-                        ),
-                        onPressed: () => _seekBy(const Duration(seconds: 10)),
-                      ),
-                      if (widget.enableFullscreen)
-                        IconButton(
-                          icon: const Icon(
-                            Icons.fullscreen,
-                            color: Colors.white,
-                            size: 38,
-                          ),
-                          onPressed: _openFullScreen,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // Author details (bottom overlay)
-          Positioned(
-            left: 12,
-            right: 12,
-            bottom: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: widget.onOpenProfile,
-                    child: const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.transparent,
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Author',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.info_outline, color: Colors.white),
-                    onPressed: widget.onOpenDetails,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Right interactions column
-          Positioned(
-            right: 8,
-            bottom: 80,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    _controller.value.isPlaying
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: Colors.redAccent,
-                    size: 30,
-                  ),
-                  onPressed: () {}, // TODO: Hook up like action
-                ),
-                const SizedBox(height: 14),
-                IconButton(
-                  icon: const Icon(
-                    Icons.comment_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                  onPressed: () {}, // TODO: Hook up comment action
-                ),
-                const SizedBox(height: 14),
-                IconButton(
-                  icon: const Icon(Icons.repeat, color: Colors.white, size: 28),
-                  onPressed: () {}, // TODO: Hook up repost action
-                ),
-                const SizedBox(height: 14),
-                IconButton(
-                  icon: const Icon(
-                    Icons.share_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                  onPressed: () {}, // TODO: Hook up share action
-                ),
-              ],
-            ),
-          ),
-          // Profile and save icons (top corners)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Material(
-              color: Colors.black45,
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                onTap: widget.onOpenProfile,
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.person_outline, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-          if (widget.canSaveMedia)
-            Positioned(
-              top: 8,
-              left: 8,
-              child: Material(
-                color: Colors.black45,
-                borderRadius: BorderRadius.circular(20),
-                child: InkWell(
-                  onTap: _isSavingVideo ? null : _saveVideo,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: _isSavingVideo
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.download, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-          // Video progress bar (only with controls)
-          if (_showControls)
-            Positioned(
-              bottom: 60,
-              left: 8,
-              right: 8,
-              child: Row(
-                children: [
-                  Text(
-                    _formatDuration(_controller.value.position),
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderThemeData(
-                        trackHeight: 3,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 5,
-                        ),
-                      ),
-                      child: Slider(
-                        min: 0,
-                        max:
-                            (_controller.value.duration.inMilliseconds <= 0
-                                    ? 1
-                                    : _controller.value.duration.inMilliseconds)
-                                .toDouble(),
-                        value: _controller.value.position.inMilliseconds
-                            .clamp(
-                              0,
-                              _controller.value.duration.inMilliseconds <= 0
-                                  ? 1
-                                  : _controller.value.duration.inMilliseconds,
-                            )
-                            .toDouble(),
-                        onChanged: (value) {
-                          _controller.seekTo(
-                            Duration(milliseconds: value.toInt()),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Text(
-                    _formatDuration(_controller.value.duration),
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
+// Video player widget removed for AGP 9+ compatibility

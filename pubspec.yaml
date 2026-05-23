@@ -29,22 +29,25 @@ dependencies:
   
   # Push notifications
   flutter_local_notifications: ^21.0.0
-  package_info_plus: ^9.0.0
+#  package_info_plus: ^10.1.0
 
   # Media players
-  video_player: ^2.10.2
+#  video_player: ^2.10.2
   # just_audio: ^0.10.5
   
   # Other utilities
 
   intl: ^0.20.2
-  timeago: ^3.6.1
-  share_plus: ^12.0.2
-  gal: ^2.2.1
-  wakelock_plus: ^1.2.10
+  timeago: ^3.7.1
+#  share_plus: ^13.1.0
+  gal: ^2.3.2
+  firebase_storage: ^13.3.0
+  file_picker: ^11.0.2
+#  wakelock_plus: ^1.2.10
 
   # File and storage
 
+  # flutter_driver: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

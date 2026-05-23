@@ -221,9 +221,9 @@ class _TrendingScreenState extends State<TrendingScreen>
         final posts = snapshot.data!;
 
         return ListView.builder(
+          cacheExtent: 600.0,
           key: PageStorageKey<String>(listStorageKey),
           itemCount: posts.length,
-          cacheExtent: 600,
           physics: const BouncingScrollPhysics(),
           itemBuilder: (context, index) {
             return KeyedSubtree(
@@ -245,9 +245,9 @@ class _TrendingScreenState extends State<TrendingScreen>
     required String listStorageKey,
   }) {
     return ListView.builder(
+      cacheExtent: 600.0,
       key: PageStorageKey<String>(listStorageKey),
       itemCount: posts.length,
-      cacheExtent: 600,
       physics: const BouncingScrollPhysics(),
       itemBuilder: (context, index) {
         return KeyedSubtree(

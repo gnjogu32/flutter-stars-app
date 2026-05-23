@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-// import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart' as fp;
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
@@ -30,9 +30,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   final List<XFile> _selectedImages = [];
   final Map<String, Uint8List> _imageBytes = {}; // Store bytes immediately
-  // Audio upload removed
   XFile? _selectedVideo;
-  Uint8List? _videoBytes;
+  fp.FilePickerResult? _selectedAudio;
   String? _selectedTalent;
   bool _isLoading = false;
   String? _errorMessage;
@@ -256,10 +255,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _pickAudio() async {
-    // Disabled: FilePicker not available
-    setState(() {
-      _errorMessage = 'Audio picking is disabled (file_picker not available)';
-    });
+    try {
+      final result = await fp.FilePicker.pickFiles(type: fp.FileType.audio);
+      if (result != null) {
+        setState(() {
+          _selectedAudio = result;
+          _errorMessage = null;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error picking audio: $e';
+      });
+    }
   }
 
   Future<void> _pickVideo() async {
@@ -271,10 +279,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // User cancelled picker
       if (pickedFile == null) return;
 
-      final bytes = await pickedFile.readAsBytes();
+      await pickedFile.readAsBytes(); // bytes removed for AGP 9+ compatibility
       setState(() {
         _selectedVideo = pickedFile;
-        _videoBytes = bytes;
+        // _videoBytes removed for AGP 9+ compatibility
         _errorMessage = null;
       });
     } catch (e) {
@@ -350,8 +358,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         content: trimmedContent,
         imageFiles: List.from(_selectedImages),
         imageBytes: Map.from(_imageBytes),
-        // videoFile and videoBytes removed
         talent: _selectedTalent,
+        videoFile: _selectedVideo,
+        audioFileResult: _selectedAudio,
       );
 
       // Clear form and show success
@@ -361,7 +370,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           _selectedImages.clear();
           _imageBytes.clear();
           _selectedVideo = null;
-          _videoBytes = null;
+          _selectedAudio = null;
           _selectedTalent = null;
         });
 
@@ -533,7 +542,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     GestureDetector(
                       onTap: () => setState(() {
                         _selectedVideo = null;
-                        _videoBytes = null;
+                        // _videoBytes removed for AGP 9+ compatibility
                       }),
                       child: const Icon(Icons.close, size: 16),
                     ),

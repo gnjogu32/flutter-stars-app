@@ -11,13 +11,13 @@ if (!(Test-Path $apkPath)) {
 }
 
 $firebaseArgs = @(
-	"appdistribution:distribute"
-	$apkPath
-	"--app"
-	$firebaseAppId
-	"--groups"
-	$testerGroups
-	"--release-notes"
+	"appdistribution:distribute",
+	$apkPath,
+	"--app",
+	$firebaseAppId,
+	"--groups",
+	$testerGroups,
+	"--release-notes",
 	$releaseNotes
 )
 

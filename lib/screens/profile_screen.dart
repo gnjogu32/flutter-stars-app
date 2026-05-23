@@ -189,10 +189,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Debug output
     if (kDebugMode) {
-      print('ProfileScreen - widget.userId: "${widget.userId}"');
-      print('ProfileScreen - effectiveUserId: "$effectiveUserId"');
-      print('ProfileScreen - currentUser?.uid: "${_auth.currentUser?.uid}"');
-      print('ProfileScreen - isOwnProfile: $isOwnProfile');
+      debugPrint('ProfileScreen - widget.userId: "${widget.userId}"');
+      debugPrint('ProfileScreen - effectiveUserId: "$effectiveUserId"');
+      debugPrint('ProfileScreen - currentUser?.uid: "${_auth.currentUser?.uid}"');
+      debugPrint('ProfileScreen - isOwnProfile: $isOwnProfile');
     }
 
     // If still no user ID, show loading or auth error

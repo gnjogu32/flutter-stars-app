@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../models/post_model.dart';
 import 'notification_service.dart';
@@ -28,7 +30,8 @@ class PostService {
     required List<XFile> imageFiles,
     required Map<String, Uint8List> imageBytes, // Pre-loaded bytes
     required String? talent,
-    // Audio/video upload removed
+    XFile? videoFile,
+    FilePickerResult? audioFileResult,
   }) async {
     try {
       // Validate input
@@ -36,10 +39,46 @@ class PostService {
         throw Exception('Post must have content or images');
       }
 
-      // Upload images to Firebase Storage (DISABLED)
+      // Upload images to Firebase Storage
       List<String> imageUrls = [];
       String? audioUrl;
       String? videoUrl;
+
+      // Upload images
+      for (final image in imageFiles) {
+        final storageRef = FirebaseStorage.instance.ref();
+        final imageRef = storageRef.child(
+          'posts/images/${DateTime.now().millisecondsSinceEpoch}_${image.name}',
+        );
+        final uploadTask = imageRef.putData(imageBytes[image.path]!);
+        final snapshot = await uploadTask.whenComplete(() {});
+        final url = await snapshot.ref.getDownloadURL();
+        imageUrls.add(url);
+      }
+
+      // Upload audio if present
+      if (audioFileResult != null &&
+          audioFileResult.files.single.path != null) {
+        final audioFile = File(audioFileResult.files.single.path!);
+        final storageRef = FirebaseStorage.instance.ref();
+        final audioRef = storageRef.child(
+          'posts/audios/${DateTime.now().millisecondsSinceEpoch}_${audioFileResult.files.single.name}',
+        );
+        final uploadTask = audioRef.putFile(audioFile);
+        final snapshot = await uploadTask.whenComplete(() {});
+        audioUrl = await snapshot.ref.getDownloadURL();
+      }
+
+      // Upload video if present
+      if (videoFile != null) {
+        final storageRef = FirebaseStorage.instance.ref();
+        final videoRef = storageRef.child(
+          'posts/videos/${DateTime.now().millisecondsSinceEpoch}_${videoFile.name}',
+        );
+        final uploadTask = videoRef.putFile(File(videoFile.path));
+        final snapshot = await uploadTask.whenComplete(() {});
+        videoUrl = await snapshot.ref.getDownloadURL();
+      }
 
       // Verify authentication and refresh token
       final currentUser = _auth.currentUser;

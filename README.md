@@ -4,13 +4,14 @@ A new Flutter project.
 
 ## Modernized Android Build Toolchain
 
-This project has been upgraded to use the latest Android build tools and SDKs:
+This project has been upgraded to use the latest Android build tools and SDKs. See [MAINTENANCE_WORKFLOW.md](./MAINTENANCE_WORKFLOW.md) for detailed technical maintenance instructions.
 
-- **Android Gradle Plugin (AGP):** 9.1.0
-- **Kotlin:** 2.1.0
-- **Gradle:** 9.3.1
+- **Android Gradle Plugin (AGP):** 9.2.1
+- **Kotlin:** 2.1.10
+- **Gradle:** 9.4.1
 - **Target/Compile SDK:** 36
-- **NDK Version:** 28.2.13676358 (Forced across all subprojects)
+- **JVM Target:** 17 (Forced)
+- **NDK Version:** 28.2.13676358 (Forced)
 
 ### Compatibility Notes
 
