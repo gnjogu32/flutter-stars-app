@@ -276,10 +276,16 @@ class _UserCardState extends State<_UserCard> {
                     ),
                     side: BorderSide(
                       color: _isFollowing
-                          ? Colors.grey.shade400
+                          ? (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade700
+                              : Colors.grey.shade400)
                           : Theme.of(context).colorScheme.primary,
                     ),
-                    foregroundColor: _isFollowing ? Colors.grey.shade600 : null,
+                    foregroundColor: _isFollowing
+                        ? (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600)
+                        : null,
                   ),
                   child: _isFollowLoading
                       ? SizedBox(

@@ -184,7 +184,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
                 ),
-                fillColor: Colors.grey.shade100,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).colorScheme.surfaceContainerHighest
+                    : Colors.grey.shade100,
                 filled: true,
               ),
               onChanged: (value) {

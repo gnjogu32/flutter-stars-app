@@ -122,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
           StreamBuilder<DocumentSnapshot>(
             stream: _currentUserStream,
             builder: (context, snapshot) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               String? photoUrl;
               if (snapshot.hasData && snapshot.data!.exists) {
                 final data = snapshot.data!.data() as Map<String, dynamic>?;
@@ -148,12 +149,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       backgroundImage: photoUrl != null && photoUrl.isNotEmpty
                           ? NetworkImage(photoUrl)
                           : null,
-                      backgroundColor: Colors.grey.shade300,
+                      backgroundColor: isDark ? Colors.grey[800] : Colors.grey.shade300,
                       child: photoUrl == null || photoUrl.isEmpty
-                          ? const Icon(
+                          ? Icon(
                               Icons.person,
                               size: 18,
-                              color: Colors.white,
+                              color: isDark ? Colors.white70 : Colors.white,
                             )
                           : null,
                     ),

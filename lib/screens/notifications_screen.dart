@@ -112,9 +112,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     NotificationModel notification,
     String currentUserId,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     Color backgroundColor = notification.isRead
         ? Colors.transparent
-        : Colors.blue.withValues(alpha: 0.1);
+        : theme.colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.08);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),

@@ -72,8 +72,13 @@ class _SearchOverlayState extends State<SearchOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Material(
-      color: Colors.black.withAlpha((0.7 * 255).toInt()),
+      color: isDark
+          ? Colors.black.withValues(alpha: 0.85)
+          : Colors.black.withAlpha((0.7 * 255).toInt()),
       child: SafeArea(
         child: Column(
           children: [
@@ -85,11 +90,13 @@ class _SearchOverlayState extends State<SearchOverlay>
                     child: TextField(
                       controller: _controller,
                       autofocus: true,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         hintText: 'Search posts or people...',
-                        prefixIcon: const Icon(Icons.search),
+                        hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                        prefixIcon: Icon(Icons.search, color: isDark ? Colors.white70 : Colors.black54),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -120,7 +127,7 @@ class _SearchOverlayState extends State<SearchOverlay>
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
                   : TabBarView(
                       controller: _tabController,
                       children: [_buildPostsResults(), _buildUsersResults()],
@@ -133,11 +140,15 @@ class _SearchOverlayState extends State<SearchOverlay>
   }
 
   Widget _buildPostsResults() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.white; // Keep white for overlay results
+
     if (_controller.text.isEmpty) {
-      return const Center(child: Text('Type to search posts'));
+      return const Center(child: Text('Type to search posts', style: TextStyle(color: Colors.white70)));
     }
     if (_postResults.isEmpty) {
-      return const Center(child: Text('No posts found'));
+      return const Center(child: Text('No posts found', style: TextStyle(color: Colors.white70)));
     }
     return ListView.builder(
       itemCount: _postResults.length,
@@ -148,8 +159,9 @@ class _SearchOverlayState extends State<SearchOverlay>
             post.content,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white),
           ),
-          subtitle: Text('by ${post.authorName}'),
+          subtitle: Text('by ${post.authorName}', style: const TextStyle(color: Colors.white70)),
           onTap: () {
             // Show post details as a modal bottom sheet (like feed)
             showModalBottomSheet(
@@ -173,10 +185,10 @@ class _SearchOverlayState extends State<SearchOverlay>
 
   Widget _buildUsersResults() {
     if (_controller.text.isEmpty) {
-      return const Center(child: Text('Type to search people'));
+      return const Center(child: Text('Type to search people', style: TextStyle(color: Colors.white70)));
     }
     if (_userResults.isEmpty) {
-      return const Center(child: Text('No people found'));
+      return const Center(child: Text('No people found', style: TextStyle(color: Colors.white70)));
     }
     return ListView.builder(
       itemCount: _userResults.length,
@@ -193,8 +205,8 @@ class _SearchOverlayState extends State<SearchOverlay>
                 ? const Icon(Icons.person)
                 : null,
           ),
-          title: Text(user.displayName),
-          subtitle: Text(user.talent ?? ''),
+          title: Text(user.displayName, style: const TextStyle(color: Colors.white)),
+          subtitle: Text(user.talent ?? '', style: const TextStyle(color: Colors.white70)),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(

@@ -54,7 +54,7 @@ android {
             
             // Using configure to avoid import issues with the firebaseAppDistribution extension
             extensions.configure<com.google.firebase.appdistribution.gradle.AppDistributionExtension>("firebaseAppDistribution") {
-                appId = "1:1071477545934:android:8725890938b29f9c738e4a"
+                appId = "1:246255479274:android:177b790682bb5b59862a93"
                 groups = "testers"
             }
         }

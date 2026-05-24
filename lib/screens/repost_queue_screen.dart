@@ -226,7 +226,9 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
                   label: Text(item.statusText),
                   backgroundColor: item.status == 'pending'
                       ? theme.colorScheme.secondaryContainer
-                      : Colors.grey.shade200,
+                      : (theme.brightness == Brightness.dark
+                          ? Colors.grey[800]
+                          : Colors.grey.shade200),
                 ),
               ],
             ),

@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: '3.38.5'
+  FLUTTER_VERSION: '3.44.0'
 
 jobs:
   build:
@@ -28,17 +28,20 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
 
       - name: Get dependencies
         run: flutter pub get
 
       - name: Run code analysis
-        run: flutter analyze
+        run: flutter analyze --android-skip-build-dependency-validation
 
       - name: Run tests
         run: flutter test
@@ -46,12 +49,12 @@ jobs:
       - name: Build debug APK
         id: build
         run: |
-          flutter build apk --debug
+          flutter build apk --debug --android-skip-build-dependency-validation
           echo "apk-path=build/app/outputs/flutter-apk/app-debug.apk" >> $GITHUB_OUTPUT
 
       - name: Build release APK
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -79,13 +82,14 @@ jobs:
       - name: Distribute to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: 1:246255479274:android:4716e34e32af514b862a93
+          appId: 1:246255479274:android:177b790682bb5b59862a93
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           file: build/app/outputs/flutter-apk/app-release.apk
           releaseNotes: |
             Build #${{ github.run_number }}
             Ref: ${{ github.ref_name }}
             Commit: ${{ github.sha }}
+            Modernized build toolchain (AGP 9.2.1)
           testers: ${{ secrets.FIREBASE_TESTERS }}
 
   notify:

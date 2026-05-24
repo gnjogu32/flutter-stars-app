@@ -82,10 +82,15 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = theme.colorScheme.surface;
+    final textFieldColor = isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey[100];
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         child: Column(
@@ -96,21 +101,21 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: isDark ? Colors.grey[700] : Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Text(
                 'Comments',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             const Divider(height: 1),
             if (_replyToName != null)
               Container(
-                color: Colors.grey[100],
+                color: isDark ? theme.colorScheme.surfaceContainerHigh : Colors.grey[100],
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 8,
@@ -120,12 +125,12 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     Expanded(
                       child: Text(
                         'Replying to $_replyToName',
-                        style: const TextStyle(fontSize: 12),
+                        style: theme.textTheme.bodySmall,
                       ),
                     ),
                     InkWell(
                       onTap: _cancelReply,
-                      child: const Icon(Icons.close, size: 16),
+                      child: Icon(Icons.close, size: 16, color: theme.colorScheme.onSurface),
                     ),
                   ],
                 ),
@@ -138,11 +143,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: theme.colorScheme.error)));
                   }
                   final comments = snapshot.data ?? [];
                   if (comments.isEmpty) {
-                    return const Center(child: Text('No comments yet.'));
+                    return Center(child: Text('No comments yet.', style: theme.textTheme.bodyMedium));
                   }
                   return ListView.builder(
                     itemCount: comments.length,
@@ -175,16 +180,18 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
+                      style: theme.textTheme.bodyLarge,
                       decoration: InputDecoration(
                         hintText: _replyToName != null
                             ? 'Write a reply...'
                             : 'Add a comment...',
+                        hintStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: textFieldColor,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 10,
@@ -202,7 +209,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     )
                   else
                     IconButton(
-                      icon: const Icon(Icons.send, color: Colors.blue),
+                      icon: Icon(Icons.send, color: theme.colorScheme.primary),
                       onPressed: _sendComment,
                     ),
                 ],

@@ -11,7 +11,7 @@ on:
       - develop
 
 env:
-  FLUTTER_VERSION: '3.38.5'
+  FLUTTER_VERSION: '3.44.0'
 
 jobs:
   android-build:
@@ -27,6 +27,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -39,13 +40,13 @@ jobs:
         run: flutter pub get
 
       - name: Analyze code
-        run: flutter analyze
+        run: flutter analyze --android-skip-build-dependency-validation
 
       - name: Run tests
         run: flutter test
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -69,7 +70,7 @@ jobs:
             --app ${{ secrets.FIREBASE_APP_ID }} \
             --token $FIREBASE_TOKEN \
             --groups testers \
-            --release-notes "Automated build and distribution from GitHub Actions"
+            --release-notes "Automated build and distribution from GitHub Actions (Modernized toolchain)"
       - name: Get APK size
         run: |
           APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
@@ -92,6 +93,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -104,7 +106,7 @@ jobs:
         run: flutter pub get
 
       - name: Build App Bundle
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --android-skip-build-dependency-validation
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}

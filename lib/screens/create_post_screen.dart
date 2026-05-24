@@ -621,7 +621,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   onTap: () => _removeImage(index),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.black54,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white24
+                                          : Colors.black54,
                                       shape: BoxShape.circle,
                                     ),
                                     padding: const EdgeInsets.all(4),

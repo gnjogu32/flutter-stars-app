@@ -266,6 +266,7 @@ class _TrendingScreenState extends State<TrendingScreen>
   }
 
   Widget _buildRankedPostWidget({required int index, required PostModel post}) {
+    final theme = Theme.of(context);
     final isTopThree = index < 3;
     final medalEmoji = switch (index) {
       0 => '🥇',
@@ -298,10 +299,9 @@ class _TrendingScreenState extends State<TrendingScreen>
               ),
               child: Text(
                 '#${index + 1}',
-                style: const TextStyle(
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
                 ),
               ),
             ),

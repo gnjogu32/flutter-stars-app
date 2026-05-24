@@ -62,10 +62,10 @@ class _TrendingSectionState extends State<TrendingSection> {
                       horizontal: 8.0,
                       vertical: 4.0,
                     ),
-                    child: const Text(
+                    child: Text(
                       'See All',
                       style: TextStyle(
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -211,10 +211,10 @@ class _TrendingStreamSectionState extends State<TrendingStreamSection> {
                       horizontal: 8.0,
                       vertical: 4.0,
                     ),
-                    child: const Text(
+                    child: Text(
                       'See All',
                       style: TextStyle(
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

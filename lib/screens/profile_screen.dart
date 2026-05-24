@@ -414,7 +414,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           : () => _toggleFollow(user),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isFollowing
-                            ? Colors.grey[300]
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[800]
+                                : Colors.grey[300])
                             : Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -430,7 +432,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: _isFollowing
-                                    ? Colors.black
+                                    ? (Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white70
+                                        : Colors.black87)
                                     : Colors.white,
                               ),
                             ),

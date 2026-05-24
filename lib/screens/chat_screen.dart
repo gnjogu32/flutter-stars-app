@@ -403,7 +403,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             // Divider between emoji panel and typing area
             if (_showEmojiPanel)
-              Divider(height: 1, color: Colors.grey.shade300),
+              Divider(height: 1, color: theme.dividerColor),
             // Typing area always visible at bottom
             AnimatedPadding(
               duration: const Duration(milliseconds: 180),
@@ -413,7 +413,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
-                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                  border: Border(top: BorderSide(color: theme.dividerColor)),
                 ),
                 child: Center(
                   child: ConstrainedBox(
