@@ -140,10 +140,6 @@ class _SearchOverlayState extends State<SearchOverlay>
   }
 
   Widget _buildPostsResults() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : Colors.white; // Keep white for overlay results
-
     if (_controller.text.isEmpty) {
       return const Center(child: Text('Type to search posts', style: TextStyle(color: Colors.white70)));
     }
