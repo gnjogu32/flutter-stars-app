@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:gal/gal.dart';
+import 'package:path_provider/path_provider.dart';
 import 'full_screen_comments_page.dart';
 
 import '../models/post_model.dart';
@@ -706,6 +710,39 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
     });
   }
 
+  Future<void> _downloadVideo() async {
+    if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Downloading video...')),
+    );
+
+    try {
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(widget.post.videoUrl!));
+      final response = await request.close();
+      final bytes = await consolidateHttpClientResponseBytes(response);
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4');
+      await tempFile.writeAsBytes(bytes);
+
+      await Gal.putVideo(tempFile.path, album: 'Starpage');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video saved to gallery ✓')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _handleDoubleTap() async {
     if (!_isLiked) {
       await _toggleLike();
@@ -798,6 +835,14 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                 label: 'Share',
                 onTap: _sharePost,
               ),
+              if (_ownerId == _activeUserId) ...[
+                const SizedBox(height: 14),
+                _InteractionButton(
+                  icon: Icons.download_outlined,
+                  label: 'Download',
+                  onTap: _downloadVideo,
+                ),
+              ],
               if (!_canInteract) ...[
                 const SizedBox(height: 10),
                 const Text(

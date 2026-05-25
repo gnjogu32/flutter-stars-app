@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gal/gal.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import 'package:path_provider/path_provider.dart';
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
@@ -629,6 +630,39 @@ class _PostWidgetState extends State<PostWidget> {
     Navigator.of(context).pushNamed('/edit-post', arguments: widget.post);
   }
 
+  Future<void> _downloadVideo() async {
+    if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Downloading video...')),
+    );
+
+    try {
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(widget.post.videoUrl!));
+      final response = await request.close();
+      final bytes = await consolidateHttpClientResponseBytes(response);
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4');
+      await tempFile.writeAsBytes(bytes);
+
+      await Gal.putVideo(tempFile.path, album: 'Starpage');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video saved to gallery ✓')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _deletePost() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1101,9 +1135,23 @@ class _PostWidgetState extends State<PostWidget> {
                         _editPost();
                       } else if (value == 'delete') {
                         _deletePost();
+                      } else if (value == 'download') {
+                        _downloadVideo();
                       }
                     },
                     itemBuilder: (context) => [
+                      if (widget.post.videoUrl != null &&
+                          widget.post.videoUrl!.isNotEmpty)
+                        const PopupMenuItem(
+                          value: 'download',
+                          child: Row(
+                            children: [
+                              Icon(Icons.download),
+                              SizedBox(width: 8),
+                              Text('Download Video'),
+                            ],
+                          ),
+                        ),
                       const PopupMenuItem(
                         value: 'edit',
                         child: Row(
