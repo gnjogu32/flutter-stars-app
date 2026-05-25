@@ -26,10 +26,10 @@ class TrendingService {
           .map((doc) => PostModel.fromJson(doc.data()))
           .toList();
 
-      // Sort by engagement score (likes + comments weighted)
+      // Sort by engagement score (likes + comments + views weighted)
       posts.sort((a, b) {
-        final scoreA = (a.likes.length * 2) + a.commentCount;
-        final scoreB = (b.likes.length * 2) + b.commentCount;
+        final scoreA = (a.likes.length * 2) + a.commentCount + (a.videoViewCount / 10);
+        final scoreB = (b.likes.length * 2) + b.commentCount + (b.videoViewCount / 10);
         return scoreB.compareTo(scoreA);
       });
 
@@ -64,10 +64,10 @@ class TrendingService {
           .map((doc) => PostModel.fromJson(doc.data()))
           .toList();
 
-      // Sort by engagement score
+      // Sort by engagement score (likes + comments + views weighted)
       posts.sort((a, b) {
-        final scoreA = (a.likes.length * 2) + a.commentCount;
-        final scoreB = (b.likes.length * 2) + b.commentCount;
+        final scoreA = (a.likes.length * 2) + a.commentCount + (a.videoViewCount / 10);
+        final scoreB = (b.likes.length * 2) + b.commentCount + (b.videoViewCount / 10);
         return scoreB.compareTo(scoreA);
       });
 
@@ -97,10 +97,10 @@ class TrendingService {
               .map((doc) => PostModel.fromJson(doc.data()))
               .toList();
 
-          // Sort by engagement score
+          // Sort by engagement score (likes + comments + views weighted)
           posts.sort((a, b) {
-            final scoreA = (a.likes.length * 2) + a.commentCount;
-            final scoreB = (b.likes.length * 2) + b.commentCount;
+            final scoreA = (a.likes.length * 2) + a.commentCount + (a.videoViewCount / 10);
+            final scoreB = (b.likes.length * 2) + b.commentCount + (b.videoViewCount / 10);
             return scoreB.compareTo(scoreA);
           });
 

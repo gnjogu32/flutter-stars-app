@@ -10,6 +10,7 @@ class VideoPlayerWidget extends StatefulWidget {
   final BoxFit fit;
   final double? aspectRatio;
   final VoidCallback? onVideoEnd;
+  final VoidCallback? onPlay;
 
   const VideoPlayerWidget({
     super.key,
@@ -20,6 +21,7 @@ class VideoPlayerWidget extends StatefulWidget {
     this.fit = BoxFit.contain,
     this.aspectRatio,
     this.onVideoEnd,
+    this.onPlay,
   });
 
   @override
@@ -31,6 +33,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   bool _isInitialized = false;
   bool _isMuted = false;
   bool _showOverlay = true;
+  bool _playEventDispatched = false;
   String? _error;
 
   @override
@@ -50,6 +53,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           if (widget.autoPlay) {
             _controller.play();
             _showOverlay = false;
+            _dispatchPlayEvent();
           }
         });
 
@@ -94,8 +98,16 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       } else {
         _controller.play();
         _showOverlay = false;
+        _dispatchPlayEvent();
       }
     });
+  }
+
+  void _dispatchPlayEvent() {
+    if (!_playEventDispatched) {
+      widget.onPlay?.call();
+      _playEventDispatched = true;
+    }
   }
 
   void _toggleMute() {

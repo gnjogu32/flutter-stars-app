@@ -18,10 +18,10 @@ class AnalyticsService {
       final analyticsRef = _firestore
           .collection('post_analytics')
           .doc(analyticsId);
+      final postRef = _firestore.collection('posts').doc(postId);
 
-      // Get existing analytics or create new
+      // Increment in analytics collection
       final doc = await analyticsRef.get();
-
       if (doc.exists) {
         await analyticsRef.update({
           'viewCount': FieldValue.increment(1),
@@ -46,6 +46,11 @@ class AnalyticsService {
           'engagementRate': 0.0,
         });
       }
+
+      // ALSO Increment in main posts collection for real-time UI updates
+      await postRef.update({
+        'videoViewCount': FieldValue.increment(1),
+      });
 
       _debugLog('View tracked for post: $postId');
     } catch (e) {

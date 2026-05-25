@@ -104,13 +104,6 @@ class _ReelsScreenState extends State<ReelsScreen> {
             itemCount: reels.length,
             onPageChanged: (index) {
               setState(() => _activeIndex = index);
-              // Track view for the visible reel
-              final analyticsService = AnalyticsService();
-              final currentReel = reels[index];
-              analyticsService.trackView(
-                currentReel.postId,
-                currentReel.authorId,
-              );
             },
             itemBuilder: (context, index) {
               final reel = reels[index];
@@ -155,8 +148,6 @@ class _ReelItem extends StatefulWidget {
 }
 
 class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixin {
-    int? _realtimeViewCount;
-    Stream<DocumentSnapshot>? _viewCountStream;
   late VideoPlayerController _videoController;
   bool _isInitialized = false;
   late bool _isLiked;
@@ -217,20 +208,6 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
       duration: const Duration(milliseconds: 500),
     );
     _initializeVideo();
-
-    // Listen to real-time view count from analytics
-    _viewCountStream = FirebaseFirestore.instance
-        .collection('post_analytics')
-        .doc('${widget.post.postId}:analytics')
-        .snapshots();
-    _viewCountStream!.listen((snapshot) {
-      if (snapshot.exists && mounted) {
-        final data = snapshot.data() as Map<String, dynamic>?;
-        setState(() {
-          _realtimeViewCount = (data?['viewCount'] as int?) ?? 0;
-        });
-      }
-    });
   }
 
   Future<void> _initializeVideo() async {
@@ -242,7 +219,11 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
       await _videoController.setLooping(true);
       if (mounted) {
         setState(() => _isInitialized = true);
-        if (widget.isActive) _videoController.play();
+        if (widget.isActive) {
+          _videoController.play();
+          // Track view for the first reel if active
+          AnalyticsService().trackView(widget.post.postId, _ownerId);
+        }
       }
     } catch (e) {
       debugPrint('Error initializing reel video: $e');
@@ -259,6 +240,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
 
     if (widget.isActive && !oldWidget.isActive) {
       _videoController.play();
+      AnalyticsService().trackView(widget.post.postId, _ownerId);
     } else if (!widget.isActive && oldWidget.isActive) {
       _videoController.pause();
     }
@@ -737,8 +719,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
   @override
   Widget build(BuildContext context) {
     final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
-      .trim();
-    final viewsToShow = _realtimeViewCount ?? widget.post.videoViewCount;
+        .trim();
 
     return Stack(
       fit: StackFit.expand,
@@ -883,7 +864,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                       ),
                     ),
                     Text(
-                      '$viewsToShow views',
+                      '${widget.post.videoViewCount} views',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ],

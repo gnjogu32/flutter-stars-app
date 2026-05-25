@@ -11,6 +11,7 @@ import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../services/post_service.dart';
 import '../services/share_service.dart';
+import '../services/analytics_service.dart';
 import '../utils/animation_utils.dart';
 import '../utils/auth_guard.dart';
 // import '../utils/screen_awake_controller.dart';
@@ -36,8 +37,6 @@ class PostWidget extends StatefulWidget {
 }
 
 class _PostWidgetState extends State<PostWidget> {
-    int? _realtimeViewCount;
-    Stream<DocumentSnapshot>? _viewCountStream;
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
@@ -338,22 +337,6 @@ class _PostWidgetState extends State<PostWidget> {
     // _videoViewCount removed for AGP 9+ compatibility
     if (_ownerId != widget.currentUserId) {
       _checkFollowState();
-    }
-
-    // Real-time view count for video posts
-    if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) {
-      _viewCountStream = FirebaseFirestore.instance
-          .collection('post_analytics')
-          .doc('${widget.post.postId}:analytics')
-          .snapshots();
-      _viewCountStream!.listen((snapshot) {
-        if (snapshot.exists && mounted) {
-          final data = snapshot.data() as Map<String, dynamic>?;
-          setState(() {
-            _realtimeViewCount = (data?['viewCount'] as int?) ?? 0;
-          });
-        }
-      });
     }
   }
 
@@ -1034,49 +1017,42 @@ class _PostWidgetState extends State<PostWidget> {
 
   @override
   Widget build(BuildContext context) {
-      final viewsToShow = _realtimeViewCount ?? widget.post.videoViewCount;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: Author info and time
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: _openAuthorProfile,
+                  child: Semantics(
+                    label: 'View profile of $_ownerName',
+                    button: true,
+                    child: CircleAvatar(
+                      backgroundImage: _ownerImageUrl != null
+                          ? NetworkImage(_ownerImageUrl!)
+                          : null,
+                      child: _ownerImageUrl == null
+                          ? const Icon(Icons.person)
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Expanded(
-                        child: AnimationUtils.scaleButtonAnimation(
-                          onTap: () async {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (context) => CommentsBottomSheet(
-                                postId: widget.post.postId,
-                                postAuthorId: _ownerId,
-                                currentUserId: widget.currentUserId,
-                              ),
-                            );
-                          },
-                          child: Semantics(
-                            label: 'View comments',
-                            button: true,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.comment_outlined, size: 28),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${widget.post.commentCount}',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) ...[
-                                  const SizedBox(width: 12),
-                                  const Icon(Icons.visibility, size: 22, color: Colors.blueGrey),
-                                  const SizedBox(width: 4),
-                                  Text('$viewsToShow', style: Theme.of(context).textTheme.bodySmall),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                        child: GestureDetector(
+                          onTap: _openAuthorProfile,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
                                 _ownerName,
                                 style: const TextStyle(
@@ -1240,6 +1216,25 @@ class _PostWidgetState extends State<PostWidget> {
                   videoUrl: widget.post.videoUrl!,
                   autoPlay: false,
                   looping: false,
+                  onPlay: () {
+                    AnalyticsService().trackView(
+                      widget.post.postId,
+                      widget.post.authorId,
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 6.0, left: 4.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${widget.post.videoViewCount} views',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
