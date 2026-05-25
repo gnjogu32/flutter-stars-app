@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gal/gal.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
@@ -37,13 +38,16 @@ class PostWidget extends StatefulWidget {
   State<PostWidget> createState() => _PostWidgetState();
 }
 
-class _PostWidgetState extends State<PostWidget> {
+class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMixin {
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
   bool _isFollowing = false;
   bool _isFollowLoading = false;
   bool _isReposting = false;
+
+  @override
+  bool get wantKeepAlive => true;
   // _videoViewCount removed for AGP 9+ compatibility
 
   static const List<String> _quickEmojis = [
@@ -278,7 +282,7 @@ class _PostWidgetState extends State<PostWidget> {
                       onTap: _openAuthorProfile,
                       child: CircleAvatar(
                         backgroundImage: _ownerImageUrl != null
-                            ? NetworkImage(_ownerImageUrl!)
+                            ? CachedNetworkImageProvider(_ownerImageUrl!)
                             : null,
                         child: _ownerImageUrl == null
                             ? const Icon(Icons.person)
@@ -1051,6 +1055,7 @@ class _PostWidgetState extends State<PostWidget> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Padding(
@@ -1068,7 +1073,7 @@ class _PostWidgetState extends State<PostWidget> {
                     button: true,
                     child: CircleAvatar(
                       backgroundImage: _ownerImageUrl != null
-                          ? NetworkImage(_ownerImageUrl!)
+                          ? CachedNetworkImageProvider(_ownerImageUrl!)
                           : null,
                       child: _ownerImageUrl == null
                           ? const Icon(Icons.person)
@@ -1310,26 +1315,22 @@ class _PostWidgetState extends State<PostWidget> {
                           width: double.infinity,
                           constraints: const BoxConstraints(maxHeight: 420),
                           color: Colors.black.withValues(alpha: 0.04),
-                          child: Image.network(
-                            widget.post.imageUrls.first,
+                          child: CachedNetworkImage(
+                            imageUrl: widget.post.imageUrls.first,
                             fit: BoxFit.contain,
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              return const SizedBox(
-                                height: 220,
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return const SizedBox(
-                                height: 220,
-                                child: Center(
-                                  child: Icon(Icons.broken_image, size: 36),
-                                ),
-                              );
-                            },
+                            memCacheHeight: 800,
+                            placeholder: (context, url) => const SizedBox(
+                              height: 220,
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => const SizedBox(
+                              height: 220,
+                              child: Center(
+                                child: Icon(Icons.broken_image, size: 36),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -1361,11 +1362,27 @@ class _PostWidgetState extends State<PostWidget> {
                               onLongPress: () => _showImageOptions(imageUrl),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  imageUrl,
+                                child: CachedNetworkImage(
+                                  imageUrl: imageUrl,
                                   height: 200,
                                   width: 200,
                                   fit: BoxFit.cover,
+                                  memCacheHeight: 400,
+                                  memCacheWidth: 400,
+                                  placeholder: (context, url) => Container(
+                                    height: 200,
+                                    width: 200,
+                                    color: Colors.black12,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    height: 200,
+                                    width: 200,
+                                    color: Colors.black12,
+                                    child: const Icon(Icons.broken_image),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1482,22 +1499,17 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
             minScale: 0.8,
             maxScale: 4.0,
             child: Center(
-              child: Image.network(
-                widget.imageUrls[index],
+              child: CachedNetworkImage(
+                imageUrl: widget.imageUrls[index],
                 fit: BoxFit.contain,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(child: CircularProgressIndicator());
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(
-                      Icons.broken_image,
-                      color: Colors.white54,
-                      size: 48,
-                    ),
-                  );
-                },
+                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                errorWidget: (context, url, error) => const Center(
+                  child: Icon(
+                    Icons.broken_image,
+                    color: Colors.white54,
+                    size: 48,
+                  ),
+                ),
               ),
             ),
           );

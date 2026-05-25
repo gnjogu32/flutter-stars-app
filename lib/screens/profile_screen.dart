@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gal/gal.dart';
@@ -329,7 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircleAvatar(
                   radius: 50,
                   backgroundImage: user.profileImageUrl != null
-                      ? NetworkImage(user.profileImageUrl!)
+                      ? CachedNetworkImageProvider(user.profileImageUrl!)
                       : null,
                   child: user.profileImageUrl == null
                       ? const Icon(Icons.person, size: 50)
@@ -864,22 +865,17 @@ class _ProfilePhotoViewerState extends State<_ProfilePhotoViewer> {
         minScale: 0.8,
         maxScale: 4.0,
         child: Center(
-          child: Image.network(
-            widget.imageUrl,
+          child: CachedNetworkImage(
+            imageUrl: widget.imageUrl,
             fit: BoxFit.contain,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return const Center(child: CircularProgressIndicator());
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return const Center(
-                child: Icon(
-                  Icons.broken_image,
-                  color: Colors.white54,
-                  size: 56,
-                ),
-              );
-            },
+            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+            errorWidget: (context, url, error) => const Center(
+              child: Icon(
+                Icons.broken_image,
+                color: Colors.white54,
+                size: 56,
+              ),
+            ),
           ),
         ),
       ),

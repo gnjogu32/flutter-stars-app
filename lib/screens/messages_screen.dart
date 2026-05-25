@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -272,12 +273,46 @@ class _MessagesScreenState extends State<MessagesScreen> {
     BuildContext context,
     ConversationModel conversation,
   ) {
-    final isDeleting = _deletingConversationIds.contains(
-      conversation.conversationId,
+    return _ConversationItem(
+      key: ValueKey(conversation.conversationId),
+      conversation: conversation,
+      isDeleting: _deletingConversationIds.contains(conversation.conversationId),
+      onTap: () => _navigateToChat(conversation),
+      onDelete: () => _confirmAndDeleteConversation(conversation),
+      canDelete: _canDeleteConversation(conversation),
     );
+  }
+}
 
+class _ConversationItem extends StatefulWidget {
+  final ConversationModel conversation;
+  final bool isDeleting;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  final bool canDelete;
+
+  const _ConversationItem({
+    super.key,
+    required this.conversation,
+    required this.isDeleting,
+    required this.onTap,
+    required this.onDelete,
+    required this.canDelete,
+  });
+
+  @override
+  State<_ConversationItem> createState() => _ConversationItemState();
+}
+
+class _ConversationItemState extends State<_ConversationItem> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
     return AnimationUtils.scaleButtonAnimation(
-      onTap: isDeleting ? () {} : () => _navigateToChat(conversation),
+      onTap: widget.isDeleting ? () {} : widget.onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Card(
@@ -288,10 +323,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 // Avatar
                 CircleAvatar(
                   radius: 24,
-                  backgroundImage: conversation.otherUserImageUrl != null
-                      ? NetworkImage(conversation.otherUserImageUrl!)
+                  backgroundImage: widget.conversation.otherUserImageUrl != null
+                      ? CachedNetworkImageProvider(widget.conversation.otherUserImageUrl!)
                       : null,
-                  child: conversation.otherUserImageUrl == null
+                  child: widget.conversation.otherUserImageUrl == null
                       ? const Icon(Icons.person)
                       : null,
                 ),
@@ -302,14 +337,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        conversation.otherUserName ?? 'Unknown',
+                        widget.conversation.otherUserName ?? 'Unknown',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        conversation.lastMessage,
+                        widget.conversation.lastMessage,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall,
@@ -326,11 +361,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          timeago.format(conversation.lastMessageTime),
+                          timeago.format(widget.conversation.lastMessageTime),
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                         PopupMenuButton<String>(
-                          icon: isDeleting
+                          icon: widget.isDeleting
                               ? const SizedBox(
                                   width: 16,
                                   height: 16,
@@ -341,12 +376,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               : const Icon(Icons.more_vert, size: 18),
                           onSelected: (value) {
                             if (value == 'delete') {
-                              _confirmAndDeleteConversation(conversation);
+                              widget.onDelete();
                             }
                           },
                           itemBuilder: (context) {
                             // Show delete option only if current user is the creator
-                            if (!_canDeleteConversation(conversation)) {
+                            if (!widget.canDelete) {
                               return []; // No menu options for non-creators
                             }
                             return const [
@@ -371,7 +406,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         ),
                       ],
                     ),
-                    if (conversation.unreadCount > 0)
+                    if (widget.conversation.unreadCount > 0)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Container(
@@ -384,7 +419,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '${conversation.unreadCount}',
+                            '${widget.conversation.unreadCount}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,

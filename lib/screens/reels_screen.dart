@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'full_screen_comments_page.dart';
 
 import '../models/post_model.dart';
@@ -884,7 +885,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                             (widget.post.originalAuthorImageUrl ??
                                     widget.post.authorImageUrl) !=
                                 null
-                            ? NetworkImage(
+                            ? CachedNetworkImageProvider(
                                 widget.post.originalAuthorImageUrl ??
                                     widget.post.authorImageUrl!,
                               )

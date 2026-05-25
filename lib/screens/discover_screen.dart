@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -175,11 +176,14 @@ class _UserCard extends StatefulWidget {
   State<_UserCard> createState() => _UserCardState();
 }
 
-class _UserCardState extends State<_UserCard> {
+class _UserCardState extends State<_UserCard> with AutomaticKeepAliveClientMixin {
   final _auth = FirebaseAuth.instance;
   final _userService = UserService();
   bool _isFollowing = false;
   bool _isFollowLoading = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -236,6 +240,7 @@ class _UserCardState extends State<_UserCard> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final currentUid = _auth.currentUser?.uid;
     final isOwnProfile = currentUid == widget.user.uid;
 
@@ -244,7 +249,7 @@ class _UserCardState extends State<_UserCard> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundImage: widget.user.profileImageUrl != null
-              ? NetworkImage(widget.user.profileImageUrl!)
+              ? CachedNetworkImageProvider(widget.user.profileImageUrl!)
               : null,
           child: widget.user.profileImageUrl == null
               ? const Icon(Icons.person)

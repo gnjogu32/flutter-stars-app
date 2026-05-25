@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification_model.dart';
@@ -112,6 +113,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     NotificationModel notification,
     String currentUserId,
   ) {
+    return _NotificationItem(
+      key: ValueKey(notification.notificationId),
+      notification: notification,
+      currentUserId: currentUserId,
+    );
+  }
+}
+
+class _NotificationItem extends StatefulWidget {
+  final NotificationModel notification;
+  final String currentUserId;
+
+  const _NotificationItem({
+    super.key,
+    required this.notification,
+    required this.currentUserId,
+  });
+
+  @override
+  State<_NotificationItem> createState() => _NotificationItemState();
+}
+
+class _NotificationItemState extends State<_NotificationItem> with AutomaticKeepAliveClientMixin {
+  final NotificationService _notificationService = NotificationService();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final notification = widget.notification;
+    final currentUserId = widget.currentUserId;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -128,7 +162,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           scale: notification.isRead ? 1.0 : 1.05,
           child: CircleAvatar(
             backgroundImage: notification.triggeredByImageUrl != null
-                ? NetworkImage(notification.triggeredByImageUrl!)
+                ? CachedNetworkImageProvider(notification.triggeredByImageUrl!)
                 : null,
             child: notification.triggeredByImageUrl == null
                 ? const Icon(Icons.person)
@@ -158,7 +192,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               ),
         onTap: () async {
-          final context_ = context;
           // Mark as read
           if (!notification.isRead) {
             await _notificationService.markAsRead(
@@ -167,26 +200,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
 
+          if (!context.mounted) return;
+
           // Navigate based on notification type
-          if (mounted) {
-            if (notification.type == 'follow') {
-              // ignore: use_build_context_synchronously
-              Navigator.of(context_).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      ProfileScreen(userId: notification.triggeredBy),
-                ),
-              );
-            } else if (notification.type == 'like_post' ||
-                notification.type == 'comment' ||
-                notification.type == 'mention_followers' ||
-                notification.type == 'mention_user') {
-              // Navigate to post (would need to add post screen navigation)
-              // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context_).showSnackBar(
-                SnackBar(content: Text('Post: ${notification.postId}')),
-              );
-            }
+          if (notification.type == 'follow') {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) =>
+                    ProfileScreen(userId: notification.triggeredBy),
+              ),
+            );
+          } else if (notification.type == 'like_post' ||
+              notification.type == 'comment' ||
+              notification.type == 'mention_followers' ||
+              notification.type == 'mention_user') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Post: ${notification.postId}')),
+            );
           }
         },
         onLongPress: () {
@@ -212,18 +242,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               leading: const Icon(Icons.delete),
               title: const Text('Delete'),
               onTap: () async {
-                final context_ = context;
-                Navigator.pop(context_);
+                Navigator.pop(context);
                 await _notificationService.deleteNotification(
                   currentUserId,
                   notification.notificationId,
                 );
-                if (mounted) {
-                  // ignore: use_build_context_synchronously
-                  ScaffoldMessenger.of(context_).showSnackBar(
-                    const SnackBar(content: Text('Notification deleted')),
-                  );
-                }
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Notification deleted')),
+                );
               },
             ),
           ],

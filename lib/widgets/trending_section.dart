@@ -18,9 +18,12 @@ class TrendingSection extends StatefulWidget {
   State<TrendingSection> createState() => _TrendingSectionState();
 }
 
-class _TrendingSectionState extends State<TrendingSection> {
+class _TrendingSectionState extends State<TrendingSection> with AutomaticKeepAliveClientMixin {
   final TrendingService _trendingService = TrendingService();
   late Future<List<PostModel>> _trendingPostsFuture;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -30,6 +33,7 @@ class _TrendingSectionState extends State<TrendingSection> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       children: [
         // Header
@@ -133,7 +137,11 @@ class _TrendingSectionState extends State<TrendingSection> {
           child: Opacity(opacity: value, child: child),
         );
       },
-      child: PostWidget(post: post, currentUserId: widget.currentUserId),
+      child: PostWidget(
+        key: ValueKey('trending_${post.postId}'),
+        post: post,
+        currentUserId: widget.currentUserId,
+      ),
     );
   }
 
@@ -174,11 +182,15 @@ class TrendingStreamSection extends StatefulWidget {
   State<TrendingStreamSection> createState() => _TrendingStreamSectionState();
 }
 
-class _TrendingStreamSectionState extends State<TrendingStreamSection> {
+class _TrendingStreamSectionState extends State<TrendingStreamSection> with AutomaticKeepAliveClientMixin {
   final TrendingService _trendingService = TrendingService();
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       children: [
         // Header
@@ -282,7 +294,11 @@ class _TrendingStreamSectionState extends State<TrendingStreamSection> {
           child: Opacity(opacity: value, child: child),
         );
       },
-      child: PostWidget(post: post, currentUserId: widget.currentUserId),
+      child: PostWidget(
+        key: ValueKey('trending_${post.postId}'),
+        post: post,
+        currentUserId: widget.currentUserId,
+      ),
     );
   }
 
