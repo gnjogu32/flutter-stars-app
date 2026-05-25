@@ -31,7 +31,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final List<XFile> _selectedImages = [];
   final Map<String, Uint8List> _imageBytes = {}; // Store bytes immediately
   XFile? _selectedVideo;
-  fp.FilePickerResult? _selectedAudio;
   String? _selectedTalent;
   bool _isLoading = false;
   String? _errorMessage;
@@ -254,37 +253,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
   }
 
-  Future<void> _pickAudio() async {
+  Future<void> _pickVideo() async {
     try {
-      final result = await fp.FilePicker.pickFiles(type: fp.FileType.audio);
+      final result = await fp.FilePicker.pickFiles(
+        type: fp.FileType.video,
+      );
       if (result != null) {
+        final file = result.files.single;
+        if (file.path == null) return;
+
         setState(() {
-          _selectedAudio = result;
+          _selectedVideo = XFile(file.path!);
           _errorMessage = null;
         });
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error picking audio: $e';
-      });
-    }
-  }
-
-  Future<void> _pickVideo() async {
-    try {
-      final XFile? pickedFile = await _imagePicker.pickVideo(
-        source: ImageSource.gallery,
-      );
-
-      // User cancelled picker
-      if (pickedFile == null) return;
-
-      await pickedFile.readAsBytes(); // bytes removed for AGP 9+ compatibility
-      setState(() {
-        _selectedVideo = pickedFile;
-        // _videoBytes removed for AGP 9+ compatibility
-        _errorMessage = null;
-      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Error picking video: $e';
@@ -299,7 +281,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         _selectedVideo == null) {
       setState(() {
         _errorMessage =
-            'Please add content, image, audio, or video to your post';
+            'Please add content, image, or video to your post';
       });
       return;
     }
@@ -347,7 +329,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       if (trimmedContent.isEmpty &&
           _selectedImages.isEmpty &&
           _selectedVideo == null) {
-        throw Exception('Post must have content, images, audio, or video');
+        throw Exception('Post must have content, images, or video');
       }
 
       // Create post with better error handling
@@ -360,7 +342,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         imageBytes: Map.from(_imageBytes),
         talent: _selectedTalent,
         videoFile: _selectedVideo,
-        audioFileResult: _selectedAudio,
       );
 
       // Clear form and show success
@@ -370,7 +351,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           _selectedImages.clear();
           _imageBytes.clear();
           _selectedVideo = null;
-          _selectedAudio = null;
           _selectedTalent = null;
         });
 
@@ -498,55 +478,49 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Audio/Video selection buttons
+            // Video selection button
             Text(
-              'Add Audio/Video (Optional)',
+              'Add Video (Optional)',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _pickAudio,
-                    icon: const Icon(Icons.audio_file),
-                    label: const Text('Audio'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _pickVideo,
-                    icon: const Icon(Icons.video_file),
-                    label: const Text('Video'),
-                  ),
-                ),
-              ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _pickVideo,
+                icon: const Icon(Icons.videocam_outlined),
+                label: const Text('Video'),
+              ),
             ),
-            // Audio UI removed
+            // Video selection preview
             if (_selectedVideo != null)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.videocam),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Video: ${_selectedVideo!.name}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.videocam, color: Colors.red),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Video: ${_selectedVideo!.name}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        _selectedVideo = null;
-                        // _videoBytes removed for AGP 9+ compatibility
-                      }),
-                      child: const Icon(Icons.close, size: 16),
-                    ),
-                  ],
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => setState(() => _selectedVideo = null),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             const SizedBox(height: 16),

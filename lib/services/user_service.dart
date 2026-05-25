@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../models/user_model.dart';
 import 'notification_service.dart';
 
@@ -109,25 +112,55 @@ class UserService {
     }
   }
 
-  // Upload profile image from pre-loaded bytes (removed)
+  // Upload profile image from pre-loaded bytes
   Future<String?> uploadProfileImageFromBytes(
     String userId,
-    dynamic imageFile,
-    dynamic imageBytes,
+    XFile imageFile,
+    Uint8List imageBytes,
   ) async {
-    // Stub: feature removed
-    return null;
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final imageRef = storageRef.child('profiles/$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}');
+
+      final uploadTask = imageRef.putData(imageBytes);
+      final snapshot = await uploadTask.whenComplete(() {});
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Error uploading profile image: $e');
+      rethrow;
+    }
   }
 
-  // Upload profile image to Firebase Storage (removed)
+  // Upload profile image to Firebase Storage
   Future<String?> uploadProfileImage(String userId, File imageFile) async {
-    // Stub: feature removed
-    return null;
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final imageRef = storageRef.child('profiles/$userId/${DateTime.now().millisecondsSinceEpoch}_profile.jpg');
+
+      final uploadTask = imageRef.putFile(imageFile);
+      final snapshot = await uploadTask.whenComplete(() {});
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Error uploading profile image: $e');
+      rethrow;
+    }
   }
 
-  // Delete old profile image from Firebase Storage (removed)
+  // Delete old profile image from Firebase Storage
   Future<void> deleteOldProfileImage(String userId) async {
-    // Stub: feature removed
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final folderRef = storageRef.child('profiles/$userId');
+
+      // List all items in the folder and delete them
+      final listResult = await folderRef.listAll();
+      for (final item in listResult.items) {
+        await item.delete();
+      }
+    } catch (e) {
+      debugPrint('Error deleting old profile image: $e');
+      // Don't rethrow, as this shouldn't block the profile update
+    }
   }
 
   // Update user profile with image URL

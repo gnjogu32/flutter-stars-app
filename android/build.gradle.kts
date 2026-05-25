@@ -49,9 +49,17 @@ allprojects {
             } catch (e: Exception) {
                 // Ignore reflection errors
             }
-            
-            // For older plugins that don't use the new DSL, try to add kotlin source sets manually if needed
-            // However, applying the plugin should generally be enough if it's applied correctly.
+
+            try {
+                val compileOptions = android.javaClass.getMethod("getCompileOptions").invoke(android)
+                val setSource = compileOptions.javaClass.getMethod("setSourceCompatibility", Object::class.java)
+                val setTarget = compileOptions.javaClass.getMethod("setTargetCompatibility", Object::class.java)
+                // Use "17" as string which Gradle/AGP converts to JavaVersion.VERSION_17
+                setSource.invoke(compileOptions, "17")
+                setTarget.invoke(compileOptions, "17")
+            } catch (e: Exception) {
+                // Ignore reflection errors
+            }
         }
     }
 }

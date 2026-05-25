@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
 import 'full_screen_comments_page.dart';
 
 import '../models/post_model.dart';
@@ -154,7 +155,8 @@ class _ReelItem extends StatefulWidget {
 }
 
 class _ReelItemState extends State<_ReelItem> {
-  // Video player removed for AGP 9+ compatibility
+  late VideoPlayerController _videoController;
+  bool _isInitialized = false;
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
@@ -205,7 +207,23 @@ class _ReelItemState extends State<_ReelItem> {
     super.initState();
     _isLiked = widget.post.isLikedBy(_activeUserId);
     _likeCount = widget.post.likeCount;
-    // Video player removed for AGP 9+ compatibility
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    _videoController = VideoPlayerController.networkUrl(
+      Uri.parse(widget.post.videoUrl!),
+    );
+    try {
+      await _videoController.initialize();
+      await _videoController.setLooping(true);
+      if (mounted) {
+        setState(() => _isInitialized = true);
+        if (widget.isActive) _videoController.play();
+      }
+    } catch (e) {
+      debugPrint('Error initializing reel video: $e');
+    }
   }
 
   @override
@@ -215,7 +233,12 @@ class _ReelItemState extends State<_ReelItem> {
       _isLiked = widget.post.isLikedBy(_activeUserId);
       _likeCount = widget.post.likeCount;
     }
-    // Video player removed for AGP 9+ compatibility
+
+    if (widget.isActive && !oldWidget.isActive) {
+      _videoController.play();
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _videoController.pause();
+    }
   }
 
   Future<void> _toggleLike() async {
@@ -666,7 +689,7 @@ class _ReelItemState extends State<_ReelItem> {
 
   @override
   void dispose() {
-    // Video player removed for AGP 9+ compatibility
+    _videoController.dispose();
     super.dispose();
   }
 
@@ -678,7 +701,24 @@ class _ReelItemState extends State<_ReelItem> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Video player removed for AGP 9+ compatibility
+        if (_isInitialized)
+          GestureDetector(
+            onTap: () {
+              if (_videoController.value.isPlaying) {
+                _videoController.pause();
+              } else {
+                _videoController.play();
+              }
+            },
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: _videoController.value.aspectRatio,
+                child: VideoPlayer(_videoController),
+              ),
+            ),
+          )
+        else
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
         Positioned(
           right: 12,
           bottom: 120,
@@ -792,7 +832,19 @@ class _ReelItemState extends State<_ReelItem> {
                     ),
                   ),
                 ],
-                // Video progress indicator removed for AGP 9+ compatibility
+                if (_isInitialized)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: VideoProgressIndicator(
+                      _videoController,
+                      allowScrubbing: true,
+                      colors: const VideoProgressColors(
+                        playedColor: Colors.white,
+                        bufferedColor: Colors.white24,
+                        backgroundColor: Colors.white12,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

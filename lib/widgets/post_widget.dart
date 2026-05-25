@@ -18,7 +18,8 @@ import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
 import 'expandable_text.dart';
 import 'keyboard_prompt_banner.dart';
-// import 'full_screen_video_player.dart';
+import 'full_screen_video_player.dart';
+import 'audio_player_widget.dart';
 
 class PostWidget extends StatefulWidget {
   final PostModel post;
@@ -1201,8 +1202,44 @@ class _PostWidgetState extends State<PostWidget> {
               ),
               const SizedBox(height: 12),
             ],
-            // Audio player removed for build troubleshooting
-            // Video player removed for AGP 9+ compatibility
+            // Audio player
+            if (widget.post.audioUrl != null && widget.post.audioUrl!.isNotEmpty) ...[
+              AudioPlayerWidget(audioUrl: widget.post.audioUrl!),
+              const SizedBox(height: 12),
+            ],
+            // Video player
+            if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) ...[
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => FullScreenVideoPlayer(
+                        videoUrl: widget.post.videoUrl!,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.play_circle_fill, size: 50, color: Colors.white70),
+                        SizedBox(height: 8),
+                        Text('Tap to play video', style: TextStyle(color: Colors.white70)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             // Images
             if (widget.post.imageUrls.isNotEmpty)
               widget.post.imageUrls.length == 1

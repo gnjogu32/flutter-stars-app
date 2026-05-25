@@ -105,12 +105,8 @@ class PostService {
         _debugLog('DEBUG: Token refresh failed: $e');
       }
 
-      // Storage bucket debug removed
-
       // Generate postId for the upload path (will be used in Firestore too)
       final postId = _firestore.collection('posts').doc().id;
-
-      // Audio/video/image upload disabled (firebase_storage not available)
 
       // Create post document (postId already generated above)
       final now = DateTime.now();
