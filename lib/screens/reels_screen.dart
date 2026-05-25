@@ -154,13 +154,16 @@ class _ReelItem extends StatefulWidget {
   State<_ReelItem> createState() => _ReelItemState();
 }
 
-class _ReelItemState extends State<_ReelItem> {
+class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixin {
   late VideoPlayerController _videoController;
   bool _isInitialized = false;
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
   bool _isReposting = false;
+  bool _isMuted = false;
+  bool _showLikeHeart = false;
+  late AnimationController _heartAnimationController;
 
   static const List<String> _quickEmojis = [
     '😀',
@@ -207,6 +210,10 @@ class _ReelItemState extends State<_ReelItem> {
     super.initState();
     _isLiked = widget.post.isLikedBy(_activeUserId);
     _likeCount = widget.post.likeCount;
+    _heartAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
     _initializeVideo();
   }
 
@@ -690,7 +697,25 @@ class _ReelItemState extends State<_ReelItem> {
   @override
   void dispose() {
     _videoController.dispose();
+    _heartAnimationController.dispose();
     super.dispose();
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+      _videoController.setVolume(_isMuted ? 0 : 1);
+    });
+  }
+
+  Future<void> _handleDoubleTap() async {
+    if (!_isLiked) {
+      await _toggleLike();
+    }
+    setState(() => _showLikeHeart = true);
+    _heartAnimationController.forward(from: 0).then((_) {
+      setState(() => _showLikeHeart = false);
+    });
   }
 
   @override
@@ -703,6 +728,7 @@ class _ReelItemState extends State<_ReelItem> {
       children: [
         if (_isInitialized)
           GestureDetector(
+            onDoubleTap: _handleDoubleTap,
             onTap: () {
               if (_videoController.value.isPlaying) {
                 _videoController.pause();
@@ -719,12 +745,37 @@ class _ReelItemState extends State<_ReelItem> {
           )
         else
           const Center(child: CircularProgressIndicator(color: Colors.white)),
+
+        // Double tap heart animation
+        if (_showLikeHeart)
+          Center(
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.0, end: 1.2).animate(
+                CurvedAnimation(
+                  parent: _heartAnimationController,
+                  curve: Curves.elasticOut,
+                ),
+              ),
+              child: const Icon(
+                Icons.favorite,
+                color: Colors.white,
+                size: 100,
+              ),
+            ),
+          ),
+
         Positioned(
           right: 12,
           bottom: 120,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              _InteractionButton(
+                icon: _isMuted ? Icons.volume_off : Icons.volume_up,
+                label: _isMuted ? 'Muted' : 'Mute',
+                onTap: _toggleMute,
+              ),
+              const SizedBox(height: 14),
               _InteractionButton(
                 icon: _isLiked ? Icons.favorite : Icons.favorite_border,
                 iconColor: _isLiked ? Colors.redAccent : Colors.white,

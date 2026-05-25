@@ -18,7 +18,7 @@ import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
 import 'expandable_text.dart';
 import 'keyboard_prompt_banner.dart';
-import 'full_screen_video_player.dart';
+import 'video_player_widget.dart';
 import 'audio_player_widget.dart';
 
 class PostWidget extends StatefulWidget {
@@ -1209,33 +1209,12 @@ class _PostWidgetState extends State<PostWidget> {
             ],
             // Video player
             if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) ...[
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => FullScreenVideoPlayer(
-                        videoUrl: widget.post.videoUrl!,
-                      ),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: double.infinity,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.play_circle_fill, size: 50, color: Colors.white70),
-                        SizedBox(height: 8),
-                        Text('Tap to play video', style: TextStyle(color: Colors.white70)),
-                      ],
-                    ),
-                  ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: VideoPlayerWidget(
+                  videoUrl: widget.post.videoUrl!,
+                  autoPlay: false,
+                  looping: false,
                 ),
               ),
               const SizedBox(height: 12),

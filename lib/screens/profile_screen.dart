@@ -17,7 +17,7 @@ import 'analytics_dashboard_screen.dart';
 import 'chat_screen.dart';
 import 'repost_queue_screen.dart';
 
-enum _ProfileMediaFolder { all, photos, videos, audio }
+enum _ProfileMediaFolder { all, photos, videos }
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -647,8 +647,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return post.imageUrls.isNotEmpty;
       case _ProfileMediaFolder.videos:
         return post.videoUrl != null && post.videoUrl!.isNotEmpty;
-      case _ProfileMediaFolder.audio:
-        return post.audioUrl != null && post.audioUrl!.isNotEmpty;
     }
   }
 
@@ -701,12 +699,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     label: 'Videos',
                     icon: Icons.folder_special_outlined,
                     folder: _ProfileMediaFolder.videos,
-                  ),
-                  const SizedBox(width: 10),
-                  _buildFolderCard(
-                    label: 'Audio',
-                    icon: Icons.folder_open_outlined,
-                    folder: _ProfileMediaFolder.audio,
                   ),
                 ],
               ),
