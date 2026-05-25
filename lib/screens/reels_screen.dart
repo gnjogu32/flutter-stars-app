@@ -155,6 +155,8 @@ class _ReelItem extends StatefulWidget {
 }
 
 class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixin {
+    int? _realtimeViewCount;
+    Stream<DocumentSnapshot>? _viewCountStream;
   late VideoPlayerController _videoController;
   bool _isInitialized = false;
   late bool _isLiked;
@@ -215,6 +217,20 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
       duration: const Duration(milliseconds: 500),
     );
     _initializeVideo();
+
+    // Listen to real-time view count from analytics
+    _viewCountStream = FirebaseFirestore.instance
+        .collection('post_analytics')
+        .doc('${widget.post.postId}:analytics')
+        .snapshots();
+    _viewCountStream!.listen((snapshot) {
+      if (snapshot.exists && mounted) {
+        final data = snapshot.data() as Map<String, dynamic>?;
+        setState(() {
+          _realtimeViewCount = (data?['viewCount'] as int?) ?? 0;
+        });
+      }
+    });
   }
 
   Future<void> _initializeVideo() async {
@@ -721,7 +737,8 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
   @override
   Widget build(BuildContext context) {
     final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
-        .trim();
+      .trim();
+    final viewsToShow = _realtimeViewCount ?? widget.post.videoViewCount;
 
     return Stack(
       fit: StackFit.expand,
@@ -866,7 +883,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                       ),
                     ),
                     Text(
-                      '${widget.post.videoViewCount} views',
+                      '$viewsToShow views',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ],

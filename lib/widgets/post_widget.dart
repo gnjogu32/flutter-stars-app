@@ -36,6 +36,8 @@ class PostWidget extends StatefulWidget {
 }
 
 class _PostWidgetState extends State<PostWidget> {
+    int? _realtimeViewCount;
+    Stream<DocumentSnapshot>? _viewCountStream;
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
@@ -336,6 +338,22 @@ class _PostWidgetState extends State<PostWidget> {
     // _videoViewCount removed for AGP 9+ compatibility
     if (_ownerId != widget.currentUserId) {
       _checkFollowState();
+    }
+
+    // Real-time view count for video posts
+    if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) {
+      _viewCountStream = FirebaseFirestore.instance
+          .collection('post_analytics')
+          .doc('${widget.post.postId}:analytics')
+          .snapshots();
+      _viewCountStream!.listen((snapshot) {
+        if (snapshot.exists && mounted) {
+          final data = snapshot.data() as Map<String, dynamic>?;
+          setState(() {
+            _realtimeViewCount = (data?['viewCount'] as int?) ?? 0;
+          });
+        }
+      });
     }
   }
 
@@ -1016,42 +1034,49 @@ class _PostWidgetState extends State<PostWidget> {
 
   @override
   Widget build(BuildContext context) {
+      final viewsToShow = _realtimeViewCount ?? widget.post.videoViewCount;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: Author info and time
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: _openAuthorProfile,
-                  child: Semantics(
-                    label: 'View profile of $_ownerName',
-                    button: true,
-                    child: CircleAvatar(
-                      backgroundImage: _ownerImageUrl != null
-                          ? NetworkImage(_ownerImageUrl!)
-                          : null,
-                      child: _ownerImageUrl == null
-                          ? const Icon(Icons.person)
-                          : null,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
                       Expanded(
-                        child: GestureDetector(
-                          onTap: _openAuthorProfile,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        child: AnimationUtils.scaleButtonAnimation(
+                          onTap: () async {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (context) => CommentsBottomSheet(
+                                postId: widget.post.postId,
+                                postAuthorId: _ownerId,
+                                currentUserId: widget.currentUserId,
+                              ),
+                            );
+                          },
+                          child: Semantics(
+                            label: 'View comments',
+                            button: true,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.comment_outlined, size: 28),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${widget.post.commentCount}',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                                if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) ...[
+                                  const SizedBox(width: 12),
+                                  const Icon(Icons.visibility, size: 22, color: Colors.blueGrey),
+                                  const SizedBox(width: 4),
+                                  Text('$viewsToShow', style: Theme.of(context).textTheme.bodySmall),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                               Text(
                                 _ownerName,
                                 style: const TextStyle(
