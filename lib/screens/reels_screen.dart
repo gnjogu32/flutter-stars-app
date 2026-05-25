@@ -714,6 +714,17 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
   Future<void> _downloadVideo() async {
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
 
+    // Security check: Only allow original author or current poster to download
+    final isOwner = widget.post.authorId == _activeUserId ||
+                   (widget.post.originalAuthorId?.trim() == _activeUserId);
+
+    if (!isOwner) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can only download your own videos.')),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Downloading video...')),
     );
@@ -836,7 +847,8 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                 label: 'Share',
                 onTap: _sharePost,
               ),
-              if (_ownerId == _activeUserId) ...[
+              if (widget.post.authorId == _activeUserId ||
+                  (widget.post.originalAuthorId?.trim() == _activeUserId)) ...[
                 const SizedBox(height: 14),
                 _InteractionButton(
                   icon: Icons.download_outlined,

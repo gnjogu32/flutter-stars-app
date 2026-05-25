@@ -637,6 +637,17 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
   Future<void> _downloadVideo() async {
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
 
+    // Security: Only allow the original author or the current poster to download
+    final isOwner = widget.post.authorId == widget.currentUserId ||
+                   widget.post.originalAuthorId == widget.currentUserId;
+
+    if (!isOwner) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can only download your own videos.')),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Downloading video...')),
     );
@@ -934,7 +945,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                 _openAuthorProfile();
               },
             ),
-            if (_ownerId == widget.currentUserId)
+            if (_ownerId == widget.currentUserId || widget.post.authorId == widget.currentUserId)
               ListTile(
                 leading: const Icon(Icons.download),
                 title: const Text('Save Image'),
@@ -1131,8 +1142,9 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                   timeago.format(widget.post.createdAt),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                // Menu button for post owner
-                if (widget.post.authorId == widget.currentUserId)
+                // Menu button for post owner or original author
+                if (widget.post.authorId == widget.currentUserId ||
+                    widget.post.originalAuthorId == widget.currentUserId)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert),
                     onSelected: (value) {
@@ -1157,26 +1169,28 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                             ],
                           ),
                         ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
+                      if (widget.post.authorId == widget.currentUserId) ...[
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
                         ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
               ],
@@ -1302,7 +1316,8 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                             builder: (context) => _FullScreenImageGallery(
                               imageUrls: widget.post.imageUrls,
                               initialIndex: 0,
-                              canSaveImages: _ownerId == widget.currentUserId,
+                              canSaveImages: _ownerId == widget.currentUserId ||
+                                            widget.post.authorId == widget.currentUserId,
                             ),
                           ),
                         );
@@ -1354,7 +1369,8 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                                           imageUrls: widget.post.imageUrls,
                                           initialIndex: idx,
                                           canSaveImages:
-                                              _ownerId == widget.currentUserId,
+                                              _ownerId == widget.currentUserId ||
+                                              widget.post.authorId == widget.currentUserId,
                                         ),
                                   ),
                                 );
