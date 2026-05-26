@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import '../utils/screen_awake_controller.dart';
 
 class AudioPlayerWidget extends StatefulWidget {
   final String audioUrl;
@@ -7,16 +8,29 @@ class AudioPlayerWidget extends StatefulWidget {
   const AudioPlayerWidget({super.key, required this.audioUrl});
 
   @override
-  State<AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
+  State<AudioPlayerWidget> createState() => AudioPlayerWidgetState();
 }
 
-class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
+class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   final _player = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
     _init();
+    _player.playerStateStream.listen((state) {
+      if (state.playing) {
+        ScreenAwakeController.acquire();
+      } else {
+        ScreenAwakeController.release();
+      }
+    });
+  }
+
+  void pause() {
+    if (_player.playing) {
+      _player.pause();
+    }
   }
 
   Future<void> _init() async {
@@ -29,6 +43,9 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   @override
   void dispose() {
+    if (_player.playing) {
+      ScreenAwakeController.release();
+    }
     _player.dispose();
     super.dispose();
   }

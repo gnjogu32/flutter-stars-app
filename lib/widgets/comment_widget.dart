@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
+import '../models/user_model.dart';
 import '../services/comment_service.dart';
+import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
+import 'package:starpage/screens/profile_screen.dart';
 import 'expandable_text.dart';
 
 class CommentWidget extends StatefulWidget {
@@ -25,6 +29,27 @@ class CommentWidget extends StatefulWidget {
 }
 
 class _CommentWidgetState extends State<CommentWidget> {
+  UserModel? _currentUser;
+  final UserService _userService = UserService();
+
+  @override
+  void initState() {
+    super.initState();
+    _isLiked = widget.comment.isLikedBy(widget.currentUserId);
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    if (widget.currentUserId.isNotEmpty) {
+      final user = await _userService.getUser(widget.currentUserId);
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
+    }
+  }
+
     Future<void> _showReplyDialog(CommentModel parent, String parentId, {String? replyToName}) async {
       final controller = TextEditingController();
       final focusNode = FocusNode();
@@ -68,9 +93,8 @@ class _CommentWidgetState extends State<CommentWidget> {
                 await CommentService().addComment(
                   postId: parent.postId,
                   authorId: widget.currentUserId,
-                  authorName: parent.authorName, // You may want to use current user's name
-                  authorImageUrl:
-                      parent.authorImageUrl, // You may want to use current user's image
+                  authorName: _currentUser?.displayName ?? 'User',
+                  authorImageUrl: _currentUser?.profileImageUrl,
                   content: text,
                   postAuthorId: parent.authorId,
                   parentId: parentId,
@@ -100,6 +124,13 @@ class _CommentWidgetState extends State<CommentWidget> {
   bool _showReplies = false;
   final CommentService _commentService = CommentService();
 
+  void _openAuthorProfile(String userId) {
+    if (userId.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
+    );
+  }
+
   static const List<String> _quickEmojis = [
     '😀',
     '😁',
@@ -126,12 +157,6 @@ class _CommentWidgetState extends State<CommentWidget> {
     '🤝',
     '💫',
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _isLiked = widget.comment.isLikedBy(widget.currentUserId);
-  }
 
   Future<void> _toggleLike() async {
     if (widget.currentUserId.isEmpty) {
@@ -415,35 +440,41 @@ class _CommentWidgetState extends State<CommentWidget> {
           // Comment header: Author info and time
           Row(
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundImage: widget.comment.authorImageUrl != null
-                    ? NetworkImage(widget.comment.authorImageUrl!)
-                    : null,
-                child: widget.comment.authorImageUrl == null
-                    ? const Icon(Icons.person, size: 16)
-                    : null,
+              GestureDetector(
+                onTap: () => _openAuthorProfile(widget.comment.authorId),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundImage: widget.comment.authorImageUrl != null
+                      ? CachedNetworkImageProvider(widget.comment.authorImageUrl!)
+                      : null,
+                  child: widget.comment.authorImageUrl == null
+                      ? const Icon(Icons.person, size: 16)
+                      : null,
+                ),
               ),
               const SizedBox(width: 8),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.comment.authorName,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
+                child: GestureDetector(
+                  onTap: () => _openAuthorProfile(widget.comment.authorId),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.comment.authorName,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
                       ),
-                    ),
-                    Text(
-                      timeago.format(widget.comment.createdAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark ? Colors.white60 : Colors.black54,
+                      Text(
+                        timeago.format(widget.comment.createdAt),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark ? Colors.white60 : Colors.black54,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               if (widget.comment.authorId == widget.currentUserId)
@@ -588,11 +619,32 @@ class _ReplyItem extends StatefulWidget {
 class _ReplyItemState extends State<_ReplyItem> {
   late bool _isLiked;
   final CommentService _commentService = CommentService();
+  final UserService _userService = UserService();
+  UserModel? _currentUser;
+
+  void _openAuthorProfile(String userId) {
+    if (userId.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _isLiked = widget.reply.isLikedBy(widget.currentUserId);
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    if (widget.currentUserId.isNotEmpty) {
+      final user = await _userService.getUser(widget.currentUserId);
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
+    }
   }
 
   Future<void> _toggleLike() async {
@@ -658,22 +710,28 @@ class _ReplyItemState extends State<_ReplyItem> {
                   children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundImage: widget.reply.authorImageUrl != null
-                          ? NetworkImage(widget.reply.authorImageUrl!)
-                          : null,
-                      child: widget.reply.authorImageUrl == null
-                          ? const Icon(Icons.person, size: 12)
-                          : null,
+                    GestureDetector(
+                      onTap: () => _openAuthorProfile(widget.reply.authorId),
+                      child: CircleAvatar(
+                        radius: 12,
+                        backgroundImage: widget.reply.authorImageUrl != null
+                            ? CachedNetworkImageProvider(widget.reply.authorImageUrl!)
+                            : null,
+                        child: widget.reply.authorImageUrl == null
+                            ? const Icon(Icons.person, size: 12)
+                            : null,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text(
-                        widget.reply.authorName,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                      child: GestureDetector(
+                        onTap: () => _openAuthorProfile(widget.reply.authorId),
+                        child: Text(
+                          widget.reply.authorName,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
                         ),
                       ),
                     ),
@@ -782,8 +840,8 @@ class _ReplyItemState extends State<_ReplyItem> {
                                 await CommentService().addComment(
                                   postId: widget.reply.postId,
                                   authorId: widget.currentUserId,
-                                  authorName: widget.reply.authorName, // You may want to use current user's name
-                                  authorImageUrl: widget.reply.authorImageUrl, // You may want to use current user's image
+                                  authorName: _currentUser?.displayName ?? 'User',
+                                  authorImageUrl: _currentUser?.profileImageUrl,
                                   content: text,
                                   postAuthorId: widget.reply.authorId,
                                   parentId: parentId,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/comment_model.dart';
+import '../models/user_model.dart';
 import '../services/comment_service.dart';
+import '../services/user_service.dart';
 import 'comment_thread_widget.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
@@ -22,9 +24,28 @@ class CommentsBottomSheet extends StatefulWidget {
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   final TextEditingController _controller = TextEditingController();
   final CommentService _commentService = CommentService();
+  final UserService _userService = UserService();
+  UserModel? _currentUser;
   String? _replyToCommentId;
   String? _replyToName;
   bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    if (widget.currentUserId.isNotEmpty) {
+      final user = await _userService.getUser(widget.currentUserId);
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -55,9 +76,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       await _commentService.addComment(
         postId: widget.postId,
         authorId: widget.currentUserId,
-        authorName: "You", // TODO: Replace with actual user name from provider
-        authorImageUrl:
-            null, // TODO: Replace with actual user image if available
+        authorName: _currentUser?.displayName ?? 'User',
+        authorImageUrl: _currentUser?.profileImageUrl,
         content: _controller.text.trim(),
         postAuthorId: widget.postAuthorId,
         parentId: _replyToCommentId ?? '',

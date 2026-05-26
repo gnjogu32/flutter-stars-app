@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'full_screen_video_player.dart';
+import '../utils/screen_awake_controller.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
@@ -25,10 +26,10 @@ class VideoPlayerWidget extends StatefulWidget {
   });
 
   @override
-  State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
+  State<VideoPlayerWidget> createState() => VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _isMuted = false;
@@ -54,13 +55,15 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             _controller.play();
             _showOverlay = false;
             _dispatchPlayEvent();
+            ScreenAwakeController.acquire();
           }
         });
 
         _controller.addListener(() {
           if (_controller.value.position >= _controller.value.duration &&
-              !_controller.value.isLooping) {
+              !_controller.value.isLooping && _controller.value.isPlaying == false) {
             widget.onVideoEnd?.call();
+            ScreenAwakeController.release();
           }
           if (mounted) setState(() {});
         });
@@ -86,6 +89,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    if (_isInitialized && _controller.value.isPlaying) {
+      ScreenAwakeController.release();
+    }
     _controller.dispose();
     super.dispose();
   }
@@ -95,12 +101,39 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       if (_controller.value.isPlaying) {
         _controller.pause();
         _showOverlay = true;
+        ScreenAwakeController.release();
       } else {
         _controller.play();
         _showOverlay = false;
         _dispatchPlayEvent();
+        ScreenAwakeController.acquire();
       }
     });
+  }
+
+  void pause() {
+    if (_isInitialized && _controller.value.isPlaying) {
+      _controller.pause();
+      if (mounted) {
+        setState(() {
+          _showOverlay = true;
+        });
+      }
+      ScreenAwakeController.release();
+    }
+  }
+
+  void play() {
+    if (_isInitialized && !_controller.value.isPlaying) {
+      _controller.play();
+      if (mounted) {
+        setState(() {
+          _showOverlay = false;
+        });
+      }
+      _dispatchPlayEvent();
+      ScreenAwakeController.acquire();
+    }
   }
 
   void _dispatchPlayEvent() {

@@ -14,7 +14,7 @@ import '../models/post_model.dart';
 import '../services/notification_service.dart';
 import '../services/repost_queue_service.dart';
 import '../services/analytics_service.dart';
-// import '../utils/screen_awake_controller.dart';
+import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
 import '../services/share_service.dart';
 import '../services/user_service.dart';
@@ -226,6 +226,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
         setState(() => _isInitialized = true);
         if (widget.isActive) {
           _videoController.play();
+          ScreenAwakeController.acquire();
           // Track view for the first reel if active
           AnalyticsService().trackView(widget.post.postId, _ownerId);
         }
@@ -245,9 +246,11 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
 
     if (widget.isActive && !oldWidget.isActive) {
       _videoController.play();
+      ScreenAwakeController.acquire();
       AnalyticsService().trackView(widget.post.postId, _ownerId);
     } else if (!widget.isActive && oldWidget.isActive) {
       _videoController.pause();
+      ScreenAwakeController.release();
     }
   }
 
@@ -699,6 +702,9 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
 
   @override
   void dispose() {
+    if (_isInitialized && _videoController.value.isPlaying) {
+      ScreenAwakeController.release();
+    }
     _videoController.dispose();
     _heartAnimationController.dispose();
     super.dispose();
@@ -714,13 +720,11 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
   Future<void> _downloadVideo() async {
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
 
-    // Security check: Only allow original author or current poster to download
-    final isOwner = widget.post.authorId == _activeUserId ||
-                   (widget.post.originalAuthorId?.trim() == _activeUserId);
-
-    if (!isOwner) {
+    // Strict Security: Only the original content creator can download
+    final originalAuthorId = widget.post.originalAuthorId ?? widget.post.authorId;
+    if (originalAuthorId != _activeUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You can only download your own videos.')),
+        const SnackBar(content: Text('Only the original author can download this video.')),
       );
       return;
     }
@@ -779,9 +783,12 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
             onTap: () {
               if (_videoController.value.isPlaying) {
                 _videoController.pause();
+                ScreenAwakeController.release();
               } else {
                 _videoController.play();
+                ScreenAwakeController.acquire();
               }
+              setState(() {});
             },
             child: Center(
               child: AspectRatio(
@@ -847,8 +854,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                 label: 'Share',
                 onTap: _sharePost,
               ),
-              if (widget.post.authorId == _activeUserId ||
-                  (widget.post.originalAuthorId?.trim() == _activeUserId)) ...[
+              if ((widget.post.originalAuthorId ?? widget.post.authorId) == _activeUserId) ...[
                 const SizedBox(height: 14),
                 _InteractionButton(
                   icon: Icons.download_outlined,

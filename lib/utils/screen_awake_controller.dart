@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 /// Keeps the screen awake while at least one media player is actively playing.
 class ScreenAwakeController {
@@ -24,12 +25,12 @@ class ScreenAwakeController {
     if (_syncInProgress) return;
     _syncInProgress = true;
 
-    () async {
+    Future(() async {
       try {
         final shouldEnable = _activePlaybackHolders > 0;
         if (shouldEnable == _isEnabled) return;
 
-        // WakelockPlus.toggle removed for AGP 9+ compatibility
+        await WakelockPlus.toggle(enable: shouldEnable);
         _isEnabled = shouldEnable;
       } catch (e) {
         debugPrint('Wakelock toggle failed: $e');
@@ -41,6 +42,6 @@ class ScreenAwakeController {
           _scheduleSync();
         }
       }
-    }();
+    });
   }
 }

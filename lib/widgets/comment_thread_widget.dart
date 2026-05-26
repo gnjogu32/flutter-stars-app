@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
 import 'expandable_text.dart' as custom;
 import '../utils/auth_guard.dart';
 import '../services/comment_service.dart';
+import '../services/user_service.dart';
+import '../models/user_model.dart';
+import '../screens/profile_screen.dart';
 
 class CommentThreadWidget extends StatefulWidget {
   final CommentModel comment;
@@ -34,6 +38,15 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   bool _isSavingEdit = false;
   late bool _isLiked;
   final CommentService _commentService = CommentService();
+  final UserService _userService = UserService();
+  UserModel? _currentUser;
+
+  void _openAuthorProfile(String userId) {
+    if (userId.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
+    );
+  }
 
   static const List<String> _quickEmojis = [
     '😀',
@@ -73,6 +86,18 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     _isLiked = widget.comment.likes.contains(widget.currentUserId);
     _editController = TextEditingController(text: widget.comment.content);
     _editFocusNode = FocusNode();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    if (widget.currentUserId.isNotEmpty) {
+      final user = await _userService.getUser(widget.currentUserId);
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
+    }
   }
 
   @override
@@ -234,14 +259,17 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundImage: widget.comment.authorImageUrl != null
-                    ? NetworkImage(widget.comment.authorImageUrl!)
-                    : null,
-                child: widget.comment.authorImageUrl == null
-                    ? const Icon(Icons.person, size: 16)
-                    : null,
+              GestureDetector(
+                onTap: () => _openAuthorProfile(widget.comment.authorId),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundImage: widget.comment.authorImageUrl != null
+                      ? CachedNetworkImageProvider(widget.comment.authorImageUrl!)
+                      : null,
+                  child: widget.comment.authorImageUrl == null
+                      ? const Icon(Icons.person, size: 16)
+                      : null,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -250,11 +278,14 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          widget.comment.authorName,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
+                        GestureDetector(
+                          onTap: () => _openAuthorProfile(widget.comment.authorId),
+                          child: Text(
+                            widget.comment.authorName,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -487,14 +518,17 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 12,
-            backgroundImage: reply.authorImageUrl != null
-                ? NetworkImage(reply.authorImageUrl!)
-                : null,
-            child: reply.authorImageUrl == null
-                ? const Icon(Icons.person, size: 12)
-                : null,
+          GestureDetector(
+            onTap: () => _openAuthorProfile(reply.authorId),
+            child: CircleAvatar(
+              radius: 12,
+              backgroundImage: reply.authorImageUrl != null
+                  ? CachedNetworkImageProvider(reply.authorImageUrl!)
+                  : null,
+              child: reply.authorImageUrl == null
+                  ? const Icon(Icons.person, size: 12)
+                  : null,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -503,11 +537,14 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      reply.authorName,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
+                    GestureDetector(
+                      onTap: () => _openAuthorProfile(reply.authorId),
+                      child: Text(
+                        reply.authorName,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),

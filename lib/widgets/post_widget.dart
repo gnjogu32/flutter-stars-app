@@ -19,6 +19,7 @@ import '../utils/auth_guard.dart';
 // import '../utils/screen_awake_controller.dart';
 import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'expandable_text.dart';
 import 'keyboard_prompt_banner.dart';
 import 'video_player_widget.dart';
@@ -45,6 +46,9 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
   bool _isFollowing = false;
   bool _isFollowLoading = false;
   bool _isReposting = false;
+
+  final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey = GlobalKey<VideoPlayerWidgetState>();
+  final GlobalKey<AudioPlayerWidgetState> _audioPlayerKey = GlobalKey<AudioPlayerWidgetState>();
 
   @override
   bool get wantKeepAlive => true;
@@ -637,13 +641,11 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
   Future<void> _downloadVideo() async {
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
 
-    // Security: Only allow the original author or the current poster to download
-    final isOwner = widget.post.authorId == widget.currentUserId ||
-                   widget.post.originalAuthorId == widget.currentUserId;
-
-    if (!isOwner) {
+    // Strict Security: Only the original content creator can download
+    final originalAuthorId = widget.post.originalAuthorId ?? widget.post.authorId;
+    if (originalAuthorId != widget.currentUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You can only download your own videos.')),
+        const SnackBar(content: Text('Only the original author can download this video.')),
       );
       return;
     }
@@ -945,7 +947,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                 _openAuthorProfile();
               },
             ),
-            if (_ownerId == widget.currentUserId || widget.post.authorId == widget.currentUserId)
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId)
               ListTile(
                 leading: const Icon(Icons.download),
                 title: const Text('Save Image'),
@@ -1158,7 +1160,8 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                     },
                     itemBuilder: (context) => [
                       if (widget.post.videoUrl != null &&
-                          widget.post.videoUrl!.isNotEmpty)
+                          widget.post.videoUrl!.isNotEmpty &&
+                          (widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId)
                         const PopupMenuItem(
                           value: 'download',
                           child: Row(
@@ -1272,23 +1275,43 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
             ],
             // Audio player
             if (widget.post.audioUrl != null && widget.post.audioUrl!.isNotEmpty) ...[
-              AudioPlayerWidget(audioUrl: widget.post.audioUrl!),
+              VisibilityDetector(
+                key: ValueKey('post_audio_${widget.post.postId}'),
+                onVisibilityChanged: (info) {
+                  if (info.visibleFraction < 0.3) {
+                    _audioPlayerKey.currentState?.pause();
+                  }
+                },
+                child: AudioPlayerWidget(
+                  key: _audioPlayerKey,
+                  audioUrl: widget.post.audioUrl!,
+                ),
+              ),
               const SizedBox(height: 12),
             ],
             // Video player
             if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: VideoPlayerWidget(
-                  videoUrl: widget.post.videoUrl!,
-                  autoPlay: false,
-                  looping: false,
-                  onPlay: () {
-                    AnalyticsService().trackView(
-                      widget.post.postId,
-                      widget.post.authorId,
-                    );
-                  },
+              VisibilityDetector(
+                key: ValueKey('post_video_${widget.post.postId}'),
+                onVisibilityChanged: (info) {
+                  if (info.visibleFraction < 0.3) {
+                    _videoPlayerKey.currentState?.pause();
+                  }
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: VideoPlayerWidget(
+                    key: _videoPlayerKey,
+                    videoUrl: widget.post.videoUrl!,
+                    autoPlay: false,
+                    looping: false,
+                    onPlay: () {
+                      AnalyticsService().trackView(
+                        widget.post.postId,
+                        widget.post.authorId,
+                      );
+                    },
+                  ),
                 ),
               ),
               Padding(
@@ -1316,8 +1339,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                             builder: (context) => _FullScreenImageGallery(
                               imageUrls: widget.post.imageUrls,
                               initialIndex: 0,
-                              canSaveImages: _ownerId == widget.currentUserId ||
-                                            widget.post.authorId == widget.currentUserId,
+                              canSaveImages: (widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId,
                             ),
                           ),
                         );
@@ -1368,9 +1390,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                                         _FullScreenImageGallery(
                                           imageUrls: widget.post.imageUrls,
                                           initialIndex: idx,
-                                          canSaveImages:
-                                              _ownerId == widget.currentUserId ||
-                                              widget.post.authorId == widget.currentUserId,
+                                          canSaveImages: (widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId,
                                         ),
                                   ),
                                 );

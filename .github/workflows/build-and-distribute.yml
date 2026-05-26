@@ -41,10 +41,13 @@ jobs:
         run: flutter pub get
 
       - name: Run code analysis
-        run: flutter analyze --android-skip-build-dependency-validation
+        run: |
+          flutter analyze --android-skip-build-dependency-validation
+          dart pub global activate custom_lint
+          dart pub global run custom_lint || true
 
       - name: Run tests
-        run: flutter test
+        run: flutter test --coverage
 
       - name: Build debug APK
         id: build
