@@ -23,6 +23,7 @@ class CommentsBottomSheet extends StatefulWidget {
 
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   final CommentService _commentService = CommentService();
   final UserService _userService = UserService();
   UserModel? _currentUser;
@@ -34,6 +35,12 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   void initState() {
     super.initState();
     _loadCurrentUser();
+    // Automatically focus when sheet opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   Future<void> _loadCurrentUser() async {
@@ -50,6 +57,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -58,6 +66,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       _replyToCommentId = commentId;
       _replyToName = replyToName;
     });
+    _focusNode.requestFocus();
   }
 
   void _cancelReply() {
@@ -179,8 +188,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         currentUserId: widget.currentUserId,
                         postId: widget.postId,
                         onDelete: () {},
-                        onReply: (c, name) {
-                          _startReply(c.commentId, c.authorName);
+                        onReply: (c, parentId) {
+                          _startReply(parentId, c.authorName);
                         },
                       );
                     },
@@ -200,6 +209,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
+                      focusNode: _focusNode,
                       style: theme.textTheme.bodyLarge,
                       decoration: InputDecoration(
                         hintText: _replyToName != null

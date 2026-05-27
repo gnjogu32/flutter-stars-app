@@ -534,7 +534,13 @@ class _CommentWidgetState extends State<CommentWidget> {
               ),
               const SizedBox(width: 16),
               GestureDetector(
-                onTap: () => _showReplyDialog(widget.comment, widget.comment.commentId),
+                onTap: () {
+                  if (widget.onReply != null) {
+                    widget.onReply!(widget.comment, widget.comment.commentId);
+                  } else {
+                    _showReplyDialog(widget.comment, widget.comment.commentId);
+                  }
+                },
                 child: Row(
                   children: [
                     Icon(

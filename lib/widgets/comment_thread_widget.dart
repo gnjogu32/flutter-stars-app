@@ -463,10 +463,11 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                             if (widget.currentUserId.isEmpty) {
                               AuthGuard.show(context);
                             } else {
-                              widget.onReply?.call(
-                                widget.comment,
-                                widget.comment.authorName,
-                              );
+                              // Use parentId if this is already a reply, otherwise use commentId
+                              final pId = widget.comment.parentId.isEmpty
+                                  ? widget.comment.commentId
+                                  : widget.comment.parentId;
+                              widget.onReply?.call(widget.comment, pId);
                             }
                           },
                           child: Row(
@@ -600,8 +601,11 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     ),
                     const SizedBox(width: 12),
                     InkWell(
-                      onTap: () =>
-                          widget.onReply?.call(reply, reply.authorName),
+                      onTap: () {
+                        // Use root comment ID as parent
+                        final pId = reply.parentId.isEmpty ? reply.commentId : reply.parentId;
+                        widget.onReply?.call(reply, pId);
+                      },
                       child: Text('Reply', style: theme.textTheme.labelSmall?.copyWith(color: secondaryTextColor)),
                     ),
                   ],

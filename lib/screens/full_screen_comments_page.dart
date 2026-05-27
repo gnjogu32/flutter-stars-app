@@ -26,6 +26,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
   final CommentService _commentService = CommentService();
   final UserService _userService = UserService();
   final TextEditingController _commentController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   bool _isSending = false;
   UserModel? _currentUser;
 
@@ -37,6 +38,12 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
   void initState() {
     super.initState();
     _loadCurrentUser();
+    // Automatically focus when page opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   Future<void> _loadCurrentUser() async {
@@ -81,14 +88,19 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
     // Optionally implement if needed
   }
 
+  @override
+  void dispose() {
+    _commentController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
   void _setReply(CommentModel replyTo, String parentId) {
     setState(() {
       _replyTo = replyTo;
       _replyParentId = parentId;
     });
-    FocusScope.of(
-      context,
-    ).requestFocus(FocusNode()); // Dismiss keyboard if open
+    _focusNode.requestFocus();
   }
 
   void _cancelReply() {
@@ -161,6 +173,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
                   Expanded(
                     child: TextField(
                       controller: _commentController,
+                      focusNode: _focusNode,
                       minLines: 1,
                       maxLines: 4,
                       decoration: InputDecoration(
