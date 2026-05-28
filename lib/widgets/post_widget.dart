@@ -1294,7 +1294,9 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
               VisibilityDetector(
                 key: ValueKey('post_video_${widget.post.postId}'),
                 onVisibilityChanged: (info) {
-                  if (info.visibleFraction < 0.3) {
+                  if (info.visibleFraction > 0.8) {
+                    _videoPlayerKey.currentState?.play();
+                  } else if (info.visibleFraction < 0.2) {
                     _videoPlayerKey.currentState?.pause();
                   }
                 },
@@ -1304,7 +1306,8 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                     key: _videoPlayerKey,
                     videoUrl: widget.post.videoUrl!,
                     autoPlay: false,
-                    looping: false,
+                    looping: true,
+                    muted: true, // Start muted for inline playback
                     onPlay: () {
                       AnalyticsService().trackView(
                         widget.post.postId,

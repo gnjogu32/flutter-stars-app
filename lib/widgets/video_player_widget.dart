@@ -12,6 +12,7 @@ class VideoPlayerWidget extends StatefulWidget {
   final double? aspectRatio;
   final VoidCallback? onVideoEnd;
   final VoidCallback? onPlay;
+  final bool muted;
 
   const VideoPlayerWidget({
     super.key,
@@ -23,6 +24,7 @@ class VideoPlayerWidget extends StatefulWidget {
     this.aspectRatio,
     this.onVideoEnd,
     this.onPlay,
+    this.muted = false,
   });
 
   @override
@@ -32,7 +34,7 @@ class VideoPlayerWidget extends StatefulWidget {
 class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
-  bool _isMuted = false;
+  late bool _isMuted;
   bool _showOverlay = true;
   bool _playEventDispatched = false;
   String? _error;
@@ -40,6 +42,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   @override
   void initState() {
     super.initState();
+    _isMuted = widget.muted;
     _initializeController();
   }
 
@@ -51,6 +54,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         setState(() {
           _isInitialized = true;
           _controller.setLooping(widget.looping);
+          _controller.setVolume(_isMuted ? 0 : 1);
           if (widget.autoPlay) {
             _controller.play();
             _showOverlay = false;
@@ -143,11 +147,13 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
-  void _toggleMute() {
-    setState(() {
-      _isMuted = !_isMuted;
-      _controller.setVolume(_isMuted ? 0 : 1);
-    });
+  void setMuted(bool mute) {
+    if (_isInitialized) {
+      setState(() {
+        _isMuted = mute;
+        _controller.setVolume(mute ? 0 : 1);
+      });
+    }
   }
 
   @override
@@ -219,7 +225,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 _isMuted ? Icons.volume_off : Icons.volume_up,
                 color: Colors.white70,
               ),
-              onPressed: _toggleMute,
+              onPressed: () => setMuted(!_isMuted),
             ),
           ),
         ],
