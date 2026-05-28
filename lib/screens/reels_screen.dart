@@ -38,6 +38,15 @@ class _ReelsScreenState extends State<ReelsScreen> {
   // Tracks whether this tab is the currently visible one.
   bool _tabVisible = false;
 
+  void _onReelEnd() {
+    if (_pageController.hasClients) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -116,6 +125,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
                 post: reel,
                 isActive: _tabVisible && index == _activeIndex,
                 currentUserId: currentUserId,
+                onVideoEnd: _onReelEnd,
                 onOpenProfile: () {
                   final userId = (reel.originalAuthorId ?? reel.authorId)
                       .trim();
@@ -140,12 +150,14 @@ class _ReelItem extends StatefulWidget {
   final bool isActive;
   final VoidCallback onOpenProfile;
   final String currentUserId;
+  final VoidCallback? onVideoEnd;
 
   const _ReelItem({
     required this.post,
     required this.isActive,
     required this.onOpenProfile,
     required this.currentUserId,
+    this.onVideoEnd,
   });
 
   @override
@@ -221,7 +233,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
     );
     try {
       await _videoController.initialize();
-      await _videoController.setLooping(true);
+      await _videoController.setLooping(false); // Change to false for sequence playback
       if (mounted) {
         setState(() => _isInitialized = true);
         if (widget.isActive) {
@@ -230,6 +242,13 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
           // Track view for the first reel if active
           AnalyticsService().trackView(widget.post.postId, _ownerId);
         }
+
+        _videoController.addListener(() {
+          if (_videoController.value.position >= _videoController.value.duration &&
+              !_videoController.value.isPlaying && _isInitialized) {
+            widget.onVideoEnd?.call();
+          }
+        });
       }
     } catch (e) {
       debugPrint('Error initializing reel video: $e');
