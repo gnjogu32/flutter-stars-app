@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import '../utils/screen_awake_controller.dart';
 
 class FullScreenVideoPlayer extends StatefulWidget {
   final String videoUrl;
@@ -18,11 +20,19 @@ class FullScreenVideoPlayer extends StatefulWidget {
 class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
+  bool _showControls = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    // Enable immersive mode and landscape orientation
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+    ]);
     _initializeController();
   }
 
@@ -35,6 +45,8 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           _isInitialized = true;
           if (widget.autoPlay) {
             _controller.play();
+            _showControls = false;
+            ScreenAwakeController.acquire();
           }
         });
       }
@@ -49,92 +61,137 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
 
   @override
   void dispose() {
+    // Restore system UI and orientation
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+    if (_isInitialized && _controller.value.isPlaying) {
+      ScreenAwakeController.release();
+    }
     _controller.dispose();
     super.dispose();
+  }
+
+  void _togglePlay() {
+    setState(() {
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+        _showControls = true;
+        ScreenAwakeController.release();
+      } else {
+        _controller.play();
+        _showControls = false;
+        ScreenAwakeController.acquire();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Center(
-        child: _error != null
-            ? Text(_error!, style: const TextStyle(color: Colors.white))
-            : _isInitialized
-                ? AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
-                    child: Stack(
-                      alignment: Alignment.bottomCenter,
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            _showControls = !_showControls;
+          });
+        },
+        onDoubleTapDown: (details) {
+          final screenWidth = MediaQuery.of(context).size.width;
+          if (details.globalPosition.dx < screenWidth / 2) {
+            // Rewind
+            _controller.seekTo(_controller.value.position - const Duration(seconds: 10));
+          } else {
+            // Forward
+            _controller.seekTo(_controller.value.position + const Duration(seconds: 10));
+          }
+        },
+        child: Stack(
+          children: [
+            Center(
+              child: _error != null
+                  ? Text(_error!, style: const TextStyle(color: Colors.white))
+                  : _isInitialized
+                      ? AspectRatio(
+                          aspectRatio: _controller.value.aspectRatio,
+                          child: VideoPlayer(_controller),
+                        )
+                      : const CircularProgressIndicator(color: Colors.white),
+            ),
+
+            // Back Button (Always visible when controls are shown)
+            if (_showControls)
+              Positioned(
+                top: 40,
+                left: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+
+            // Center Play/Pause Button
+            if (_showControls && _isInitialized)
+              Center(
+                child: IconButton(
+                  icon: Icon(
+                    _controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    size: 80,
+                  ),
+                  onPressed: _togglePlay,
+                ),
+              ),
+
+            // Bottom Progress bar and duration
+            if (_showControls && _isInitialized)
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Column(
+                  children: [
+                    VideoProgressIndicator(
+                      _controller,
+                      allowScrubbing: true,
+                      colors: const VideoProgressColors(
+                        playedColor: Colors.red,
+                        bufferedColor: Colors.white30,
+                        backgroundColor: Colors.white12,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        VideoPlayer(_controller),
-                        _ControlsOverlay(controller: _controller),
-                        VideoProgressIndicator(
-                          _controller,
-                          allowScrubbing: true,
-                          colors: const VideoProgressColors(
-                            playedColor: Colors.red,
-                            bufferedColor: Colors.white24,
-                            backgroundColor: Colors.white12,
-                          ),
+                        ValueListenableBuilder(
+                          valueListenable: _controller,
+                          builder: (context, VideoPlayerValue value, child) {
+                            return Text(
+                              _formatDuration(value.position),
+                              style: const TextStyle(color: Colors.white),
+                            );
+                          },
+                        ),
+                        Text(
+                          _formatDuration(_controller.value.duration),
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ],
                     ),
-                  )
-                : const CircularProgressIndicator(),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
-}
 
-class _ControlsOverlay extends StatefulWidget {
-  const _ControlsOverlay({required this.controller});
-
-  final VideoPlayerController controller;
-
-  @override
-  State<_ControlsOverlay> createState() => _ControlsOverlayState();
-}
-
-class _ControlsOverlayState extends State<_ControlsOverlay> {
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 50),
-          reverseDuration: const Duration(milliseconds: 200),
-          child: widget.controller.value.isPlaying
-              ? const SizedBox.shrink()
-              : Container(
-                  color: Colors.black26,
-                  child: const Center(
-                    child: Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 100.0,
-                      semanticLabel: 'Play',
-                    ),
-                  ),
-                ),
-        ),
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              widget.controller.value.isPlaying
-                  ? widget.controller.pause()
-                  : widget.controller.play();
-            });
-          },
-        ),
-      ],
-    );
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$minutes:$seconds";
   }
 }
