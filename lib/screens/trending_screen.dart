@@ -221,6 +221,7 @@ class _TrendingScreenState extends State<TrendingScreen>
         final posts = snapshot.data!;
 
         return ListView.builder(
+          // ignore: deprecated_member_use
           cacheExtent: 600.0,
           key: PageStorageKey<String>(listStorageKey),
           itemCount: posts.length,
@@ -245,6 +246,7 @@ class _TrendingScreenState extends State<TrendingScreen>
     required String listStorageKey,
   }) {
     return ListView.builder(
+      // ignore: deprecated_member_use
       cacheExtent: 600.0,
       key: PageStorageKey<String>(listStorageKey),
       itemCount: posts.length,

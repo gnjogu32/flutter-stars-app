@@ -6,8 +6,6 @@ import '../models/comment_model.dart';
 import 'expandable_text.dart' as custom;
 import '../utils/auth_guard.dart';
 import '../services/comment_service.dart';
-import '../services/user_service.dart';
-import '../models/user_model.dart';
 import '../screens/profile_screen.dart';
 
 class CommentThreadWidget extends StatefulWidget {
@@ -38,8 +36,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   bool _isSavingEdit = false;
   late bool _isLiked;
   final CommentService _commentService = CommentService();
-  final UserService _userService = UserService();
-  UserModel? _currentUser;
 
   void _openAuthorProfile(String userId) {
     if (userId.isEmpty) return;
@@ -86,18 +82,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     _isLiked = widget.comment.likes.contains(widget.currentUserId);
     _editController = TextEditingController(text: widget.comment.content);
     _editFocusNode = FocusNode();
-    _loadCurrentUser();
-  }
-
-  Future<void> _loadCurrentUser() async {
-    if (widget.currentUserId.isNotEmpty) {
-      final user = await _userService.getUser(widget.currentUserId);
-      if (mounted) {
-        setState(() {
-          _currentUser = user;
-        });
-      }
-    }
   }
 
   @override
