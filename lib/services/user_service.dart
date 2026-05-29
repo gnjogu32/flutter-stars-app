@@ -14,7 +14,6 @@ class UserService {
   }
 
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
-  // Firebase Storage removed
 
   // Get user by UID
   Future<UserModel?> getUser(String uid) async {

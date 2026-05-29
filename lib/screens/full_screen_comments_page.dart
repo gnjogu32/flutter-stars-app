@@ -84,8 +84,44 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
     }
   }
 
-  void _deleteComment() {
-    // Optionally implement if needed
+  Future<void> _deleteComment(CommentModel comment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Comment'),
+        content: const Text('Are you sure you want to delete this comment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await _commentService.deleteComment(
+          commentId: comment.commentId,
+          postId: widget.postId,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Comment deleted')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting comment: $e')),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -136,7 +172,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
                       comment: comment,
                       currentUserId: widget.currentUserId,
                       postId: widget.postId,
-                      onDelete: _deleteComment,
+                      onDelete: () => _deleteComment(comment),
                       onReply: _setReply,
                     );
                   },

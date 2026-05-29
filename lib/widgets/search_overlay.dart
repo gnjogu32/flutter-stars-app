@@ -78,7 +78,7 @@ class _SearchOverlayState extends State<SearchOverlay>
     return Material(
       color: isDark
           ? Colors.black.withValues(alpha: 0.85)
-          : Colors.black.withAlpha((0.7 * 255).toInt()),
+          : Colors.black.withValues(alpha: 0.7),
       child: SafeArea(
         child: Column(
           children: [

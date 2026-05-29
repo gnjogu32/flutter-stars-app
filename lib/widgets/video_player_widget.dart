@@ -267,11 +267,13 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             IconButton(
               icon: const Icon(Icons.fullscreen, color: Colors.white, size: 30),
               onPressed: () {
+                final currentPosition = _controller.value.position;
                 _controller.pause();
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => FullScreenVideoPlayer(
                       videoUrl: widget.videoUrl,
+                      startPosition: currentPosition,
                     ),
                   ),
                 );

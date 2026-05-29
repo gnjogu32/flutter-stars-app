@@ -6,11 +6,13 @@ import '../utils/screen_awake_controller.dart';
 class FullScreenVideoPlayer extends StatefulWidget {
   final String videoUrl;
   final bool autoPlay;
+  final Duration? startPosition;
 
   const FullScreenVideoPlayer({
     super.key,
     required this.videoUrl,
     this.autoPlay = true,
+    this.startPosition,
   });
 
   @override
@@ -40,6 +42,9 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
     try {
       await _controller.initialize();
+      if (widget.startPosition != null) {
+        await _controller.seekTo(widget.startPosition!);
+      }
       if (mounted) {
         setState(() {
           _isInitialized = true;
