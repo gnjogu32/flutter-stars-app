@@ -15,6 +15,7 @@ import 'screens/edit_post_screen.dart';
 import 'screens/trending_screen.dart';
 import 'models/post_model.dart';
 import 'firebase_options.dart';
+import 'utils/time_utils.dart';
 
 /// Global navigator key so PushNotificationService can route from background.
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -44,6 +45,7 @@ Future<void> _initializeAppServices() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeAppServices();
+  TimeUtils.init();
   runApp(const MyApp());
 }
 

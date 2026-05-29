@@ -8,7 +8,7 @@ import '../models/user_model.dart';
 import '../services/chat_service.dart';
 import '../services/user_service.dart';
 import '../utils/animation_utils.dart';
-import 'package:timeago/timeago.dart' as timeago;
+import '../utils/time_utils.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -524,7 +524,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        timeago.format(message.sentAt),
+                        TimeUtils.formatShorthand(message.sentAt),
                         style: Theme.of(context).textTheme.labelSmall,
                       ),
                       if (isCurrentUser) ...[
@@ -538,7 +538,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              'Read ${timeago.format(message.readAt!)}',
+                              'Read ${TimeUtils.formatShorthand(message.readAt!)}',
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     fontSize: 10,

@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/repost_queue_model.dart';
 import '../services/repost_queue_service.dart';
 import '../widgets/expandable_text.dart';
-import 'package:timeago/timeago.dart' as timeago;
+import '../utils/time_utils.dart';
 
 class RepostQueueScreen extends StatefulWidget {
   const RepostQueueScreen({super.key});
@@ -209,14 +209,14 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
                       const SizedBox(height: 4),
                       if (isFuture)
                         Text(
-                          'Scheduled for ${timeago.format(item.scheduleTime)}',
+                          'Scheduled for ${TimeUtils.formatShorthand(item.scheduleTime)}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.primary,
                           ),
                         )
                       else
                         Text(
-                          'Queued ${timeago.format(item.createdAt)}',
+                          'Queued ${TimeUtils.formatShorthand(item.createdAt)}',
                           style: theme.textTheme.bodySmall,
                         ),
                     ],
@@ -286,7 +286,7 @@ class _RepostQueueScreenState extends State<RepostQueueScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    timeago.format(item.createdAt),
+                    TimeUtils.formatShorthand(item.createdAt),
                     style: theme.textTheme.bodySmall,
                   ),
                   if (!isSuccess && item.errorMessage != null) ...[

@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../models/conversation_model.dart';
 import '../services/chat_service.dart';
 import '../utils/animation_utils.dart';
+import '../utils/time_utils.dart';
 import '../widgets/keyboard_prompt_banner.dart';
 import 'chat_screen.dart';
 
@@ -361,7 +361,7 @@ class _ConversationItemState extends State<_ConversationItem> with AutomaticKeep
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          timeago.format(widget.conversation.lastMessageTime),
+                          TimeUtils.formatShorthand(widget.conversation.lastMessageTime),
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                         PopupMenuButton<String>(

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
 import '../models/user_model.dart';
 import '../services/comment_service.dart';
 import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
+import '../utils/time_utils.dart';
 import 'package:starpage/screens/profile_screen.dart';
 import 'expandable_text.dart';
 
@@ -468,7 +468,7 @@ class _CommentWidgetState extends State<CommentWidget> {
                         ),
                       ),
                       Text(
-                        timeago.format(widget.comment.createdAt),
+                        TimeUtils.formatShorthand(widget.comment.createdAt),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: isDark ? Colors.white60 : Colors.black54,
                         ),
@@ -499,7 +499,7 @@ class _CommentWidgetState extends State<CommentWidget> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
-                    'edited ${timeago.format(widget.comment.editedAt ?? widget.comment.updatedAt)}',
+                    'edited ${TimeUtils.formatShorthand(widget.comment.editedAt ?? widget.comment.updatedAt)}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontStyle: FontStyle.italic,
                       fontSize: 10,
@@ -742,7 +742,7 @@ class _ReplyItemState extends State<_ReplyItem> {
                       ),
                     ),
                     Text(
-                      timeago.format(widget.reply.createdAt),
+                      TimeUtils.formatShorthand(widget.reply.createdAt),
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 10,
                         color: isDark ? Colors.white60 : Colors.black54,

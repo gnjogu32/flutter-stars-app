@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gal/gal.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +15,7 @@ import '../services/share_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/animation_utils.dart';
 import '../utils/auth_guard.dart';
+import '../utils/time_utils.dart';
 // import '../utils/screen_awake_controller.dart';
 import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
@@ -1141,7 +1141,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                   ),
                 ),
                 Text(
-                  timeago.format(widget.post.createdAt),
+                  TimeUtils.formatShorthand(widget.post.createdAt),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 // Menu button for post owner or original author

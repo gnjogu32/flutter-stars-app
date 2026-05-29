@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/analytics_model.dart';
 import '../services/analytics_service.dart';
-import 'package:timeago/timeago.dart' as timeago;
+import '../utils/time_utils.dart';
 
 class AnalyticsDashboardScreen extends StatefulWidget {
   const AnalyticsDashboardScreen({super.key});
@@ -312,7 +312,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     ),
                   ),
                   Text(
-                    timeago.format(post.createdAt),
+                    TimeUtils.formatShorthand(post.createdAt),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: Colors.grey,
                     ),

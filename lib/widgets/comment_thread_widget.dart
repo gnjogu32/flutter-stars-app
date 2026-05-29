@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../models/comment_model.dart';
 import 'expandable_text.dart' as custom;
 import '../utils/auth_guard.dart';
 import '../services/comment_service.dart';
+import '../utils/time_utils.dart';
 import '../screens/profile_screen.dart';
 
 class CommentThreadWidget extends StatefulWidget {
@@ -274,7 +274,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          timeago.format(widget.comment.createdAt),
+                          TimeUtils.formatShorthand(widget.comment.createdAt),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: secondaryTextColor,
                           ),
@@ -534,7 +534,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      timeago.format(reply.createdAt),
+                      TimeUtils.formatShorthand(reply.createdAt),
                       style: theme.textTheme.labelSmall?.copyWith(color: secondaryTextColor),
                     ),
                     const Spacer(),
