@@ -983,86 +983,61 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
     );
   }
 
-  Widget _buildFeedInteractionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? iconColor,
-  }) {
-    return Material(
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 20, color: iconColor),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: iconColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+  Widget _buildResponsiveFeedInteractions() {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            width: 0.5,
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildResponsiveFeedInteractions() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const spacing = 8.0;
-        final isCompact = constraints.maxWidth < 380;
-        final columns = isCompact ? 2 : 4;
-        final itemWidth =
-            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
-
-        final actions = [
-          _buildFeedInteractionButton(
-            icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-            label: '$_likeCount',
-            iconColor: _isLiked ? Colors.red : null,
-            onTap: _toggleLike,
-          ),
-          _buildFeedInteractionButton(
-            icon: Icons.comment_outlined,
-            label: '${widget.post.commentCount}',
-            onTap: _openCommentsSheet,
-          ),
-          _buildFeedInteractionButton(
-            icon: Icons.repeat,
-            label: '${widget.post.repostCount}',
-            onTap: _repostToFeed,
-          ),
-          _buildFeedInteractionButton(
-            icon: Icons.share_outlined,
-            label: 'Share',
-            onTap: _showShareDialog,
-          ),
-        ];
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: actions
-              .map((action) => SizedBox(width: itemWidth, child: action))
-              .toList(),
-        );
-      },
+      child: DefaultTabController(
+        length: 4,
+        child: TabBar(
+          onTap: (index) {
+            if (index == 0) _toggleLike();
+            if (index == 1) _openCommentsSheet();
+            if (index == 2) _confirmRepost();
+            if (index == 3) _showShareDialog();
+          },
+          indicatorColor: Colors.transparent, // Hide indicator as these are actions
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+          labelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+          unselectedLabelStyle: theme.textTheme.labelSmall,
+          indicatorWeight: 0.1,
+          dividerColor: Colors.transparent,
+          tabs: [
+            Tab(
+              height: 48,
+              icon: Icon(
+                _isLiked ? Icons.favorite : Icons.favorite_border,
+                color: _isLiked ? Colors.red : null,
+                size: 20,
+              ),
+              child: Text('$_likeCount', style: const TextStyle(fontSize: 10)),
+            ),
+            Tab(
+              height: 48,
+              icon: const Icon(Icons.comment_outlined, size: 20),
+              child: Text('${widget.post.commentCount}', style: const TextStyle(fontSize: 10)),
+            ),
+            Tab(
+              height: 48,
+              icon: const Icon(Icons.repeat, size: 20),
+              child: Text('${widget.post.repostCount}', style: const TextStyle(fontSize: 10)),
+            ),
+            const Tab(
+              height: 48,
+              icon: Icon(Icons.share_outlined, size: 20),
+              child: Text('Share', style: TextStyle(fontSize: 10)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
