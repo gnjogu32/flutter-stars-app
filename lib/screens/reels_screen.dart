@@ -677,6 +677,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
           postId: widget.post.postId,
           postAuthorId: _ownerId,
           currentUserId: _activeUserId,
+          postContent: widget.post.content,
         ),
       ),
     );
@@ -962,6 +963,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
                     ),
+                    onTap: _openComments,
                   ),
                 ],
                 if (_isInitialized)

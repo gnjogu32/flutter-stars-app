@@ -10,12 +10,14 @@ class FullScreenCommentsPage extends StatefulWidget {
   final String postId;
   final String postAuthorId;
   final String currentUserId;
+  final String? postContent;
 
   const FullScreenCommentsPage({
     super.key,
     required this.postId,
     required this.postAuthorId,
     required this.currentUserId,
+    this.postContent,
   });
 
   @override
@@ -160,14 +162,39 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final comments = snapshot.data ?? [];
-                if (comments.isEmpty) {
-                  return const Center(child: Text('No comments yet.'));
-                }
+
                 return ListView.builder(
                   padding: const EdgeInsets.only(bottom: 16),
-                  itemCount: comments.length,
+                  itemCount: comments.length + (widget.postContent != null ? 1 : 0),
                   itemBuilder: (context, index) {
-                    final comment = comments[index];
+                    if (widget.postContent != null && index == 0) {
+                       return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.postContent!,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            const Divider(),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final commentIndex = widget.postContent != null ? index - 1 : index;
+
+                    if (comments.isEmpty && widget.postContent == null) {
+                      return const Center(child: Text('No comments yet.'));
+                    }
+
+                    if (commentIndex >= comments.length) return const SizedBox.shrink();
+
+                    final comment = comments[commentIndex];
                     return custom.CommentThreadWidget(
                       comment: comment,
                       currentUserId: widget.currentUserId,

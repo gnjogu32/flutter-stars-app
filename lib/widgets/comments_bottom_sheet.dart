@@ -9,12 +9,14 @@ class CommentsBottomSheet extends StatefulWidget {
   final String postId;
   final String postAuthorId;
   final String currentUserId;
+  final String? postContent;
 
   const CommentsBottomSheet({
     super.key,
     required this.postId,
     required this.postAuthorId,
     required this.currentUserId,
+    this.postContent,
   });
 
   @override
@@ -175,14 +177,41 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: theme.colorScheme.error)));
                   }
                   final comments = snapshot.data ?? [];
-                  if (comments.isEmpty) {
-                    return Center(child: Text('No comments yet.', style: theme.textTheme.bodyMedium));
-                  }
+
                   return ListView.builder(
-                    itemCount: comments.length,
+                    itemCount: comments.length + (widget.postContent != null ? 1 : 0),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemBuilder: (context, index) {
-                      final comment = comments[index];
+                      if (widget.postContent != null && index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.postContent!,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Divider(),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final commentIndex = widget.postContent != null ? index - 1 : index;
+                      if (comments.isEmpty && widget.postContent == null) {
+                         return Center(child: Padding(
+                           padding: const EdgeInsets.only(top: 32.0),
+                           child: Text('No comments yet.', style: theme.textTheme.bodyMedium),
+                         ));
+                      }
+
+                      if (commentIndex >= comments.length) return const SizedBox.shrink();
+
+                      final comment = comments[commentIndex];
                       return CommentThreadWidget(
                         comment: comment,
                         currentUserId: widget.currentUserId,

@@ -970,7 +970,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
     );
   }
 
-  Future<void> _openCommentsSheet() async {
+  Future<void> _openCommentsSheet({String? postContent}) async {
     if (!mounted) return;
     await showModalBottomSheet(
       context: context,
@@ -979,6 +979,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
         postId: widget.post.postId,
         postAuthorId: _ownerId,
         currentUserId: widget.currentUserId,
+        postContent: postContent,
       ),
     );
   }
@@ -999,7 +1000,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
         child: TabBar(
           onTap: (index) {
             if (index == 0) _toggleLike();
-            if (index == 1) _openCommentsSheet();
+            if (index == 1) _openCommentsSheet(postContent: widget.post.content);
             if (index == 2) _confirmRepost();
             if (index == 3) _showShareDialog();
           },
@@ -1204,47 +1205,44 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                         widget.post.content,
                         style: Theme.of(context).textTheme.bodySmall,
                         trimLines: 2,
+                        onTap: () => _openCommentsSheet(postContent: widget.post.content),
                       ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              GestureDetector(
-                onTap: _showPostDetailsSheet,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your caption:',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+              Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your caption:',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(height: 4),
-                      ExpandableText(
-                        widget.post.repostCaption!,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                        trimLines: 2,
+                    ),
+                    const SizedBox(height: 4),
+                    ExpandableText(
+                      widget.post.repostCaption!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ),
+                      trimLines: 2,
+                      onTap: () => _openCommentsSheet(postContent: widget.post.repostCaption),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
             ] else ...[
               // Regular post content
-              GestureDetector(
-                onTap: _showPostDetailsSheet,
-                child: ExpandableText(
-                  widget.post.content,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  trimLines: 3,
-                ),
+              ExpandableText(
+                widget.post.content,
+                style: Theme.of(context).textTheme.bodyMedium,
+                trimLines: 3,
+                onTap: () => _openCommentsSheet(postContent: widget.post.content),
               ),
               const SizedBox(height: 12),
             ],

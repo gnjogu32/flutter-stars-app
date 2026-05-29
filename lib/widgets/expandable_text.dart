@@ -5,6 +5,7 @@ class ExpandableText extends flutter.StatefulWidget {
   final flutter.TextStyle? style;
   final int trimLines;
   final flutter.TextStyle? actionStyle;
+  final flutter.VoidCallback? onTap;
 
   const ExpandableText(
     this.text, {
@@ -12,6 +13,7 @@ class ExpandableText extends flutter.StatefulWidget {
     this.style,
     this.trimLines = 3,
     this.actionStyle,
+    this.onTap,
   });
 
   @override
@@ -48,17 +50,26 @@ class _ExpandableTextState extends flutter.State<ExpandableText> {
         return flutter.Column(
           crossAxisAlignment: flutter.CrossAxisAlignment.start,
           children: [
-            flutter.Text(
-              text,
-              style: widget.style,
-              maxLines: _expanded ? null : widget.trimLines,
-              overflow: _expanded
-                  ? flutter.TextOverflow.visible
-                  : flutter.TextOverflow.ellipsis,
+            flutter.GestureDetector(
+              onTap: widget.onTap,
+              child: flutter.Text(
+                text,
+                style: widget.style,
+                maxLines: _expanded ? null : widget.trimLines,
+                overflow: _expanded
+                    ? flutter.TextOverflow.visible
+                    : flutter.TextOverflow.ellipsis,
+              ),
             ),
             if (hasOverflow)
               flutter.GestureDetector(
-                onTap: () => setState(() => _expanded = !_expanded),
+                onTap: () {
+                  if (widget.onTap != null) {
+                    widget.onTap!();
+                  } else {
+                    setState(() => _expanded = !_expanded);
+                  }
+                },
                 behavior: flutter.HitTestBehavior.opaque,
                 child: flutter.Padding(
                   padding: const flutter.EdgeInsets.only(top: 4),
