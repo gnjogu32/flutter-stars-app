@@ -96,6 +96,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       );
       _controller.clear();
       _cancelReply();
+      _focusNode.unfocus();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

@@ -75,6 +75,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
         _replyTo = null;
         _replyParentId = null;
       });
+      _focusNode.unfocus();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
