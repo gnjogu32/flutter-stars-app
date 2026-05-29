@@ -257,6 +257,28 @@ class PostService {
     }
   }
 
+  // Like a post
+  Future<void> likePost(String postId, String userId) async {
+    try {
+      await _firestore.collection('posts').doc(postId).update({
+        'likes': FieldValue.arrayUnion([userId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Unlike a post
+  Future<void> unlikePost(String postId, String userId) async {
+    try {
+      await _firestore.collection('posts').doc(postId).update({
+        'likes': FieldValue.arrayRemove([userId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Get post by ID
   Future<PostModel?> getPost(String postId) async {
     try {

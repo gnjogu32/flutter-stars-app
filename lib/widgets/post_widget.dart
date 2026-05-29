@@ -13,12 +13,12 @@ import '../services/user_service.dart';
 import '../services/post_service.dart';
 import '../services/share_service.dart';
 import '../services/analytics_service.dart';
-import '../utils/animation_utils.dart';
 import '../utils/auth_guard.dart';
 import '../utils/time_utils.dart';
 // import '../utils/screen_awake_controller.dart';
 import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
+import 'post_details_sheet.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'expandable_text.dart';
 import 'keyboard_prompt_banner.dart';
@@ -96,235 +96,10 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
         expand: false,
         minChildSize: 0.3,
         maxChildSize: 0.85,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    // Post Caption/Content
-                    if (widget.post.repostCaption != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Original post by ${widget.post.originalAuthorName ?? 'Unknown'}',
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 8),
-                            ExpandableText(
-                              widget.post.content,
-                              style: Theme.of(context).textTheme.bodySmall,
-                              trimLines: 5,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Your caption:',
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 8),
-                      ExpandableText(
-                        widget.post.repostCaption!,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        trimLines: 5,
-                      ),
-                    ] else ...[
-                      ExpandableText(
-                        widget.post.content,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(fontSize: 16),
-                        trimLines: 10,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Divider(height: 1, color: Theme.of(context).dividerColor),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: AnimationUtils.scaleButtonAnimation(
-                          onTap: _toggleLike,
-                          child: Semantics(
-                            label: _isLiked ? 'Unlike post' : 'Like post',
-                            button: true,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                AnimatedScale(
-                                  duration: const Duration(milliseconds: 200),
-                                  scale: _isLiked ? 1.2 : 1.0,
-                                  child: Icon(
-                                    _isLiked
-                                        ? Icons.favorite
-                                        : Icons.favorite_border,
-                                    color: _isLiked ? Colors.red : null,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                AnimatedDefaultTextStyle(
-                                  duration: const Duration(milliseconds: 200),
-                                  style: Theme.of(context).textTheme.bodyLarge!
-                                      .copyWith(
-                                        color: _isLiked ? Colors.red : null,
-                                        fontWeight: _isLiked
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
-                                  child: Text('$_likeCount'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: AnimationUtils.scaleButtonAnimation(
-                          onTap: () async {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (context) => CommentsBottomSheet(
-                                postId: widget.post.postId,
-                                postAuthorId: _ownerId,
-                                currentUserId: widget.currentUserId,
-                              ),
-                            );
-                          },
-                          child: Semantics(
-                            label: 'View comments',
-                            button: true,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.comment_outlined, size: 28),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${widget.post.commentCount}',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: AnimationUtils.scaleButtonAnimation(
-                          onTap: _repostToFeed,
-                          child: Semantics(
-                            label: 'Repost to your feed',
-                            button: true,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.repeat, size: 28),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${widget.post.repostCount}',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: AnimationUtils.scaleButtonAnimation(
-                          onTap: () => _showShareDialog(),
-                          child: Semantics(
-                            label: 'Share post',
-                            button: true,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.share_outlined, size: 28),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Share',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Author section at the very bottom
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: _openAuthorProfile,
-                      child: CircleAvatar(
-                        backgroundImage: _ownerImageUrl != null
-                            ? CachedNetworkImageProvider(_ownerImageUrl!)
-                            : null,
-                        child: _ownerImageUrl == null
-                            ? const Icon(Icons.person)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _openAuthorProfile,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _ownerName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            if (widget.post.talent != null)
-                              Text(
-                                widget.post.talent!,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        builder: (context, scrollController) => PostDetailsSheet(
+          post: widget.post,
+          currentUserId: widget.currentUserId,
+          scrollController: scrollController,
         ),
       ),
     );
@@ -1205,7 +980,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                         widget.post.content,
                         style: Theme.of(context).textTheme.bodySmall,
                         trimLines: 2,
-                        onTap: () => _openCommentsSheet(postContent: widget.post.content),
+                        onTap: _showPostDetailsSheet,
                       ),
                     ],
                   ),
@@ -1230,7 +1005,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                         fontWeight: FontWeight.w500,
                       ),
                       trimLines: 2,
-                      onTap: () => _openCommentsSheet(postContent: widget.post.repostCaption),
+                      onTap: _showPostDetailsSheet,
                     ),
                   ],
                 ),
@@ -1242,7 +1017,7 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                 widget.post.content,
                 style: Theme.of(context).textTheme.bodyMedium,
                 trimLines: 3,
-                onTap: () => _openCommentsSheet(postContent: widget.post.content),
+                onTap: _showPostDetailsSheet,
               ),
               const SizedBox(height: 12),
             ],

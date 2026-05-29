@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
@@ -150,6 +151,7 @@ class _SearchOverlayState extends State<SearchOverlay>
       itemCount: _postResults.length,
       itemBuilder: (context, i) {
         final post = _postResults[i];
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
         return ListTile(
           title: Text(
             post.content,
@@ -169,6 +171,7 @@ class _SearchOverlayState extends State<SearchOverlay>
                 maxChildSize: 0.85,
                 builder: (context, scrollController) => PostDetailsSheet(
                   post: post,
+                  currentUserId: currentUserId,
                   scrollController: scrollController,
                 ),
               ),
