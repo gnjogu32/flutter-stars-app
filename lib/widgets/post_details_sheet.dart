@@ -196,20 +196,29 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               labelColor: theme.colorScheme.primary,
               unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
               dividerColor: Colors.transparent,
+              labelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              unselectedLabelStyle: theme.textTheme.labelSmall,
               tabs: [
                 Tab(
-                  icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border, color: _isLiked ? Colors.red : null),
+                  height: 48,
+                  icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border, color: _isLiked ? Colors.red : null, size: 20),
                   child: Text('$_likeCount', style: const TextStyle(fontSize: 10)),
                 ),
                 Tab(
-                  icon: const Icon(Icons.comment_outlined),
+                  height: 48,
+                  icon: const Icon(Icons.comment_outlined, size: 20),
                   child: Text('${widget.post.commentCount}', style: const TextStyle(fontSize: 10)),
                 ),
                 Tab(
-                  icon: const Icon(Icons.repeat),
+                  height: 48,
+                  icon: const Icon(Icons.repeat, size: 20),
                   child: Text('${widget.post.repostCount}', style: const TextStyle(fontSize: 10)),
                 ),
-                const Tab(icon: Icon(Icons.share_outlined), child: Text('Share', style: TextStyle(fontSize: 10))),
+                const Tab(
+                  height: 48,
+                  icon: Icon(Icons.share_outlined, size: 20),
+                  child: Text('Share', style: TextStyle(fontSize: 10)),
+                ),
               ],
             ),
           ),

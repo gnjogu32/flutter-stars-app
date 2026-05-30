@@ -1078,29 +1078,37 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final content = widget.post.content.trim();
 
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 8,
-          bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: ListView(
-          controller: widget.scrollController,
-          children: [
-            const Text(
-              'Interactions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Interactions',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            if (content.isNotEmpty)
-              Container(
+          ),
+          if (content.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1109,44 +1117,60 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            if (content.isNotEmpty) const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                widget.isLiked ? Icons.favorite : Icons.favorite_border,
-                color: widget.isLiked ? Colors.redAccent : null,
-              ),
-              title: const Text('Like'),
-              trailing: Text('${widget.likeCount}'),
-              onTap: _handleLike,
             ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.comment_outlined),
-              title: const Text('Comments'),
-              trailing: Text('${widget.post.commentCount}'),
-              onTap: _handleComments,
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.repeat),
-              title: const Text('Repost'),
-              trailing: Text(
-                widget.isReposting ? '...' : '${widget.post.repostCount}',
-              ),
-              onTap: _handleRepost,
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.share_outlined),
-              title: const Text('Share'),
-              onTap: () {
-                widget.onShare();
-                Navigator.of(context).pop();
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          DefaultTabController(
+            length: 4,
+            child: TabBar(
+              onTap: (index) {
+                if (index == 0) _handleLike();
+                if (index == 1) _handleComments();
+                if (index == 2) _handleRepost();
+                if (index == 3) {
+                  widget.onShare();
+                  Navigator.of(context).pop();
+                }
               },
+              indicatorColor: Colors.transparent,
+              labelColor: theme.colorScheme.primary,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              dividerColor: Colors.transparent,
+              labelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              unselectedLabelStyle: theme.textTheme.labelSmall,
+              tabs: [
+                Tab(
+                  height: 60,
+                  icon: Icon(
+                    widget.isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: widget.isLiked ? Colors.redAccent : null,
+                    size: 24,
+                  ),
+                  child: Text('${widget.likeCount}', style: const TextStyle(fontSize: 11)),
+                ),
+                Tab(
+                  height: 60,
+                  icon: const Icon(Icons.comment_outlined, size: 24),
+                  child: Text('${widget.post.commentCount}', style: const TextStyle(fontSize: 11)),
+                ),
+                Tab(
+                  height: 60,
+                  icon: const Icon(Icons.repeat, size: 24),
+                  child: Text(
+                    widget.isReposting ? '...' : '${widget.post.repostCount}',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+                const Tab(
+                  height: 60,
+                  icon: Icon(Icons.share_outlined, size: 24),
+                  child: Text('Share', style: TextStyle(fontSize: 11)),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
