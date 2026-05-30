@@ -129,7 +129,10 @@ class _MainAppState extends State<MainApp> {
             ),
             label: 'Notifications',
           ),
-          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
       ),
     );

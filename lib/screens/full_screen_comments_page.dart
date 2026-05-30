@@ -195,8 +195,9 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
                       return const Center(child: Text('No comments yet.'));
                     }
 
-                    if (commentIndex >= comments.length)
+                    if (commentIndex >= comments.length) {
                       return const SizedBox.shrink();
+                    }
 
                     final comment = comments[commentIndex];
                     return custom.CommentThreadWidget(

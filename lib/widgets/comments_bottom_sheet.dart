@@ -233,8 +233,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         );
                       }
 
-                      if (commentIndex >= comments.length)
+                      if (commentIndex >= comments.length) {
                         return const SizedBox.shrink();
+                      }
 
                       final comment = comments[commentIndex];
                       return CommentThreadWidget(

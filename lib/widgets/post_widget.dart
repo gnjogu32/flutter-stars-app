@@ -784,8 +784,9 @@ class _PostWidgetState extends State<PostWidget>
         child: TabBar(
           onTap: (index) {
             if (index == 0) _toggleLike();
-            if (index == 1)
+            if (index == 1) {
               _openCommentsSheet(postContent: widget.post.content);
+            }
             if (index == 2) _confirmRepost();
             if (index == 3) _showShareDialog();
           },

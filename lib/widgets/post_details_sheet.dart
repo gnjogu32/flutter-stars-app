@@ -112,15 +112,17 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
         reposterName: currentUser.displayName,
         reposterImageUrl: currentUser.profileImageUrl,
       );
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Reposted ✓')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isReposting = false);
     }
