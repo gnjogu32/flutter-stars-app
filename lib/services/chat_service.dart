@@ -297,6 +297,30 @@ class ChatService {
     }
   }
 
+  // Get unread message count as a stream
+  Stream<int> getUnreadMessageCountStream(String userId) {
+    // Listen to all conversations where user is a participant
+    return _firestore
+        .collection('conversations')
+        .where('participantIds', arrayContains: userId)
+        .snapshots()
+        .asyncMap((conversationsSnapshot) async {
+          int totalUnread = 0;
+          for (var doc in conversationsSnapshot.docs) {
+            // For each conversation, get the count of unread messages sent by others
+            final messagesSnapshot = await _firestore
+                .collection('conversations')
+                .doc(doc.id)
+                .collection('messages')
+                .where('senderId', isNotEqualTo: userId)
+                .where('isRead', isEqualTo: false)
+                .get();
+            totalUnread += messagesSnapshot.docs.length;
+          }
+          return totalUnread;
+        });
+  }
+
   // Start a conversation with a user
   Future<String> startConversation({
     required String currentUserId,

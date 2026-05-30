@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/notification_service.dart';
+import '../services/chat_service.dart';
 import '../utils/auth_guard.dart';
 import 'home_screen.dart';
 import 'discover_screen.dart';
@@ -66,12 +68,13 @@ class _MainAppState extends State<MainApp> {
         child: const Icon(Icons.trending_up),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         onTap: (index) async {
           // Protected tabs: Messages(3), Notifications(4), Profile(5)
           const protectedTabs = {3, 4, 5};
-          if (protectedTabs.contains(index) &&
-              FirebaseAuth.instance.currentUser == null) {
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if (protectedTabs.contains(index) && currentUser == null) {
             await AuthGuard.show(context);
             return;
           }
@@ -80,19 +83,53 @@ class _MainAppState extends State<MainApp> {
             _selectedIndex = index;
           });
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.play_circle_outline),
             label: 'Reels',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Discover'),
-          BottomNavigationBarItem(icon: Icon(Icons.mail), label: 'Messages'),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.explore),
+            label: 'Discover',
+          ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: StreamBuilder<int>(
+              stream: FirebaseAuth.instance.currentUser != null
+                  ? ChatService().getUnreadMessageCountStream(
+                      FirebaseAuth.instance.currentUser!.uid,
+                    )
+                  : Stream.value(0),
+              builder: (context, snapshot) {
+                final count = snapshot.data ?? 0;
+                return Badge(
+                  label: Text('$count'),
+                  isLabelVisible: count > 0,
+                  child: const Icon(Icons.mail),
+                );
+              },
+            ),
+            label: 'Messages',
+          ),
+          BottomNavigationBarItem(
+            icon: StreamBuilder<int>(
+              stream: FirebaseAuth.instance.currentUser != null
+                  ? NotificationService().getUnreadCountStream(
+                      FirebaseAuth.instance.currentUser!.uid,
+                    )
+                  : Stream.value(0),
+              builder: (context, snapshot) {
+                final count = snapshot.data ?? 0;
+                return Badge(
+                  label: Text('$count'),
+                  isLabelVisible: count > 0,
+                  child: const Icon(Icons.notifications),
+                );
+              },
+            ),
             label: 'Notifications',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
