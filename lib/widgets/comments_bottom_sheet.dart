@@ -117,7 +117,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = theme.colorScheme.surface;
-    final textFieldColor = isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey[100];
+    final textFieldColor = isDark
+        ? theme.colorScheme.surfaceContainerHighest
+        : Colors.grey[100];
 
     return Container(
       decoration: BoxDecoration(
@@ -141,13 +143,17 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 'Comments',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const Divider(height: 1),
             if (_replyToName != null)
               Container(
-                color: isDark ? theme.colorScheme.surfaceContainerHigh : Colors.grey[100],
+                color: isDark
+                    ? theme.colorScheme.surfaceContainerHigh
+                    : Colors.grey[100],
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 8,
@@ -162,7 +168,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     ),
                     InkWell(
                       onTap: _cancelReply,
-                      child: Icon(Icons.close, size: 16, color: theme.colorScheme.onSurface),
+                      child: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ],
                 ),
@@ -175,12 +185,18 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: theme.colorScheme.error)));
+                    return Center(
+                      child: Text(
+                        'Error: ${snapshot.error}',
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    );
                   }
                   final comments = snapshot.data ?? [];
 
                   return ListView.builder(
-                    itemCount: comments.length + (widget.postContent != null ? 1 : 0),
+                    itemCount:
+                        comments.length + (widget.postContent != null ? 1 : 0),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemBuilder: (context, index) {
                       if (widget.postContent != null && index == 0) {
@@ -202,15 +218,23 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         );
                       }
 
-                      final commentIndex = widget.postContent != null ? index - 1 : index;
+                      final commentIndex = widget.postContent != null
+                          ? index - 1
+                          : index;
                       if (comments.isEmpty && widget.postContent == null) {
-                         return Center(child: Padding(
-                           padding: const EdgeInsets.only(top: 32.0),
-                           child: Text('No comments yet.', style: theme.textTheme.bodyMedium),
-                         ));
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 32.0),
+                            child: Text(
+                              'No comments yet.',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        );
                       }
 
-                      if (commentIndex >= comments.length) return const SizedBox.shrink();
+                      if (commentIndex >= comments.length)
+                        return const SizedBox.shrink();
 
                       final comment = comments[commentIndex];
                       return CommentThreadWidget(
@@ -245,7 +269,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         hintText: _replyToName != null
                             ? 'Write a reply...'
                             : 'Add a comment...',
-                        hintStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25),
                           borderSide: BorderSide.none,

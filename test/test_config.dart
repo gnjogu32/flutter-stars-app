@@ -7,9 +7,9 @@
 /// - `flutter test --verbose` - with detailed output
 library;
 
-const String testFlutterVersion = '3.10.4';
-const String testAndroidMinSdk = '21';
-const String testAndroidTargetSdk = '33';
+const String testFlutterVersion = '3.44.0';
+const String testAndroidMinSdk = '24';
+const String testAndroidTargetSdk = '36';
 
 // Coverage thresholds
 const double minCodeCoverage = 70.0;

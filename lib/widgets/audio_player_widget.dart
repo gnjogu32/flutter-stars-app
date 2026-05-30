@@ -112,8 +112,14 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(_formatDuration(position), style: Theme.of(context).textTheme.bodySmall),
-                          Text(_formatDuration(duration), style: Theme.of(context).textTheme.bodySmall),
+                          Text(
+                            _formatDuration(position),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text(
+                            _formatDuration(duration),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         ],
                       ),
                     ),

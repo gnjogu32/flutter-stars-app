@@ -50,12 +50,16 @@ class _CommentWidgetState extends State<CommentWidget> {
     }
   }
 
-    Future<void> _showReplyDialog(CommentModel parent, String parentId, {String? replyToName}) async {
-      final controller = TextEditingController();
-      final focusNode = FocusNode();
-      final messenger = ScaffoldMessenger.of(context);
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      final textColor = isDark ? Colors.white : Colors.black87;
+  Future<void> _showReplyDialog(
+    CommentModel parent,
+    String parentId, {
+    String? replyToName,
+  }) async {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    final messenger = ScaffoldMessenger.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -72,7 +76,9 @@ class _CommentWidgetState extends State<CommentWidget> {
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: 'Write your reply...',
-            hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+            hintStyle: TextStyle(
+              color: isDark ? Colors.white54 : Colors.black45,
+            ),
           ),
         ),
         actions: [
@@ -117,9 +123,10 @@ class _CommentWidgetState extends State<CommentWidget> {
         ],
       ),
     );
-      focusNode.dispose();
-      controller.dispose();
-    }
+    focusNode.dispose();
+    controller.dispose();
+  }
+
   late bool _isLiked;
   bool _showReplies = false;
   final CommentService _commentService = CommentService();
@@ -396,7 +403,10 @@ class _CommentWidgetState extends State<CommentWidget> {
           children: [
             ListTile(
               leading: Icon(Icons.edit, color: isDark ? Colors.white70 : null),
-              title: Text('Edit', style: TextStyle(color: isDark ? Colors.white : null)),
+              title: Text(
+                'Edit',
+                style: TextStyle(color: isDark ? Colors.white : null),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _editComment();
@@ -437,168 +447,184 @@ class _CommentWidgetState extends State<CommentWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          // Comment header: Author info and time
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => _openAuthorProfile(widget.comment.authorId),
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundImage: widget.comment.authorImageUrl != null
-                      ? CachedNetworkImageProvider(widget.comment.authorImageUrl!)
-                      : null,
-                  child: widget.comment.authorImageUrl == null
-                      ? const Icon(Icons.person, size: 16)
-                      : null,
-                ),
+              // Comment header: Author info and time
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _openAuthorProfile(widget.comment.authorId),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundImage: widget.comment.authorImageUrl != null
+                          ? CachedNetworkImageProvider(
+                              widget.comment.authorImageUrl!,
+                            )
+                          : null,
+                      child: widget.comment.authorImageUrl == null
+                          ? const Icon(Icons.person, size: 16)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _openAuthorProfile(widget.comment.authorId),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.comment.authorName,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                          Text(
+                            TimeUtils.formatShorthand(widget.comment.createdAt),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: isDark ? Colors.white60 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (widget.comment.authorId == widget.currentUserId)
+                    IconButton(
+                      iconSize: 16,
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      onPressed: _showMoreOptions,
+                    ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const SizedBox(width: 8),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _openAuthorProfile(widget.comment.authorId),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.comment.authorName,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+              const SizedBox(height: 6),
+              // Comment content with edited indicator
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ExpandableText(
+                    widget.comment.content,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: textColor,
+                    ),
+                    trimLines: 3,
+                  ),
+                  if (widget.comment.isEdited)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        'edited ${TimeUtils.formatShorthand(widget.comment.editedAt ?? widget.comment.updatedAt)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 10,
+                          color: isDark ? Colors.white70 : Colors.black54,
                         ),
                       ),
-                      Text(
-                        TimeUtils.formatShorthand(widget.comment.createdAt),
-                        style: theme.textTheme.bodySmall?.copyWith(
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // Actions: Like + Reply
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: _toggleLike,
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isLiked ? Icons.favorite : Icons.favorite_border,
+                          size: 14,
+                          color: _isLiked ? Colors.red : null,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.comment.likeCount > 0
+                              ? '${widget.comment.likeCount}'
+                              : '',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.onReply != null) {
+                        widget.onReply!(
+                          widget.comment,
+                          widget.comment.commentId,
+                        );
+                      } else {
+                        _showReplyDialog(
+                          widget.comment,
+                          widget.comment.commentId,
+                        );
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.reply,
+                          size: 14,
                           color: isDark ? Colors.white60 : Colors.black54,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (widget.comment.authorId == widget.currentUserId)
-                IconButton(
-                  iconSize: 16,
-                  icon: Icon(Icons.more_vert, color: isDark ? Colors.white70 : Colors.black54),
-                  onPressed: _showMoreOptions,
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Comment content with edited indicator
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ExpandableText(
-                widget.comment.content,
-                style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
-                trimLines: 3,
-              ),
-              if (widget.comment.isEdited)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Text(
-                    'edited ${TimeUtils.formatShorthand(widget.comment.editedAt ?? widget.comment.updatedAt)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontStyle: FontStyle.italic,
-                      fontSize: 10,
-                      color: isDark ? Colors.white70 : Colors.black54,
+                        const SizedBox(width: 4),
+                        Text(
+                          'Reply',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Actions: Like + Reply
-          Row(
-            children: [
-              GestureDetector(
-                onTap: _toggleLike,
-                child: Row(
-                  children: [
-                    Icon(
-                      _isLiked ? Icons.favorite : Icons.favorite_border,
-                      size: 14,
-                      color: _isLiked ? Colors.red : null,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.comment.likeCount > 0
-                          ? '${widget.comment.likeCount}'
-                          : '',
-                      style: theme.textTheme.bodySmall?.copyWith(color: textColor),
-                    ),
-                  ],
-                ),
+                ],
               ),
-              const SizedBox(width: 16),
-              GestureDetector(
-                onTap: () {
-                  if (widget.onReply != null) {
-                    widget.onReply!(widget.comment, widget.comment.commentId);
-                  } else {
-                    _showReplyDialog(widget.comment, widget.comment.commentId);
-                  }
-                },
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.reply,
-                      size: 14,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Reply',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark ? Colors.white60 : Colors.black54,
-                      ),
-                    ),
-                  ],
+              // Replies section — root comments only
+              if (widget.comment.parentId.isEmpty)
+                StreamBuilder<List<CommentModel>>(
+                  stream: _commentService.getReplies(widget.comment.commentId),
+                  builder: (context, snapshot) {
+                    final replies = snapshot.data ?? [];
+                    if (replies.isEmpty) return const SizedBox.shrink();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () =>
+                              setState(() => _showReplies = !_showReplies),
+                          child: Text(
+                            _showReplies
+                                ? 'Hide replies'
+                                : 'View ${replies.length} '
+                                      '${replies.length == 1 ? 'reply' : 'replies'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (_showReplies) ...[
+                          const SizedBox(height: 8),
+                          ...replies.map(
+                            (reply) => _ReplyItem(
+                              reply: reply,
+                              currentUserId: widget.currentUserId,
+                              onReply: widget.onReply,
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
-              ),
-            ],
-          ),
-          // Replies section — root comments only
-          if (widget.comment.parentId.isEmpty)
-            StreamBuilder<List<CommentModel>>(
-              stream: _commentService.getReplies(widget.comment.commentId),
-              builder: (context, snapshot) {
-                final replies = snapshot.data ?? [];
-                if (replies.isEmpty) return const SizedBox.shrink();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      onTap: () => setState(() => _showReplies = !_showReplies),
-                      child: Text(
-                        _showReplies
-                            ? 'Hide replies'
-                            : 'View ${replies.length} '
-                                  '${replies.length == 1 ? 'reply' : 'replies'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    if (_showReplies) ...[
-                      const SizedBox(height: 8),
-                      ...replies.map(
-                        (reply) => _ReplyItem(
-                          reply: reply,
-                          currentUserId: widget.currentUserId,
-                          onReply: widget.onReply,
-                        ),
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
             ],
           ),
         ),
@@ -714,191 +740,219 @@ class _ReplyItemState extends State<_ReplyItem> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => _openAuthorProfile(widget.reply.authorId),
-                      child: CircleAvatar(
-                        radius: 12,
-                        backgroundImage: widget.reply.authorImageUrl != null
-                            ? CachedNetworkImageProvider(widget.reply.authorImageUrl!)
-                            : null,
-                        child: widget.reply.authorImageUrl == null
-                            ? const Icon(Icons.person, size: 12)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => _openAuthorProfile(widget.reply.authorId),
-                        child: Text(
-                          widget.reply.authorName,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () =>
+                              _openAuthorProfile(widget.reply.authorId),
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundImage: widget.reply.authorImageUrl != null
+                                ? CachedNetworkImageProvider(
+                                    widget.reply.authorImageUrl!,
+                                  )
+                                : null,
+                            child: widget.reply.authorImageUrl == null
+                                ? const Icon(Icons.person, size: 12)
+                                : null,
                           ),
                         ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () =>
+                                _openAuthorProfile(widget.reply.authorId),
+                            child: Text(
+                              widget.reply.authorName,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          TimeUtils.formatShorthand(widget.reply.createdAt),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 10,
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    if (widget.reply.replyToName != null)
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '@${widget.reply.replyToName} ',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                            TextSpan(
+                              text: widget.reply.content,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 12,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Text(
+                        widget.reply.content,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          color: textColor,
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: _toggleLike,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isLiked ? Icons.favorite : Icons.favorite_border,
+                            size: 12,
+                            color: _isLiked ? Colors.red : null,
+                          ),
+                          if (widget.reply.likeCount > 0) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '${widget.reply.likeCount}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    Text(
-                      TimeUtils.formatShorthand(widget.reply.createdAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        color: isDark ? Colors.white60 : Colors.black54,
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () async {
+                        final parentId = widget.reply.parentId.isEmpty
+                            ? widget.reply.commentId
+                            : widget.reply.parentId;
+                        final replyToName = widget.reply.authorName;
+                        final controller = TextEditingController();
+                        final focusNode = FocusNode();
+                        final messenger = ScaffoldMessenger.of(context);
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
+                        final textColor = isDark
+                            ? Colors.white
+                            : Colors.black87;
+                        await showDialog(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            backgroundColor: isDark
+                                ? const Color(0xFF1A1D23)
+                                : null,
+                            title: Text(
+                              'Reply to @$replyToName',
+                              style: TextStyle(color: textColor),
+                            ),
+                            content: TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              autofocus: true,
+                              maxLines: null,
+                              style: TextStyle(color: textColor),
+                              decoration: InputDecoration(
+                                hintText: 'Write your reply...',
+                                hintStyle: TextStyle(
+                                  color: isDark
+                                      ? Colors.white54
+                                      : Colors.black45,
+                                ),
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogContext),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  final text = controller.text.trim();
+                                  if (text.isEmpty) {
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Reply cannot be empty'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  try {
+                                    await CommentService().addComment(
+                                      postId: widget.reply.postId,
+                                      authorId: widget.currentUserId,
+                                      authorName:
+                                          _currentUser?.displayName ?? 'User',
+                                      authorImageUrl:
+                                          _currentUser?.profileImageUrl,
+                                      content: text,
+                                      postAuthorId: widget.reply.authorId,
+                                      parentId: parentId,
+                                      replyToName: replyToName,
+                                    );
+                                    if (mounted) {
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Reply posted'),
+                                        ),
+                                      );
+                                    }
+                                    if (dialogContext.mounted) {
+                                      Navigator.pop(dialogContext);
+                                    }
+                                  } catch (e) {
+                                    messenger.showSnackBar(
+                                      SnackBar(content: Text('Error: $e')),
+                                    );
+                                  }
+                                },
+                                child: const Text('Reply'),
+                              ),
+                            ],
+                          ),
+                        );
+                        focusNode.dispose();
+                        controller.dispose();
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.reply,
+                            size: 12,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Reply',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                if (widget.reply.replyToName != null)
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '@${widget.reply.replyToName} ',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                        TextSpan(
-                          text: widget.reply.content,
-                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: textColor),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Text(
-                    widget.reply.content,
-                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: textColor),
-                  ),
-                const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: _toggleLike,
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isLiked ? Icons.favorite : Icons.favorite_border,
-                        size: 12,
-                        color: _isLiked ? Colors.red : null,
-                      ),
-                      if (widget.reply.likeCount > 0) ...[
-                        const SizedBox(width: 4),
-                        Text(
-                          '${widget.reply.likeCount}',
-                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, color: textColor),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: () async {
-                    final parentId = widget.reply.parentId.isEmpty
-                        ? widget.reply.commentId
-                        : widget.reply.parentId;
-                    final replyToName = widget.reply.authorName;
-                    final controller = TextEditingController();
-                    final focusNode = FocusNode();
-                    final messenger = ScaffoldMessenger.of(context);
-                    final isDark = Theme.of(context).brightness == Brightness.dark;
-                    final textColor = isDark ? Colors.white : Colors.black87;
-                    await showDialog(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
-                        title: Text(
-                          'Reply to @$replyToName',
-                          style: TextStyle(color: textColor),
-                        ),
-                        content: TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          autofocus: true,
-                          maxLines: null,
-                          style: TextStyle(color: textColor),
-                          decoration: InputDecoration(
-                            hintText: 'Write your reply...',
-                            hintStyle: TextStyle(
-                              color: isDark ? Colors.white54 : Colors.black45,
-                            ),
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              final text = controller.text.trim();
-                              if (text.isEmpty) {
-                                messenger.showSnackBar(
-                                  const SnackBar(content: Text('Reply cannot be empty')),
-                                );
-                                return;
-                              }
-                              try {
-                                await CommentService().addComment(
-                                  postId: widget.reply.postId,
-                                  authorId: widget.currentUserId,
-                                  authorName: _currentUser?.displayName ?? 'User',
-                                  authorImageUrl: _currentUser?.profileImageUrl,
-                                  content: text,
-                                  postAuthorId: widget.reply.authorId,
-                                  parentId: parentId,
-                                  replyToName: replyToName,
-                                );
-                                if (mounted) {
-                                  messenger.showSnackBar(
-                                    const SnackBar(content: Text('Reply posted')),
-                                  );
-                                }
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(dialogContext);
-                                }
-                              } catch (e) {
-                                messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
-                              }
-                            },
-                            child: const Text('Reply'),
-                          ),
-                        ],
-                      ),
-                    );
-                    focusNode.dispose();
-                    controller.dispose();
-                  },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.reply,
-                        size: 12,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Reply',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 10,
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
-    ],
-  ),
-);
+    );
   }
 }

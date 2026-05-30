@@ -118,7 +118,9 @@ class UserService {
   ) async {
     try {
       final storageRef = FirebaseStorage.instance.ref();
-      final imageRef = storageRef.child('profiles/$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}');
+      final imageRef = storageRef.child(
+        'profiles/$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}',
+      );
 
       final uploadTask = imageRef.putData(imageBytes);
       final snapshot = await uploadTask.whenComplete(() {});
@@ -133,7 +135,9 @@ class UserService {
   Future<String?> uploadProfileImage(String userId, File imageFile) async {
     try {
       final storageRef = FirebaseStorage.instance.ref();
-      final imageRef = storageRef.child('profiles/$userId/${DateTime.now().millisecondsSinceEpoch}_profile.jpg');
+      final imageRef = storageRef.child(
+        'profiles/$userId/${DateTime.now().millisecondsSinceEpoch}_profile.jpg',
+      );
 
       final uploadTask = imageRef.putFile(imageFile);
       final snapshot = await uploadTask.whenComplete(() {});

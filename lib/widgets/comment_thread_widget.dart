@@ -248,7 +248,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                 child: CircleAvatar(
                   radius: 16,
                   backgroundImage: widget.comment.authorImageUrl != null
-                      ? CachedNetworkImageProvider(widget.comment.authorImageUrl!)
+                      ? CachedNetworkImageProvider(
+                          widget.comment.authorImageUrl!,
+                        )
                       : null,
                   child: widget.comment.authorImageUrl == null
                       ? const Icon(Icons.person, size: 16)
@@ -263,7 +265,8 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => _openAuthorProfile(widget.comment.authorId),
+                          onTap: () =>
+                              _openAuthorProfile(widget.comment.authorId),
                           child: Text(
                             widget.comment.authorName,
                             style: theme.textTheme.titleSmall?.copyWith(
@@ -325,7 +328,11 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 ),
                               ),
                             ],
-                            child: Icon(Icons.more_vert, size: 18, color: secondaryTextColor),
+                            child: Icon(
+                              Icons.more_vert,
+                              size: 18,
+                              color: secondaryTextColor,
+                            ),
                           ),
                       ],
                     ),
@@ -364,7 +371,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                   style: TextStyle(color: textColor),
                                   decoration: InputDecoration(
                                     hintText: 'Edit your comment...',
-                                    hintStyle: TextStyle(color: secondaryTextColor),
+                                    hintStyle: TextStyle(
+                                      color: secondaryTextColor,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -418,7 +427,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     else
                       custom.ExpandableText(
                         widget.comment.content,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: textColor,
+                        ),
                       ),
                     Row(
                       children: [
@@ -431,12 +442,16 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                     ? Icons.favorite
                                     : Icons.favorite_border,
                                 size: 16,
-                                color: _isLiked ? Colors.red : secondaryTextColor,
+                                color: _isLiked
+                                    ? Colors.red
+                                    : secondaryTextColor,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${widget.comment.likes.length}',
-                                style: theme.textTheme.labelSmall?.copyWith(color: secondaryTextColor),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: secondaryTextColor,
+                                ),
                               ),
                             ],
                           ),
@@ -456,9 +471,18 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                           },
                           child: Row(
                             children: [
-                              Icon(Icons.reply, size: 16, color: secondaryTextColor),
+                              Icon(
+                                Icons.reply,
+                                size: 16,
+                                color: secondaryTextColor,
+                              ),
                               const SizedBox(width: 4),
-                              Text('Reply', style: theme.textTheme.labelSmall?.copyWith(color: secondaryTextColor)),
+                              Text(
+                                'Reply',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: secondaryTextColor,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -535,7 +559,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     const SizedBox(width: 8),
                     Text(
                       TimeUtils.formatShorthand(reply.createdAt),
-                      style: theme.textTheme.labelSmall?.copyWith(color: secondaryTextColor),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: secondaryTextColor,
+                      ),
                     ),
                     const Spacer(),
                     if (widget.currentUserId == reply.authorId)
@@ -554,14 +580,23 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                             child: Text('Delete'),
                           ),
                         ],
-                        child: Icon(Icons.more_vert, size: 14, color: secondaryTextColor),
+                        child: Icon(
+                          Icons.more_vert,
+                          size: 14,
+                          color: secondaryTextColor,
+                        ),
                       ),
                   ],
                 ),
                 if (isEditingThisReply)
                   _buildReplyEditField(reply)
                 else
-                  Text(reply.content, style: theme.textTheme.bodySmall?.copyWith(color: textColor)),
+                  Text(
+                    reply.content,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: textColor,
+                    ),
+                  ),
                 Row(
                   children: [
                     InkWell(
@@ -573,12 +608,16 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 ? Icons.favorite
                                 : Icons.favorite_border,
                             size: 14,
-                            color: isReplyLiked ? Colors.red : secondaryTextColor,
+                            color: isReplyLiked
+                                ? Colors.red
+                                : secondaryTextColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '${reply.likes.length}',
-                            style: theme.textTheme.labelSmall?.copyWith(color: secondaryTextColor),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: secondaryTextColor,
+                            ),
                           ),
                         ],
                       ),
@@ -587,10 +626,17 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     InkWell(
                       onTap: () {
                         // Use root comment ID as parent
-                        final pId = reply.parentId.isEmpty ? reply.commentId : reply.parentId;
+                        final pId = reply.parentId.isEmpty
+                            ? reply.commentId
+                            : reply.parentId;
                         widget.onReply?.call(reply, pId);
                       },
-                      child: Text('Reply', style: theme.textTheme.labelSmall?.copyWith(color: secondaryTextColor)),
+                      child: Text(
+                        'Reply',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: secondaryTextColor,
+                        ),
+                      ),
                     ),
                   ],
                 ),

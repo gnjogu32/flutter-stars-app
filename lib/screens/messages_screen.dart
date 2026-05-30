@@ -276,7 +276,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return _ConversationItem(
       key: ValueKey(conversation.conversationId),
       conversation: conversation,
-      isDeleting: _deletingConversationIds.contains(conversation.conversationId),
+      isDeleting: _deletingConversationIds.contains(
+        conversation.conversationId,
+      ),
       onTap: () => _navigateToChat(conversation),
       onDelete: () => _confirmAndDeleteConversation(conversation),
       canDelete: _canDeleteConversation(conversation),
@@ -304,7 +306,8 @@ class _ConversationItem extends StatefulWidget {
   State<_ConversationItem> createState() => _ConversationItemState();
 }
 
-class _ConversationItemState extends State<_ConversationItem> with AutomaticKeepAliveClientMixin {
+class _ConversationItemState extends State<_ConversationItem>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -324,7 +327,9 @@ class _ConversationItemState extends State<_ConversationItem> with AutomaticKeep
                 CircleAvatar(
                   radius: 24,
                   backgroundImage: widget.conversation.otherUserImageUrl != null
-                      ? CachedNetworkImageProvider(widget.conversation.otherUserImageUrl!)
+                      ? CachedNetworkImageProvider(
+                          widget.conversation.otherUserImageUrl!,
+                        )
                       : null,
                   child: widget.conversation.otherUserImageUrl == null
                       ? const Icon(Icons.person)
@@ -361,7 +366,9 @@ class _ConversationItemState extends State<_ConversationItem> with AutomaticKeep
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          TimeUtils.formatShorthand(widget.conversation.lastMessageTime),
+                          TimeUtils.formatShorthand(
+                            widget.conversation.lastMessageTime,
+                          ),
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                         PopupMenuButton<String>(

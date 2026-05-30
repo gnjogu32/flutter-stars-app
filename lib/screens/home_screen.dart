@@ -149,7 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       backgroundImage: photoUrl != null && photoUrl.isNotEmpty
                           ? NetworkImage(photoUrl)
                           : null,
-                      backgroundColor: isDark ? Colors.grey[800] : Colors.grey.shade300,
+                      backgroundColor: isDark
+                          ? Colors.grey[800]
+                          : Colors.grey.shade300,
                       child: photoUrl == null || photoUrl.isEmpty
                           ? Icon(
                               Icons.person,

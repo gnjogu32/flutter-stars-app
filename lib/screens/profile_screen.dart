@@ -192,7 +192,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (kDebugMode) {
       debugPrint('ProfileScreen - widget.userId: "${widget.userId}"');
       debugPrint('ProfileScreen - effectiveUserId: "$effectiveUserId"');
-      debugPrint('ProfileScreen - currentUser?.uid: "${_auth.currentUser?.uid}"');
+      debugPrint(
+        'ProfileScreen - currentUser?.uid: "${_auth.currentUser?.uid}"',
+      );
       debugPrint('ProfileScreen - isOwnProfile: $isOwnProfile');
     }
 
@@ -416,8 +418,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isFollowing
                             ? (Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey[800]
-                                : Colors.grey[300])
+                                  ? Colors.grey[800]
+                                  : Colors.grey[300])
                             : Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -433,9 +435,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: _isFollowing
-                                    ? (Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.white70
-                                        : Colors.black87)
+                                    ? (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white70
+                                          : Colors.black87)
                                     : Colors.white,
                               ),
                             ),
@@ -868,13 +871,10 @@ class _ProfilePhotoViewerState extends State<_ProfilePhotoViewer> {
           child: CachedNetworkImage(
             imageUrl: widget.imageUrl,
             fit: BoxFit.contain,
-            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+            placeholder: (context, url) =>
+                const Center(child: CircularProgressIndicator()),
             errorWidget: (context, url, error) => const Center(
-              child: Icon(
-                Icons.broken_image,
-                color: Colors.white54,
-                size: 56,
-              ),
+              child: Icon(Icons.broken_image, color: Colors.white54, size: 56),
             ),
           ),
         ),

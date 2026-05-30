@@ -255,9 +255,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _pickVideo() async {
     try {
-      final result = await fp.FilePicker.pickFiles(
-        type: fp.FileType.video,
-      );
+      final result = await fp.FilePicker.pickFiles(type: fp.FileType.video);
       if (result != null) {
         final file = result.files.single;
         if (file.path == null) return;
@@ -280,8 +278,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         _selectedImages.isEmpty &&
         _selectedVideo == null) {
       setState(() {
-        _errorMessage =
-            'Please add content, image, or video to your post';
+        _errorMessage = 'Please add content, image, or video to your post';
       });
       return;
     }
@@ -499,7 +496,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Theme.of(context).dividerColor),
                   ),
@@ -595,7 +594,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   onTap: () => _removeImage(index),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).brightness == Brightness.dark
+                                      color:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
                                           ? Colors.white24
                                           : Colors.black54,
                                       shape: BoxShape.circle,

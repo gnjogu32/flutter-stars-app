@@ -65,7 +65,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
         _controller.addListener(() {
           if (_controller.value.position >= _controller.value.duration &&
-              !_controller.value.isLooping && _controller.value.isPlaying == false) {
+              !_controller.value.isLooping &&
+              _controller.value.isPlaying == false) {
             widget.onVideoEnd?.call();
             ScreenAwakeController.release();
           }
@@ -200,8 +201,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             },
             child: VideoPlayer(_controller),
           ),
-          if (_showOverlay && widget.showControls)
-            _buildControlsOverlay(),
+          if (_showOverlay && widget.showControls) _buildControlsOverlay(),
           if (widget.showControls)
             Positioned(
               bottom: 0,

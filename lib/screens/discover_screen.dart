@@ -176,7 +176,8 @@ class _UserCard extends StatefulWidget {
   State<_UserCard> createState() => _UserCardState();
 }
 
-class _UserCardState extends State<_UserCard> with AutomaticKeepAliveClientMixin {
+class _UserCardState extends State<_UserCard>
+    with AutomaticKeepAliveClientMixin {
   final _auth = FirebaseAuth.instance;
   final _userService = UserService();
   bool _isFollowing = false;
@@ -282,14 +283,14 @@ class _UserCardState extends State<_UserCard> with AutomaticKeepAliveClientMixin
                     side: BorderSide(
                       color: _isFollowing
                           ? (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade400)
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade400)
                           : Theme.of(context).colorScheme.primary,
                     ),
                     foregroundColor: _isFollowing
                         ? (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade600)
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600)
                         : null,
                   ),
                   child: _isFollowLoading

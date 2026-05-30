@@ -91,13 +91,22 @@ class _SearchOverlayState extends State<SearchOverlay>
                     child: TextField(
                       controller: _controller,
                       autofocus: true,
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Search posts or people...',
-                        hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
-                        prefixIcon: Icon(Icons.search, color: isDark ? Colors.white70 : Colors.black54),
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.black45,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
                         filled: true,
-                        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+                        fillColor: isDark
+                            ? theme.colorScheme.surfaceContainerHighest
+                            : Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -128,7 +137,9 @@ class _SearchOverlayState extends State<SearchOverlay>
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    )
                   : TabBarView(
                       controller: _tabController,
                       children: [_buildPostsResults(), _buildUsersResults()],
@@ -142,10 +153,17 @@ class _SearchOverlayState extends State<SearchOverlay>
 
   Widget _buildPostsResults() {
     if (_controller.text.isEmpty) {
-      return const Center(child: Text('Type to search posts', style: TextStyle(color: Colors.white70)));
+      return const Center(
+        child: Text(
+          'Type to search posts',
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
     }
     if (_postResults.isEmpty) {
-      return const Center(child: Text('No posts found', style: TextStyle(color: Colors.white70)));
+      return const Center(
+        child: Text('No posts found', style: TextStyle(color: Colors.white70)),
+      );
     }
     return ListView.builder(
       itemCount: _postResults.length,
@@ -159,7 +177,10 @@ class _SearchOverlayState extends State<SearchOverlay>
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white),
           ),
-          subtitle: Text('by ${post.authorName}', style: const TextStyle(color: Colors.white70)),
+          subtitle: Text(
+            'by ${post.authorName}',
+            style: const TextStyle(color: Colors.white70),
+          ),
           onTap: () {
             // Show post details as a modal bottom sheet (like feed)
             showModalBottomSheet(
@@ -184,10 +205,17 @@ class _SearchOverlayState extends State<SearchOverlay>
 
   Widget _buildUsersResults() {
     if (_controller.text.isEmpty) {
-      return const Center(child: Text('Type to search people', style: TextStyle(color: Colors.white70)));
+      return const Center(
+        child: Text(
+          'Type to search people',
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
     }
     if (_userResults.isEmpty) {
-      return const Center(child: Text('No people found', style: TextStyle(color: Colors.white70)));
+      return const Center(
+        child: Text('No people found', style: TextStyle(color: Colors.white70)),
+      );
     }
     return ListView.builder(
       itemCount: _userResults.length,
@@ -204,8 +232,14 @@ class _SearchOverlayState extends State<SearchOverlay>
                 ? const Icon(Icons.person)
                 : null,
           ),
-          title: Text(user.displayName, style: const TextStyle(color: Colors.white)),
-          subtitle: Text(user.talent ?? '', style: const TextStyle(color: Colors.white70)),
+          title: Text(
+            user.displayName,
+            style: const TextStyle(color: Colors.white),
+          ),
+          subtitle: Text(
+            user.talent ?? '',
+            style: const TextStyle(color: Colors.white70),
+          ),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(

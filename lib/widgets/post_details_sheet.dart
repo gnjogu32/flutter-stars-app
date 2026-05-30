@@ -52,7 +52,10 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
 
     try {
       if (wasLiked) {
-        await PostService().unlikePost(widget.post.postId, widget.currentUserId);
+        await PostService().unlikePost(
+          widget.post.postId,
+          widget.currentUserId,
+        );
       } else {
         await PostService().likePost(widget.post.postId, widget.currentUserId);
         if (widget.currentUserId != widget.post.authorId) {
@@ -109,9 +112,15 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
         reposterName: currentUser.displayName,
         reposterImageUrl: currentUser.profileImageUrl,
       );
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reposted ✓')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Reposted ✓')));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isReposting = false);
     }
@@ -125,7 +134,8 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final ownerName = widget.post.originalAuthorName ?? widget.post.authorName;
-    final ownerImageUrl = widget.post.originalAuthorImageUrl ?? widget.post.authorImageUrl;
+    final ownerImageUrl =
+        widget.post.originalAuthorImageUrl ?? widget.post.authorImageUrl;
 
     return Container(
       decoration: BoxDecoration(
@@ -151,7 +161,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                       children: [
                         Text(
                           'Original post by $ownerName',
-                          style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         ExpandableText(
@@ -163,7 +175,12 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text('Your caption:', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    'Your caption:',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   ExpandableText(
                     widget.post.repostCaption!,
@@ -196,23 +213,38 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               labelColor: theme.colorScheme.primary,
               unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
               dividerColor: Colors.transparent,
-              labelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              labelStyle: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
               unselectedLabelStyle: theme.textTheme.labelSmall,
               tabs: [
                 Tab(
                   height: 48,
-                  icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border, color: _isLiked ? Colors.red : null, size: 20),
-                  child: Text('$_likeCount', style: const TextStyle(fontSize: 10)),
+                  icon: Icon(
+                    _isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: _isLiked ? Colors.red : null,
+                    size: 20,
+                  ),
+                  child: Text(
+                    '$_likeCount',
+                    style: const TextStyle(fontSize: 10),
+                  ),
                 ),
                 Tab(
                   height: 48,
                   icon: const Icon(Icons.comment_outlined, size: 20),
-                  child: Text('${widget.post.commentCount}', style: const TextStyle(fontSize: 10)),
+                  child: Text(
+                    '${widget.post.commentCount}',
+                    style: const TextStyle(fontSize: 10),
+                  ),
                 ),
                 Tab(
                   height: 48,
                   icon: const Icon(Icons.repeat, size: 20),
-                  child: Text('${widget.post.repostCount}', style: const TextStyle(fontSize: 10)),
+                  child: Text(
+                    '${widget.post.repostCount}',
+                    style: const TextStyle(fontSize: 10),
+                  ),
                 ),
                 const Tab(
                   height: 48,
@@ -229,10 +261,19 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: widget.post.authorId))),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ProfileScreen(userId: widget.post.authorId),
+                    ),
+                  ),
                   child: CircleAvatar(
-                    backgroundImage: ownerImageUrl != null ? CachedNetworkImageProvider(ownerImageUrl) : null,
-                    child: ownerImageUrl == null ? const Icon(Icons.person) : null,
+                    backgroundImage: ownerImageUrl != null
+                        ? CachedNetworkImageProvider(ownerImageUrl)
+                        : null,
+                    child: ownerImageUrl == null
+                        ? const Icon(Icons.person)
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -240,12 +281,25 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(ownerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      if (widget.post.talent != null) Text(widget.post.talent!, style: theme.textTheme.bodySmall),
+                      Text(
+                        ownerName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (widget.post.talent != null)
+                        Text(
+                          widget.post.talent!,
+                          style: theme.textTheme.bodySmall,
+                        ),
                     ],
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ],
             ),
           ),

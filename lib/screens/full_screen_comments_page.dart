@@ -113,15 +113,15 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
           postId: widget.postId,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Comment deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Comment deleted')));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting comment: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error deleting comment: $e')));
         }
       }
     }
@@ -166,19 +166,19 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
 
                 return ListView.builder(
                   padding: const EdgeInsets.only(bottom: 16),
-                  itemCount: comments.length + (widget.postContent != null ? 1 : 0),
+                  itemCount:
+                      comments.length + (widget.postContent != null ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (widget.postContent != null && index == 0) {
-                       return Padding(
+                      return Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               widget.postContent!,
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             const SizedBox(height: 16),
                             const Divider(),
@@ -187,13 +187,16 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
                       );
                     }
 
-                    final commentIndex = widget.postContent != null ? index - 1 : index;
+                    final commentIndex = widget.postContent != null
+                        ? index - 1
+                        : index;
 
                     if (comments.isEmpty && widget.postContent == null) {
                       return const Center(child: Text('No comments yet.'));
                     }
 
-                    if (commentIndex >= comments.length) return const SizedBox.shrink();
+                    if (commentIndex >= comments.length)
+                      return const SizedBox.shrink();
 
                     final comment = comments[commentIndex];
                     return custom.CommentThreadWidget(

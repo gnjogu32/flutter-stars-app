@@ -164,7 +164,8 @@ class _ReelItem extends StatefulWidget {
   State<_ReelItem> createState() => _ReelItemState();
 }
 
-class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixin {
+class _ReelItemState extends State<_ReelItem>
+    with SingleTickerProviderStateMixin {
   late VideoPlayerController _videoController;
   bool _isInitialized = false;
   late bool _isLiked;
@@ -235,7 +236,9 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
     );
     try {
       await _videoController.initialize();
-      await _videoController.setLooping(false); // Change to false for sequence playback
+      await _videoController.setLooping(
+        false,
+      ); // Change to false for sequence playback
       if (mounted) {
         setState(() => _isInitialized = true);
         if (widget.isActive) {
@@ -249,7 +252,9 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
           if (_isInitialized && !_videoController.value.isLooping) {
             final position = _videoController.value.position;
             final duration = _videoController.value.duration;
-            if (position >= duration && duration > Duration.zero && !_endEventDispatched) {
+            if (position >= duration &&
+                duration > Duration.zero &&
+                !_endEventDispatched) {
               _endEventDispatched = true;
               widget.onVideoEnd?.call();
             }
@@ -748,17 +753,20 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
 
     // Strict Security: Only the original content creator can download
-    final originalAuthorId = widget.post.originalAuthorId ?? widget.post.authorId;
+    final originalAuthorId =
+        widget.post.originalAuthorId ?? widget.post.authorId;
     if (originalAuthorId != _activeUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only the original author can download this video.')),
+        const SnackBar(
+          content: Text('Only the original author can download this video.'),
+        ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Downloading video...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
 
     try {
       final client = HttpClient();
@@ -767,7 +775,9 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
       final bytes = await consolidateHttpClientResponseBytes(response);
 
       final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4');
+      final tempFile = File(
+        '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4',
+      );
       await tempFile.writeAsBytes(bytes);
 
       await Gal.putVideo(tempFile.path, album: 'Starpage');
@@ -779,9 +789,9 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }
@@ -839,11 +849,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                   curve: Curves.elasticOut,
                 ),
               ),
-              child: const Icon(
-                Icons.favorite,
-                color: Colors.white,
-                size: 100,
-              ),
+              child: const Icon(Icons.favorite, color: Colors.white, size: 100),
             ),
           ),
 
@@ -881,7 +887,9 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                       const SizedBox(height: 14),
                       _InteractionButton(
                         icon: Icons.repeat,
-                        label: _isReposting ? '...' : '${widget.post.repostCount}',
+                        label: _isReposting
+                            ? '...'
+                            : '${widget.post.repostCount}',
                         onTap: _confirmRepost,
                       ),
                       const SizedBox(height: 14),
@@ -890,7 +898,9 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
                         label: 'Share',
                         onTap: _sharePost,
                       ),
-                      if ((widget.post.originalAuthorId ?? widget.post.authorId) == _activeUserId) ...[
+                      if ((widget.post.originalAuthorId ??
+                              widget.post.authorId) ==
+                          _activeUserId) ...[
                         const SizedBox(height: 14),
                         _InteractionButton(
                           icon: Icons.download_outlined,
@@ -1156,7 +1166,9 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
               labelColor: theme.colorScheme.primary,
               unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
               dividerColor: Colors.transparent,
-              labelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              labelStyle: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
               unselectedLabelStyle: theme.textTheme.labelSmall,
               tabs: [
                 Tab(
@@ -1166,12 +1178,18 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
                     color: widget.isLiked ? Colors.redAccent : null,
                     size: 24,
                   ),
-                  child: Text('${widget.likeCount}', style: const TextStyle(fontSize: 11)),
+                  child: Text(
+                    '${widget.likeCount}',
+                    style: const TextStyle(fontSize: 11),
+                  ),
                 ),
                 Tab(
                   height: 60,
                   icon: const Icon(Icons.comment_outlined, size: 24),
-                  child: Text('${widget.post.commentCount}', style: const TextStyle(fontSize: 11)),
+                  child: Text(
+                    '${widget.post.commentCount}',
+                    style: const TextStyle(fontSize: 11),
+                  ),
                 ),
                 Tab(
                   height: 60,

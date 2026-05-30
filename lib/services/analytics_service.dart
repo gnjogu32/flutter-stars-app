@@ -48,9 +48,7 @@ class AnalyticsService {
       }
 
       // ALSO Increment in main posts collection for real-time UI updates
-      await postRef.update({
-        'videoViewCount': FieldValue.increment(1),
-      });
+      await postRef.update({'videoViewCount': FieldValue.increment(1)});
 
       _debugLog('View tracked for post: $postId');
     } catch (e) {

@@ -39,7 +39,8 @@ class PostWidget extends StatefulWidget {
   State<PostWidget> createState() => _PostWidgetState();
 }
 
-class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMixin {
+class _PostWidgetState extends State<PostWidget>
+    with AutomaticKeepAliveClientMixin {
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
@@ -47,8 +48,10 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
   bool _isFollowLoading = false;
   bool _isReposting = false;
 
-  final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey = GlobalKey<VideoPlayerWidgetState>();
-  final GlobalKey<AudioPlayerWidgetState> _audioPlayerKey = GlobalKey<AudioPlayerWidgetState>();
+  final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey =
+      GlobalKey<VideoPlayerWidgetState>();
+  final GlobalKey<AudioPlayerWidgetState> _audioPlayerKey =
+      GlobalKey<AudioPlayerWidgetState>();
 
   @override
   bool get wantKeepAlive => true;
@@ -192,14 +195,14 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
           side: BorderSide(
             color: _isFollowing
                 ? (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade400)
+                      ? Colors.grey.shade700
+                      : Colors.grey.shade400)
                 : Theme.of(context).colorScheme.primary,
           ),
           foregroundColor: _isFollowing
               ? (Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade400
-                  : Colors.grey.shade600)
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600)
               : null,
         ),
         child: _isFollowLoading
@@ -417,17 +420,20 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
 
     // Strict Security: Only the original content creator can download
-    final originalAuthorId = widget.post.originalAuthorId ?? widget.post.authorId;
+    final originalAuthorId =
+        widget.post.originalAuthorId ?? widget.post.authorId;
     if (originalAuthorId != widget.currentUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only the original author can download this video.')),
+        const SnackBar(
+          content: Text('Only the original author can download this video.'),
+        ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Downloading video...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
 
     try {
       final client = HttpClient();
@@ -436,7 +442,9 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
       final bytes = await consolidateHttpClientResponseBytes(response);
 
       final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4');
+      final tempFile = File(
+        '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4',
+      );
       await tempFile.writeAsBytes(bytes);
 
       await Gal.putVideo(tempFile.path, album: 'Starpage');
@@ -448,9 +456,9 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }
@@ -722,7 +730,8 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                 _openAuthorProfile();
               },
             ),
-            if ((widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId)
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+                widget.currentUserId)
               ListTile(
                 leading: const Icon(Icons.download),
                 title: const Text('Save Image'),
@@ -775,14 +784,18 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
         child: TabBar(
           onTap: (index) {
             if (index == 0) _toggleLike();
-            if (index == 1) _openCommentsSheet(postContent: widget.post.content);
+            if (index == 1)
+              _openCommentsSheet(postContent: widget.post.content);
             if (index == 2) _confirmRepost();
             if (index == 3) _showShareDialog();
           },
-          indicatorColor: Colors.transparent, // Hide indicator as these are actions
+          indicatorColor:
+              Colors.transparent, // Hide indicator as these are actions
           labelColor: theme.colorScheme.primary,
           unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-          labelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+          labelStyle: theme.textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
           unselectedLabelStyle: theme.textTheme.labelSmall,
           indicatorWeight: 0.1,
           dividerColor: Colors.transparent,
@@ -799,12 +812,18 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
             Tab(
               height: 48,
               icon: const Icon(Icons.comment_outlined, size: 20),
-              child: Text('${widget.post.commentCount}', style: const TextStyle(fontSize: 10)),
+              child: Text(
+                '${widget.post.commentCount}',
+                style: const TextStyle(fontSize: 10),
+              ),
             ),
             Tab(
               height: 48,
               icon: const Icon(Icons.repeat, size: 20),
-              child: Text('${widget.post.repostCount}', style: const TextStyle(fontSize: 10)),
+              child: Text(
+                '${widget.post.repostCount}',
+                style: const TextStyle(fontSize: 10),
+              ),
             ),
             const Tab(
               height: 48,
@@ -912,7 +931,9 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                     itemBuilder: (context) => [
                       if (widget.post.videoUrl != null &&
                           widget.post.videoUrl!.isNotEmpty &&
-                          (widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId)
+                          (widget.post.originalAuthorId ??
+                                  widget.post.authorId) ==
+                              widget.currentUserId)
                         const PopupMenuItem(
                           value: 'download',
                           child: Row(
@@ -940,7 +961,10 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                             children: [
                               Icon(Icons.delete, color: Colors.red),
                               SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ],
                           ),
                         ),
@@ -1022,7 +1046,8 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
               const SizedBox(height: 12),
             ],
             // Audio player
-            if (widget.post.audioUrl != null && widget.post.audioUrl!.isNotEmpty) ...[
+            if (widget.post.audioUrl != null &&
+                widget.post.audioUrl!.isNotEmpty) ...[
               VisibilityDetector(
                 key: ValueKey('post_audio_${widget.post.postId}'),
                 onVisibilityChanged: (info) {
@@ -1038,7 +1063,8 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
               const SizedBox(height: 12),
             ],
             // Video player
-            if (widget.post.videoUrl != null && widget.post.videoUrl!.isNotEmpty) ...[
+            if (widget.post.videoUrl != null &&
+                widget.post.videoUrl!.isNotEmpty) ...[
               VisibilityDetector(
                 key: ValueKey('post_video_${widget.post.postId}'),
                 onVisibilityChanged: (info) {
@@ -1069,11 +1095,17 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                 padding: const EdgeInsets.only(top: 6.0, left: 4.0),
                 child: Row(
                   children: [
-                    const Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
+                    const Icon(
+                      Icons.remove_red_eye_outlined,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${widget.post.videoViewCount} views',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -1090,7 +1122,10 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                             builder: (context) => _FullScreenImageGallery(
                               imageUrls: widget.post.imageUrls,
                               initialIndex: 0,
-                              canSaveImages: (widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId,
+                              canSaveImages:
+                                  (widget.post.originalAuthorId ??
+                                      widget.post.authorId) ==
+                                  widget.currentUserId,
                             ),
                           ),
                         );
@@ -1109,16 +1144,15 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                             memCacheHeight: 800,
                             placeholder: (context, url) => const SizedBox(
                               height: 220,
-                              child: Center(
-                                child: CircularProgressIndicator(),
-                              ),
+                              child: Center(child: CircularProgressIndicator()),
                             ),
-                            errorWidget: (context, url, error) => const SizedBox(
-                              height: 220,
-                              child: Center(
-                                child: Icon(Icons.broken_image, size: 36),
-                              ),
-                            ),
+                            errorWidget: (context, url, error) =>
+                                const SizedBox(
+                                  height: 220,
+                                  child: Center(
+                                    child: Icon(Icons.broken_image, size: 36),
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -1141,7 +1175,10 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                                         _FullScreenImageGallery(
                                           imageUrls: widget.post.imageUrls,
                                           initialIndex: idx,
-                                          canSaveImages: (widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId,
+                                          canSaveImages:
+                                              (widget.post.originalAuthorId ??
+                                                  widget.post.authorId) ==
+                                              widget.currentUserId,
                                         ),
                                   ),
                                 );
@@ -1164,12 +1201,13 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                                       child: CircularProgressIndicator(),
                                     ),
                                   ),
-                                  errorWidget: (context, url, error) => Container(
-                                    height: 200,
-                                    width: 200,
-                                    color: Colors.black12,
-                                    child: const Icon(Icons.broken_image),
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        height: 200,
+                                        width: 200,
+                                        color: Colors.black12,
+                                        child: const Icon(Icons.broken_image),
+                                      ),
                                 ),
                               ),
                             ),
@@ -1289,7 +1327,8 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
               child: CachedNetworkImage(
                 imageUrl: widget.imageUrls[index],
                 fit: BoxFit.contain,
-                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                placeholder: (context, url) =>
+                    const Center(child: CircularProgressIndicator()),
                 errorWidget: (context, url, error) => const Center(
                   child: Icon(
                     Icons.broken_image,

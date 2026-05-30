@@ -18,7 +18,8 @@ class TrendingSection extends StatefulWidget {
   State<TrendingSection> createState() => _TrendingSectionState();
 }
 
-class _TrendingSectionState extends State<TrendingSection> with AutomaticKeepAliveClientMixin {
+class _TrendingSectionState extends State<TrendingSection>
+    with AutomaticKeepAliveClientMixin {
   final TrendingService _trendingService = TrendingService();
   late Future<List<PostModel>> _trendingPostsFuture;
 
@@ -182,7 +183,8 @@ class TrendingStreamSection extends StatefulWidget {
   State<TrendingStreamSection> createState() => _TrendingStreamSectionState();
 }
 
-class _TrendingStreamSectionState extends State<TrendingStreamSection> with AutomaticKeepAliveClientMixin {
+class _TrendingStreamSectionState extends State<TrendingStreamSection>
+    with AutomaticKeepAliveClientMixin {
   final TrendingService _trendingService = TrendingService();
 
   @override

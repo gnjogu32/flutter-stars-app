@@ -105,10 +105,14 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           final screenWidth = MediaQuery.of(context).size.width;
           if (details.globalPosition.dx < screenWidth / 2) {
             // Rewind
-            _controller.seekTo(_controller.value.position - const Duration(seconds: 10));
+            _controller.seekTo(
+              _controller.value.position - const Duration(seconds: 10),
+            );
           } else {
             // Forward
-            _controller.seekTo(_controller.value.position + const Duration(seconds: 10));
+            _controller.seekTo(
+              _controller.value.position + const Duration(seconds: 10),
+            );
           }
         },
         child: Stack(
@@ -117,11 +121,11 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               child: _error != null
                   ? Text(_error!, style: const TextStyle(color: Colors.white))
                   : _isInitialized
-                      ? AspectRatio(
-                          aspectRatio: _controller.value.aspectRatio,
-                          child: VideoPlayer(_controller),
-                        )
-                      : const CircularProgressIndicator(color: Colors.white),
+                  ? AspectRatio(
+                      aspectRatio: _controller.value.aspectRatio,
+                      child: VideoPlayer(_controller),
+                    )
+                  : const CircularProgressIndicator(color: Colors.white),
             ),
 
             // Back Button (Always visible when controls are shown)
@@ -130,7 +134,11 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
                 top: 40,
                 left: 20,
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 30,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -140,7 +148,9 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               Center(
                 child: IconButton(
                   icon: Icon(
-                    _controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    _controller.value.isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
                     color: Colors.white.withValues(alpha: 0.8),
                     size: 80,
                   ),

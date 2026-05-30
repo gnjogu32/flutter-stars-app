@@ -135,7 +135,8 @@ class _NotificationItem extends StatefulWidget {
   State<_NotificationItem> createState() => _NotificationItemState();
 }
 
-class _NotificationItemState extends State<_NotificationItem> with AutomaticKeepAliveClientMixin {
+class _NotificationItemState extends State<_NotificationItem>
+    with AutomaticKeepAliveClientMixin {
   final NotificationService _notificationService = NotificationService();
 
   @override

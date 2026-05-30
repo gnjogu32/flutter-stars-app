@@ -64,10 +64,7 @@ class MyApp extends StatelessWidget {
         titleMedium: TextStyle(fontWeight: FontWeight.bold),
         titleSmall: TextStyle(fontWeight: FontWeight.bold),
       ),
-      appBarTheme: const AppBarTheme(
-        elevation: 0,
-        centerTitle: true,
-      ),
+      appBarTheme: const AppBarTheme(elevation: 0, centerTitle: true),
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -97,9 +94,15 @@ class MyApp extends StatelessWidget {
       scaffoldBackgroundColor: const Color(0xFF0F1116),
       textTheme: const TextTheme(
         bodyLarge: TextStyle(fontWeight: FontWeight.w500, color: Colors.white),
-        bodyMedium: TextStyle(fontWeight: FontWeight.w500, color: Colors.white70),
+        bodyMedium: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: Colors.white70,
+        ),
         titleLarge: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        titleMedium: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        titleMedium: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
         titleSmall: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
       ),
       appBarTheme: const AppBarTheme(
