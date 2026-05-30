@@ -41,8 +41,8 @@ class _ReelsScreenState extends State<ReelsScreen> {
   void _onReelEnd() {
     if (_pageController.hasClients) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutQuad,
       );
     }
   }
@@ -174,6 +174,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
   bool _isMuted = false;
   bool _showLikeHeart = false;
   bool _showDetails = true;
+  bool _endEventDispatched = false;
   late AnimationController _heartAnimationController;
 
   static const List<String> _quickEmojis = [
@@ -245,9 +246,13 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
         }
 
         _videoController.addListener(() {
-          if (_videoController.value.position >= _videoController.value.duration &&
-              !_videoController.value.isPlaying && _isInitialized) {
-            widget.onVideoEnd?.call();
+          if (_isInitialized && !_videoController.value.isLooping) {
+            final position = _videoController.value.position;
+            final duration = _videoController.value.duration;
+            if (position >= duration && duration > Duration.zero && !_endEventDispatched) {
+              _endEventDispatched = true;
+              widget.onVideoEnd?.call();
+            }
           }
         });
       }
@@ -265,6 +270,7 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
     }
 
     if (widget.isActive && !oldWidget.isActive) {
+      _endEventDispatched = false;
       _videoController.play();
       ScreenAwakeController.acquire();
       AnalyticsService().trackView(widget.post.postId, _ownerId);
@@ -804,6 +810,13 @@ class _ReelItemState extends State<_ReelItem> with SingleTickerProviderStateMixi
             onTap: () {
               setState(() {
                 _showDetails = !_showDetails;
+                if (_videoController.value.isPlaying) {
+                  _videoController.pause();
+                  ScreenAwakeController.release();
+                } else {
+                  _videoController.play();
+                  ScreenAwakeController.acquire();
+                }
               });
             },
             child: Center(
