@@ -73,7 +73,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
             .collection('posts')
-            .where('videoUrl', isNull: false)
+            .where('postType', isEqualTo: 'video')
             .orderBy('createdAt', descending: true)
             .limit(50)
             .snapshots(),

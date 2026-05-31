@@ -43,6 +43,7 @@ class PostService {
       List<String> imageUrls = [];
       String? audioUrl;
       String? videoUrl;
+      String postType = 'text';
 
       // Upload images
       for (final image in imageFiles) {
@@ -54,6 +55,9 @@ class PostService {
         final snapshot = await uploadTask.whenComplete(() {});
         final url = await snapshot.ref.getDownloadURL();
         imageUrls.add(url);
+      }
+      if (imageUrls.isNotEmpty) {
+        postType = 'image';
       }
 
       // Upload audio if present
@@ -67,6 +71,7 @@ class PostService {
         final uploadTask = audioRef.putFile(audioFile);
         final snapshot = await uploadTask.whenComplete(() {});
         audioUrl = await snapshot.ref.getDownloadURL();
+        postType = 'audio';
       }
 
       // Upload video if present
@@ -78,6 +83,7 @@ class PostService {
         final uploadTask = videoRef.putFile(File(videoFile.path));
         final snapshot = await uploadTask.whenComplete(() {});
         videoUrl = await snapshot.ref.getDownloadURL();
+        postType = 'video';
       }
 
       // Verify authentication and refresh token
@@ -121,6 +127,7 @@ class PostService {
         audioUrl: audioUrl,
         videoUrl: videoUrl,
         talent: talent,
+        postType: postType,
         createdAt: now,
         updatedAt: now,
       );

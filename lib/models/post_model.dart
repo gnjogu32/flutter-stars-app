@@ -14,6 +14,7 @@ class PostModel {
   final String? audioUrl; // Optional audio file URL
   final String? videoUrl; // Optional video file URL
   final String? talent; // Category of the post (Art, Music, Writing, etc.)
+  final String postType; // 'text', 'image', 'video', 'audio'
   final List<String> likes;
   final int commentCount;
   final int repostCount;
@@ -35,6 +36,7 @@ class PostModel {
     this.audioUrl,
     this.videoUrl,
     this.talent,
+    this.postType = 'text',
     this.likes = const [],
     this.commentCount = 0,
     this.repostCount = 0,
@@ -59,6 +61,7 @@ class PostModel {
       'audioUrl': audioUrl,
       'videoUrl': videoUrl,
       'talent': talent,
+      'postType': postType,
       'likes': likes,
       'commentCount': commentCount,
       'repostCount': repostCount,
@@ -84,6 +87,7 @@ class PostModel {
       audioUrl: json['audioUrl'],
       videoUrl: json['videoUrl'],
       talent: json['talent'],
+      postType: json['postType'] ?? (json['videoUrl'] != null ? 'video' : 'text'),
       likes: List<String>.from(json['likes'] ?? []),
       commentCount: json['commentCount'] ?? 0,
       repostCount: json['repostCount'] ?? 0,
