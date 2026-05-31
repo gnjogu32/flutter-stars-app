@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
-import '../services/chat_service.dart';
 import '../widgets/search_overlay.dart';
-import 'profile_screen.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
@@ -19,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  Stream<DocumentSnapshot>? _currentUserStream;
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
   Stream<QuerySnapshot>? _postsStream;
@@ -28,10 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final uid = _auth.currentUser?.uid;
-    if (uid != null) {
-      _currentUserStream = _firestore.collection('users').doc(uid).snapshots();
-    }
     _postsStream = _buildPostsStream();
   }
 
@@ -66,117 +59,11 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _showSearch = true);
             },
           ),
-          StreamBuilder<int>(
-            stream: _auth.currentUser == null
-                ? null
-                : Stream.fromFuture(
-                    ChatService().getUnreadMessageCount(_auth.currentUser!.uid),
-                  ),
-            builder: (context, snapshot) {
-              final unreadCount = snapshot.data ?? 0;
-              return IconButton(
-                icon: Semantics(
-                  label: 'Chat with $unreadCount unread messages',
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.chat_bubble_outline),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: -6,
-                          top: -6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 5,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 18,
-                              minHeight: 18,
-                            ),
-                            child: Text(
-                              unreadCount > 99 ? '99+' : '$unreadCount',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                tooltip: 'Chat',
-                onPressed: () {
-                  Navigator.of(context).pushNamed('/chat');
-                },
-              );
-            },
-          ),
-          StreamBuilder<DocumentSnapshot>(
-            stream: _currentUserStream,
-            builder: (context, snapshot) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              String? photoUrl;
-              if (snapshot.hasData && snapshot.data!.exists) {
-                final data = snapshot.data!.data() as Map<String, dynamic>?;
-                photoUrl = data?['profileImageUrl'] as String?;
-              }
-              return GestureDetector(
-                onTap: () {
-                  final currentUserId = _auth.currentUser?.uid;
-                  if (currentUserId == null) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ProfileScreen(userId: currentUserId),
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Semantics(
-                    label: 'Go to your profile',
-                    button: true,
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                          ? NetworkImage(photoUrl)
-                          : null,
-                      backgroundColor: isDark
-                          ? Colors.grey[800]
-                          : Colors.grey.shade300,
-                      child: photoUrl == null || photoUrl.isEmpty
-                          ? Icon(
-                              Icons.person,
-                              size: 18,
-                              color: isDark ? Colors.white70 : Colors.white,
-                            )
-                          : null,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
           IconButton(
-            icon: const Icon(Icons.add_circle),
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Create Post',
             onPressed: () {
-              // Navigate to create post screen
               Navigator.of(context).pushNamed('/create-post');
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            tooltip: 'Notifications',
-            onPressed: () {
-              Navigator.of(context).pushNamed('/notifications');
             },
           ),
         ],
