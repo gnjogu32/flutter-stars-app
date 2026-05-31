@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
+import '../services/post_service.dart';
 import '../utils/animation_utils.dart';
 import '../screens/profile_screen.dart';
+import '../screens/chat_screen.dart';
+import '../widgets/post_details_sheet.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -211,13 +214,27 @@ class _NotificationItemState extends State<_NotificationItem>
                     ProfileScreen(userId: notification.triggeredBy),
               ),
             );
+          } else if (notification.type == 'message') {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  conversationId: _getConversationId(
+                    currentUserId,
+                    notification.triggeredBy,
+                  ),
+                  otherUserId: notification.triggeredBy,
+                  otherUserName: notification.triggeredByName,
+                ),
+              ),
+            );
           } else if (notification.type == 'like_post' ||
               notification.type == 'comment' ||
               notification.type == 'mention_followers' ||
-              notification.type == 'mention_user') {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Post: ${notification.postId}')),
-            );
+              notification.type == 'mention_user' ||
+              notification.type == 'like_comment') {
+            if (notification.postId != null) {
+              _openPostDetails(context, notification.postId!, currentUserId);
+            }
           }
         },
         onLongPress: () {
@@ -225,6 +242,60 @@ class _NotificationItemState extends State<_NotificationItem>
         },
       ),
     );
+  }
+
+  String _getConversationId(String userId1, String userId2) {
+    final ids = [userId1, userId2]..sort();
+    return '${ids[0]}_${ids[1]}';
+  }
+
+  Future<void> _openPostDetails(
+    BuildContext context,
+    String postId,
+    String currentUserId,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final post = await PostService().getPost(postId);
+
+      if (!context.mounted) return;
+      Navigator.pop(context); // Dismiss loading indicator
+
+      if (post != null) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => DraggableScrollableSheet(
+            expand: false,
+            minChildSize: 0.3,
+            maxChildSize: 0.85,
+            builder: (context, scrollController) => PostDetailsSheet(
+              post: post,
+              currentUserId: currentUserId,
+              scrollController: scrollController,
+            ),
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('This post is no longer available.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Dismiss loading if error
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error loading post: $e')),
+        );
+      }
+    }
   }
 
   void _showNotificationMenu(
