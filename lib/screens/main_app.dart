@@ -23,6 +23,8 @@ class _MainAppState extends State<MainApp> {
   late int _selectedIndex;
   late final List<Widget> _screens;
   final ValueNotifier<bool> _reelsTabActive = ValueNotifier(false);
+  final NotificationService _notificationService = NotificationService();
+  final ChatService _chatService = ChatService();
 
   @override
   void initState() {
@@ -96,7 +98,7 @@ class _MainAppState extends State<MainApp> {
           BottomNavigationBarItem(
             icon: StreamBuilder<int>(
               stream: FirebaseAuth.instance.currentUser != null
-                  ? ChatService().getUnreadMessageCountStream(
+                  ? _chatService.getUnreadMessageCountStream(
                       FirebaseAuth.instance.currentUser!.uid,
                     )
                   : Stream.value(0),
@@ -114,7 +116,7 @@ class _MainAppState extends State<MainApp> {
           BottomNavigationBarItem(
             icon: StreamBuilder<int>(
               stream: FirebaseAuth.instance.currentUser != null
-                  ? NotificationService().getUnreadCountStream(
+                  ? _notificationService.getUnreadCountStream(
                       FirebaseAuth.instance.currentUser!.uid,
                     )
                   : Stream.value(0),
