@@ -96,10 +96,7 @@ class MainAppState extends State<MainApp> {
             await AuthGuard.show(context);
             return;
           }
-          _reelsTabActive.value = index == 1;
-          setState(() {
-            _selectedIndex = index;
-          });
+          setSelectedIndex(index);
         },
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
