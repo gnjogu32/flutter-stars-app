@@ -6,6 +6,7 @@ import '../widgets/search_overlay.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
+import 'main_app.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -57,6 +58,13 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Search',
             onPressed: () {
               setState(() => _showSearch = true);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.play_circle_outline),
+            tooltip: 'Discover Reels',
+            onPressed: () {
+              MainApp.of(context)?.setSelectedIndex(1, refresh: true);
             },
           ),
           IconButton(

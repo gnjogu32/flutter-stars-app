@@ -28,15 +28,22 @@ class ReelsScreen extends StatefulWidget {
   const ReelsScreen({super.key, required this.tabActiveNotifier});
 
   @override
-  State<ReelsScreen> createState() => _ReelsScreenState();
+  State<ReelsScreen> createState() => ReelsScreenState();
 }
 
-class _ReelsScreenState extends State<ReelsScreen> {
+class ReelsScreenState extends State<ReelsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final PageController _pageController = PageController();
   int _activeIndex = 0;
   // Tracks whether this tab is the currently visible one.
   bool _tabVisible = false;
+  int _refreshSeed = 0;
+
+  void refreshReels() {
+    setState(() {
+      _refreshSeed++;
+    });
+  }
 
   void _onReelEnd() {
     if (_pageController.hasClients) {
@@ -71,6 +78,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: StreamBuilder<QuerySnapshot>(
+        key: ValueKey('reels_stream_$_refreshSeed'),
         stream: _firestore
             .collection('posts')
             .where('postType', isEqualTo: 'video')
@@ -100,6 +108,10 @@ class _ReelsScreenState extends State<ReelsScreen> {
               )
               .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
               .toList();
+
+          if (_refreshSeed > 0) {
+            reels.shuffle();
+          }
 
           if (reels.isEmpty) {
             return const Center(

@@ -15,16 +15,32 @@ class MainApp extends StatefulWidget {
   final int initialIndex;
   const MainApp({super.key, this.initialIndex = 0});
 
+  static MainAppState? of(BuildContext context) =>
+      context.findAncestorStateOfType<MainAppState>();
+
   @override
-  State<MainApp> createState() => _MainAppState();
+  State<MainApp> createState() => MainAppState();
 }
 
-class _MainAppState extends State<MainApp> {
+class MainAppState extends State<MainApp> {
   late int _selectedIndex;
   late final List<Widget> _screens;
   final ValueNotifier<bool> _reelsTabActive = ValueNotifier(false);
   final NotificationService _notificationService = NotificationService();
   final ChatService _chatService = ChatService();
+  final GlobalKey<ReelsScreenState> _reelsKey = GlobalKey<ReelsScreenState>();
+
+  void setSelectedIndex(int index, {bool refresh = false}) {
+    final wasReels = _selectedIndex == 1;
+    _reelsTabActive.value = index == 1;
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    if (index == 1 && (refresh || wasReels)) {
+      _reelsKey.currentState?.refreshReels();
+    }
+  }
 
   @override
   void initState() {
@@ -43,7 +59,7 @@ class _MainAppState extends State<MainApp> {
 
     _screens = [
       const HomeScreen(),
-      ReelsScreen(tabActiveNotifier: _reelsTabActive),
+      ReelsScreen(key: _reelsKey, tabActiveNotifier: _reelsTabActive),
       const DiscoverScreen(),
       const MessagesScreen(),
       const NotificationsScreen(),
