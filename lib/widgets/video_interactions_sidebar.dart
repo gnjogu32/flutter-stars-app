@@ -140,15 +140,17 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
 
       await Gal.putVideo(tempFile.path, album: 'Starpage');
 
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Video saved ✓')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      }
     }
   }
 
