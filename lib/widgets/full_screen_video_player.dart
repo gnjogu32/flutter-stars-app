@@ -177,7 +177,9 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               Positioned(
                 bottom: 20,
                 left: 20,
-                right: widget.post != null ? 80 : 20, // Leave space for sidebar if present
+                right: widget.post != null
+                    ? 80
+                    : 20, // Leave space for sidebar if present
                 child: Column(
                   children: [
                     VideoProgressIndicator(
@@ -213,7 +215,9 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               ),
 
             // Interactions Sidebar (Similar to Reels)
-            if (_showControls && widget.post != null && widget.currentUserId != null)
+            if (_showControls &&
+                widget.post != null &&
+                widget.currentUserId != null)
               Positioned(
                 right: 16,
                 bottom: 100,

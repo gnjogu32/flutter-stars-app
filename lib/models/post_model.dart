@@ -87,7 +87,8 @@ class PostModel {
       audioUrl: json['audioUrl'],
       videoUrl: json['videoUrl'],
       talent: json['talent'],
-      postType: json['postType'] ?? (json['videoUrl'] != null ? 'video' : 'text'),
+      postType:
+          json['postType'] ?? (json['videoUrl'] != null ? 'video' : 'text'),
       likes: List<String>.from(json['likes'] ?? []),
       commentCount: json['commentCount'] ?? 0,
       repostCount: json['repostCount'] ?? 0,

@@ -957,7 +957,9 @@ class _ReelItemState extends State<_ReelItem>
                                                 widget.post.authorImageUrl) !=
                                             null
                                         ? CachedNetworkImageProvider(
-                                            widget.post.originalAuthorImageUrl ??
+                                            widget
+                                                    .post
+                                                    .originalAuthorImageUrl ??
                                                 widget.post.authorImageUrl!,
                                           )
                                         : null,
@@ -1151,10 +1153,7 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
                   color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  content,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                child: Text(content, style: theme.textTheme.bodyMedium),
               ),
             ),
           const Divider(height: 1),

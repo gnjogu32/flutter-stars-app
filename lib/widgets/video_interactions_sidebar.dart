@@ -26,7 +26,8 @@ class VideoInteractionsSidebar extends StatefulWidget {
   });
 
   @override
-  State<VideoInteractionsSidebar> createState() => _VideoInteractionsSidebarState();
+  State<VideoInteractionsSidebar> createState() =>
+      _VideoInteractionsSidebarState();
 }
 
 class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
@@ -54,7 +55,10 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
 
     try {
       if (wasLiked) {
-        await PostService().unlikePost(widget.post.postId, widget.currentUserId);
+        await PostService().unlikePost(
+          widget.post.postId,
+          widget.currentUserId,
+        );
       } else {
         await PostService().likePost(widget.post.postId, widget.currentUserId);
         if (widget.currentUserId != widget.post.authorId) {
@@ -108,14 +112,19 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
   Future<void> _download() async {
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
 
-    if ((widget.post.originalAuthorId ?? widget.post.authorId) != widget.currentUserId) {
+    if ((widget.post.originalAuthorId ?? widget.post.authorId) !=
+        widget.currentUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only the original author can download this video.')),
+        const SnackBar(
+          content: Text('Only the original author can download this video.'),
+        ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Downloading video...')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
 
     try {
       final client = HttpClient();
@@ -124,14 +133,22 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
       final bytes = await consolidateHttpClientResponseBytes(response);
 
       final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4');
+      final tempFile = File(
+        '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4',
+      );
       await tempFile.writeAsBytes(bytes);
 
       await Gal.putVideo(tempFile.path, album: 'Starpage');
 
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Video saved ✓')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Video saved ✓')));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
     }
   }
 
@@ -170,7 +187,8 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           label: 'Share',
           onTap: _share,
         ),
-        if ((widget.post.originalAuthorId ?? widget.post.authorId) == widget.currentUserId) ...[
+        if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+            widget.currentUserId) ...[
           const SizedBox(height: 14),
           _InteractionButton(
             icon: Icons.download_outlined,
@@ -213,7 +231,11 @@ class _InteractionButton extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
