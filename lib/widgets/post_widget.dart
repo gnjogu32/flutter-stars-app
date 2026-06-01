@@ -1083,6 +1083,8 @@ class _PostWidgetState extends State<PostWidget>
                     autoPlay: false,
                     looping: true,
                     muted: true, // Start muted for inline playback
+                    post: widget.post,
+                    currentUserId: widget.currentUserId,
                     onPlay: () {
                       AnalyticsService().trackView(
                         widget.post.postId,

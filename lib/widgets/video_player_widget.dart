@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../models/post_model.dart';
 import 'full_screen_video_player.dart';
 import '../utils/screen_awake_controller.dart';
 
@@ -13,6 +14,8 @@ class VideoPlayerWidget extends StatefulWidget {
   final VoidCallback? onVideoEnd;
   final VoidCallback? onPlay;
   final bool muted;
+  final PostModel? post;
+  final String? currentUserId;
 
   const VideoPlayerWidget({
     super.key,
@@ -25,6 +28,8 @@ class VideoPlayerWidget extends StatefulWidget {
     this.onVideoEnd,
     this.onPlay,
     this.muted = false,
+    this.post,
+    this.currentUserId,
   });
 
   @override
@@ -274,6 +279,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     builder: (context) => FullScreenVideoPlayer(
                       videoUrl: widget.videoUrl,
                       startPosition: currentPosition,
+                      post: widget.post,
+                      currentUserId: widget.currentUserId,
                     ),
                   ),
                 );

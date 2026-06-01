@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:starpage/models/post_model.dart';
+import 'package:starpage/widgets/video_interactions_sidebar.dart';
 import '../utils/screen_awake_controller.dart';
 
 class FullScreenVideoPlayer extends StatefulWidget {
   final String videoUrl;
   final bool autoPlay;
   final Duration? startPosition;
+  final PostModel? post;
+  final String? currentUserId;
 
   const FullScreenVideoPlayer({
     super.key,
     required this.videoUrl,
     this.autoPlay = true,
     this.startPosition,
+    this.post,
+    this.currentUserId,
   });
 
   @override
@@ -23,6 +29,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _showControls = true;
+  bool _isMuted = false;
   String? _error;
 
   @override
@@ -88,6 +95,13 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         _showControls = false;
         ScreenAwakeController.acquire();
       }
+    });
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+      _controller.setVolume(_isMuted ? 0 : 1);
     });
   }
 
@@ -163,7 +177,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               Positioned(
                 bottom: 20,
                 left: 20,
-                right: 20,
+                right: widget.post != null ? 80 : 20, // Leave space for sidebar if present
                 child: Column(
                   children: [
                     VideoProgressIndicator(
@@ -195,6 +209,19 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
                       ],
                     ),
                   ],
+                ),
+              ),
+
+            // Interactions Sidebar (Similar to Reels)
+            if (_showControls && widget.post != null && widget.currentUserId != null)
+              Positioned(
+                right: 16,
+                bottom: 100,
+                child: VideoInteractionsSidebar(
+                  post: widget.post!,
+                  currentUserId: widget.currentUserId!,
+                  isMuted: _isMuted,
+                  onToggleMute: _toggleMute,
                 ),
               ),
           ],
