@@ -63,13 +63,7 @@ class _ExpandableTextState extends flutter.State<ExpandableText> {
             ),
             if (hasOverflow)
               flutter.GestureDetector(
-                onTap: () {
-                  if (widget.onTap != null) {
-                    widget.onTap!();
-                  } else {
-                    setState(() => _expanded = !_expanded);
-                  }
-                },
+                onTap: () => setState(() => _expanded = !_expanded),
                 behavior: flutter.HitTestBehavior.opaque,
                 child: flutter.Padding(
                   padding: const flutter.EdgeInsets.only(top: 4),

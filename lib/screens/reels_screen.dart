@@ -115,6 +115,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
           return PageView.builder(
             controller: _pageController,
             scrollDirection: Axis.vertical,
+            physics: const BouncingScrollPhysics(),
             itemCount: reels.length,
             onPageChanged: (index) {
               setState(() => _activeIndex = index);
@@ -924,7 +925,7 @@ class _ReelItemState extends State<_ReelItem>
                 ),
                 Positioned(
                   left: 0,
-                  right: 0,
+                  right: 60, // Leave space for the interaction sidebar
                   bottom: 0,
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
@@ -935,77 +936,85 @@ class _ReelItemState extends State<_ReelItem>
                         colors: [Colors.transparent, Colors.black87],
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.4,
+                      ),
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            GestureDetector(
-                              onTap: widget.onOpenProfile,
-                              child: CircleAvatar(
-                                radius: 18,
-                                backgroundImage:
-                                    (widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl) !=
-                                        null
-                                    ? CachedNetworkImageProvider(
-                                        widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl!,
-                                      )
-                                    : null,
-                                child:
-                                    (widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl) ==
-                                        null
-                                    ? const Icon(Icons.person)
-                                    : null,
-                              ),
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: widget.onOpenProfile,
+                                  child: CircleAvatar(
+                                    radius: 18,
+                                    backgroundImage:
+                                        (widget.post.originalAuthorImageUrl ??
+                                                widget.post.authorImageUrl) !=
+                                            null
+                                        ? CachedNetworkImageProvider(
+                                            widget.post.originalAuthorImageUrl ??
+                                                widget.post.authorImageUrl!,
+                                          )
+                                        : null,
+                                    child:
+                                        (widget.post.originalAuthorImageUrl ??
+                                                widget.post.authorImageUrl) ==
+                                            null
+                                        ? const Icon(Icons.person)
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    ownerName.isEmpty ? 'Unknown' : ownerName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '${widget.post.videoViewCount} views',
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                ownerName.isEmpty ? 'Unknown' : ownerName,
-                                style: const TextStyle(
+                            if (widget.post.content.trim().isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              ExpandableText(
+                                widget.post.content,
+                                style: const TextStyle(color: Colors.white),
+                                trimLines: 3,
+                                actionStyle: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                 ),
-                                overflow: TextOverflow.ellipsis,
+                                onTap: _openComments,
                               ),
-                            ),
-                            Text(
-                              '${widget.post.videoViewCount} views',
-                              style: const TextStyle(color: Colors.white70),
-                            ),
+                            ],
+                            if (_isInitialized)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: VideoProgressIndicator(
+                                  _videoController,
+                                  allowScrubbing: true,
+                                  colors: const VideoProgressColors(
+                                    playedColor: Colors.white,
+                                    bufferedColor: Colors.white24,
+                                    backgroundColor: Colors.white12,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
-                        if (widget.post.content.trim().isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          ExpandableText(
-                            widget.post.content,
-                            style: const TextStyle(color: Colors.white),
-                            trimLines: 3,
-                            actionStyle: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            onTap: _openComments,
-                          ),
-                        ],
-                        if (_isInitialized)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: VideoProgressIndicator(
-                              _videoController,
-                              allowScrubbing: true,
-                              colors: const VideoProgressColors(
-                                playedColor: Colors.white,
-                                bufferedColor: Colors.white24,
-                                backgroundColor: Colors.white12,
-                              ),
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -1112,11 +1121,12 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
     final content = widget.post.content.trim();
 
     return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: ListView(
+        controller: widget.scrollController,
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1133,7 +1143,7 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
           ),
           if (content.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(16),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -1143,12 +1153,10 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
                 ),
                 child: Text(
                   content,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
                 ),
               ),
             ),
-          const SizedBox(height: 12),
           const Divider(height: 1),
           DefaultTabController(
             length: 4,
