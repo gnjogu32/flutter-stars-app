@@ -40,7 +40,7 @@ class PostService {
       }
 
       // Upload images to Firebase Storage
-      List<String> imageUrls = [];
+      final imageUrls = <String>[];
       String? audioUrl;
       String? videoUrl;
       String postType = 'text';

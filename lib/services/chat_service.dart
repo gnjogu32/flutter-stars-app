@@ -379,7 +379,7 @@ class ChatService {
       // Also check conversations that don't have participantIds (legacy)
       final legacySnapshot = await _firestore.collection('conversations').get();
 
-      List<String> conversationsToMigrate = [];
+      final conversationsToMigrate = <String>[];
 
       for (var doc in legacySnapshot.docs) {
         final data = doc.data();
