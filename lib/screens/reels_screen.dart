@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -37,11 +38,11 @@ class ReelsScreenState extends State<ReelsScreen> {
   int _activeIndex = 0;
   // Tracks whether this tab is the currently visible one.
   bool _tabVisible = false;
-  int _refreshSeed = 0;
+  int _refreshSeed = Random().nextInt(1000000);
 
   void refreshReels() {
     setState(() {
-      _refreshSeed++;
+      _refreshSeed = Random().nextInt(1000000);
     });
   }
 
@@ -109,9 +110,7 @@ class ReelsScreenState extends State<ReelsScreen> {
               .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
               .toList();
 
-          if (_refreshSeed > 0) {
-            reels.shuffle();
-          }
+          reels.shuffle(Random(_refreshSeed));
 
           if (reels.isEmpty) {
             return const Center(
