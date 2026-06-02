@@ -8,6 +8,7 @@ import '../services/user_service.dart';
 import '../services/post_service.dart';
 import '../services/notification_service.dart';
 import '../services/share_service.dart';
+import '../services/analytics_service.dart';
 import '../utils/auth_guard.dart';
 import 'post_details_sheet.dart';
 
@@ -16,6 +17,7 @@ class VideoInteractionsSidebar extends StatefulWidget {
   final String currentUserId;
   final bool isMuted;
   final VoidCallback onToggleMute;
+  final VoidCallback? onCommentTap;
 
   const VideoInteractionsSidebar({
     super.key,
@@ -23,6 +25,7 @@ class VideoInteractionsSidebar extends StatefulWidget {
     required this.currentUserId,
     required this.isMuted,
     required this.onToggleMute,
+    this.onCommentTap,
   });
 
   @override
@@ -34,6 +37,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
+  final AnalyticsService _analyticsService = AnalyticsService();
 
   @override
   void initState() {
@@ -59,8 +63,14 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           widget.post.postId,
           widget.currentUserId,
         );
+        await _analyticsService.trackUnlike(widget.post.postId, widget.currentUserId);
       } else {
         await PostService().likePost(widget.post.postId, widget.currentUserId);
+        await _analyticsService.trackLike(
+          widget.post.postId,
+          (widget.post.originalAuthorId ?? widget.post.authorId).trim(),
+          widget.currentUserId,
+        );
         if (widget.currentUserId != widget.post.authorId) {
           final currentUser = await UserService().getUser(widget.currentUserId);
           if (currentUser != null) {
@@ -89,12 +99,16 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
   }
 
   void _openDetails() {
+    if (widget.onCommentTap != null) {
+      widget.onCommentTap!();
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => DraggableScrollableSheet(
         expand: false,
-        minChildSize: 0.3,
+        initialChildSize: 0.3,
         maxChildSize: 0.85,
         builder: (context, scrollController) => PostDetailsSheet(
           post: widget.post,

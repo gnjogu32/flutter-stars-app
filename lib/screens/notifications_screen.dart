@@ -153,7 +153,7 @@ class _NotificationItemState extends State<_NotificationItem>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    Color backgroundColor = notification.isRead
+    final Color backgroundColor = notification.isRead
         ? Colors.transparent
         : theme.colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.08);
 
