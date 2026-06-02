@@ -21,7 +21,7 @@ on:
       - 'android/app/build.gradle.kts'
 
 env:
-  FLUTTER_VERSION: '3.38.5'
+  FLUTTER_VERSION: '3.44.0'
 
 jobs:
   deploy-play-store:

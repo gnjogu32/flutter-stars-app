@@ -11,7 +11,7 @@ on:
       - develop
 
 env:
-  FLUTTER_VERSION: '3.38.5'
+  FLUTTER_VERSION: '3.44.0'
 
 jobs:
   analyze:
