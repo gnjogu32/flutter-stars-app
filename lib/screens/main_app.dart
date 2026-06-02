@@ -8,7 +8,6 @@ import 'discover_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
-import 'trending_screen.dart';
 import 'reels_screen.dart';
 
 class MainApp extends StatefulWidget {
@@ -77,14 +76,6 @@ class MainAppState extends State<MainApp> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _screens),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const TrendingScreen()),
-          );
-        },
-        child: const Icon(Icons.trending_up),
-      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
