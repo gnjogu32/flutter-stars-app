@@ -63,7 +63,10 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           widget.post.postId,
           widget.currentUserId,
         );
-        await _analyticsService.trackUnlike(widget.post.postId, widget.currentUserId);
+        await _analyticsService.trackUnlike(
+          widget.post.postId,
+          widget.currentUserId,
+        );
       } else {
         await PostService().likePost(widget.post.postId, widget.currentUserId);
         await _analyticsService.trackLike(
