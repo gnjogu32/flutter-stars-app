@@ -50,6 +50,7 @@ app.*.symbols
 *.tmp
 temp_*.txt
 .firebase/
+test_plugin_project/
 
 # Obfuscation related
 app.*.map.json
