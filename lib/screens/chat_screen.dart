@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
 import '../models/message_model.dart';
 import '../models/user_model.dart';
@@ -9,6 +10,7 @@ import '../services/chat_service.dart';
 import '../services/user_service.dart';
 import '../utils/animation_utils.dart';
 import '../utils/time_utils.dart';
+import 'profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -244,7 +246,36 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: Text(widget.otherUserName),
+        title: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(userId: widget.otherUserId),
+              ),
+            );
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundImage: widget.otherUserImageUrl != null
+                    ? CachedNetworkImageProvider(widget.otherUserImageUrl!)
+                    : null,
+                child: widget.otherUserImageUrl == null
+                    ? const Icon(Icons.person, size: 18)
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  widget.otherUserName,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
         centerTitle: true,
         elevation: 0,
         leading: IconButton(

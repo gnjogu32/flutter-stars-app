@@ -142,6 +142,20 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
                   : const CircularProgressIndicator(color: Colors.white),
             ),
 
+            // Buffering Indicator
+            if (_isInitialized)
+              ValueListenableBuilder(
+                valueListenable: _controller,
+                builder: (context, VideoPlayerValue value, child) {
+                  if (value.isBuffering) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white70),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
             // Back Button (Always visible when controls are shown)
             if (_showControls)
               Positioned(

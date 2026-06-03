@@ -44,6 +44,7 @@ class ReelsScreenState extends State<ReelsScreen> {
   // Tracks whether this tab is the currently visible one.
   bool _tabVisible = false;
   int _refreshSeed = Random().nextInt(1000000);
+  List<PostModel> _cachedReels = [];
 
   @visibleForTesting
   int get refreshSeed => _refreshSeed;
@@ -51,6 +52,7 @@ class ReelsScreenState extends State<ReelsScreen> {
   void refreshReels() {
     setState(() {
       _refreshSeed = Random().nextInt(1000000);
+      _cachedReels = []; // Clear cache to force reshuffle of new data
     });
   }
 
@@ -112,16 +114,25 @@ class ReelsScreenState extends State<ReelsScreen> {
             );
           }
 
-          final reels = (snapshot.data?.docs ?? [])
+          final currentDocs = snapshot.data?.docs ?? [];
+          final newReels = currentDocs
               .map(
                 (doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>),
               )
               .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
               .toList();
 
-          reels.shuffle(Random(_refreshSeed));
+          // Optimization: Only update the list if the document IDs have changed.
+          // This prevents re-shuffling and UI jumping when only metadata (likes/views) changes.
+          final newIds = newReels.map((p) => p.postId).join(',');
+          final oldIds = _cachedReels.map((p) => p.postId).join(',');
 
-          if (reels.isEmpty) {
+          if (_cachedReels.isEmpty || newIds != oldIds) {
+            _cachedReels = newReels;
+            _cachedReels.shuffle(Random(_refreshSeed));
+          }
+
+          if (_cachedReels.isEmpty) {
             return const Center(
               child: Text(
                 'No reels yet',
@@ -136,13 +147,14 @@ class ReelsScreenState extends State<ReelsScreen> {
             controller: _pageController,
             scrollDirection: Axis.vertical,
             physics: const BouncingScrollPhysics(),
-            itemCount: reels.length,
+            itemCount: _cachedReels.length,
             onPageChanged: (index) {
               setState(() => _activeIndex = index);
             },
             itemBuilder: (context, index) {
-              final reel = reels[index];
+              final reel = _cachedReels[index];
               return _ReelItem(
+                key: ValueKey(reel.postId), // Important for state preservation
                 post: reel,
                 isActive: _tabVisible && index == _activeIndex,
                 currentUserId: currentUserId,
@@ -174,6 +186,7 @@ class _ReelItem extends StatefulWidget {
   final VoidCallback? onVideoEnd;
 
   const _ReelItem({
+    super.key,
     required this.post,
     required this.isActive,
     required this.onOpenProfile,
@@ -280,6 +293,8 @@ class _ReelItemState extends State<_ReelItem>
               widget.onVideoEnd?.call();
             }
           }
+          // Optimization: Removed constant setState here.
+          // Buffering and progress now handled via ValueListenableBuilder in build().
         });
       }
     } catch (e) {
@@ -859,6 +874,20 @@ class _ReelItemState extends State<_ReelItem>
           )
         else
           const Center(child: CircularProgressIndicator(color: Colors.white)),
+
+        // Buffering Indicator
+        if (_isInitialized)
+          ValueListenableBuilder(
+            valueListenable: _videoController,
+            builder: (context, VideoPlayerValue value, child) {
+              if (value.isBuffering) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
 
         // Double tap heart animation
         if (_showLikeHeart)

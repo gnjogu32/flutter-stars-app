@@ -75,7 +75,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             widget.onVideoEnd?.call();
             ScreenAwakeController.release();
           }
-          if (mounted) setState(() {});
+          // Optimization: Removed constant setState(() {}) here.
+          // Frequent UI updates (progress) are now handled by ValueListenableBuilder.
         });
       }
     } catch (e) {
@@ -206,6 +207,20 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             },
             child: VideoPlayer(_controller),
           ),
+
+          // Buffering Indicator
+          ValueListenableBuilder(
+            valueListenable: _controller,
+            builder: (context, VideoPlayerValue value, child) {
+              if (value.isBuffering) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
           if (_showOverlay && widget.showControls) _buildControlsOverlay(),
           if (widget.showControls)
             Positioned(

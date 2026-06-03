@@ -7,6 +7,7 @@ import '../utils/animation_utils.dart';
 import '../utils/time_utils.dart';
 import '../widgets/keyboard_prompt_banner.dart';
 import 'chat_screen.dart';
+import 'profile_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -324,16 +325,36 @@ class _ConversationItemState extends State<_ConversationItem>
             child: Row(
               children: [
                 // Avatar
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage: widget.conversation.otherUserImageUrl != null
-                      ? CachedNetworkImageProvider(
-                          widget.conversation.otherUserImageUrl!,
-                        )
-                      : null,
-                  child: widget.conversation.otherUserImageUrl == null
-                      ? const Icon(Icons.person)
-                      : null,
+                GestureDetector(
+                  onTap: () {
+                    final currentUserId =
+                        FirebaseAuth.instance.currentUser?.uid ?? '';
+                    final otherUserId = widget.conversation.participantIds
+                        .firstWhere(
+                      (id) => id != currentUserId,
+                      orElse: () => '',
+                    );
+                    if (otherUserId.isNotEmpty) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ProfileScreen(userId: otherUserId),
+                        ),
+                      );
+                    }
+                  },
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundImage: widget.conversation.otherUserImageUrl !=
+                            null
+                        ? CachedNetworkImageProvider(
+                            widget.conversation.otherUserImageUrl!,
+                          )
+                        : null,
+                    child: widget.conversation.otherUserImageUrl == null
+                        ? const Icon(Icons.person)
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 // User info and last message
