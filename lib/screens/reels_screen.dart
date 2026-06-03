@@ -45,14 +45,49 @@ class ReelsScreenState extends State<ReelsScreen> {
   bool _tabVisible = false;
   int _refreshSeed = Random().nextInt(1000000);
   List<PostModel> _cachedReels = [];
+  final Map<int, VideoPlayerController> _preloadedControllers = {};
 
   @visibleForTesting
   int get refreshSeed => _refreshSeed;
 
   void refreshReels() {
+    _disposeAllPreloaded();
     setState(() {
       _refreshSeed = Random().nextInt(1000000);
       _cachedReels = []; // Clear cache to force reshuffle of new data
+      _activeIndex = 0;
+    });
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+  }
+
+  void _disposeAllPreloaded() {
+    _preloadedControllers.forEach((_, controller) => controller.dispose());
+    _preloadedControllers.clear();
+  }
+
+  void _preloadAdjacent(int index) {
+    // Preload next 2 videos for prompt loading
+    for (int i = index + 1; i <= index + 2; i++) {
+      if (i < _cachedReels.length && !_preloadedControllers.containsKey(i)) {
+        final url = _cachedReels[i].videoUrl;
+        if (url != null && url.isNotEmpty) {
+          final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+          _preloadedControllers[i] = controller;
+          controller.initialize().then((_) {
+            if (mounted) setState(() {});
+          });
+        }
+      }
+    }
+    // Clean up distant controllers
+    _preloadedControllers.removeWhere((i, controller) {
+      if ((i - index).abs() > 3) {
+        controller.dispose();
+        return true;
+      }
+      return false;
     });
   }
 
@@ -82,6 +117,7 @@ class ReelsScreenState extends State<ReelsScreen> {
   void dispose() {
     widget.tabActiveNotifier.removeListener(_onTabVisibilityChanged);
     _pageController.dispose();
+    _disposeAllPreloaded();
     super.dispose();
   }
 
@@ -150,15 +186,17 @@ class ReelsScreenState extends State<ReelsScreen> {
             itemCount: _cachedReels.length,
             onPageChanged: (index) {
               setState(() => _activeIndex = index);
+              _preloadAdjacent(index);
             },
             itemBuilder: (context, index) {
               final reel = _cachedReels[index];
               return _ReelItem(
-                key: ValueKey(reel.postId), // Important for state preservation
+                key: ValueKey(reel.postId),
                 post: reel,
                 isActive: _tabVisible && index == _activeIndex,
                 currentUserId: currentUserId,
                 onVideoEnd: _onReelEnd,
+                preloadedController: _preloadedControllers[index],
                 onOpenProfile: () {
                   final userId = (reel.originalAuthorId ?? reel.authorId)
                       .trim();
@@ -184,6 +222,7 @@ class _ReelItem extends StatefulWidget {
   final VoidCallback onOpenProfile;
   final String currentUserId;
   final VoidCallback? onVideoEnd;
+  final VideoPlayerController? preloadedController;
 
   const _ReelItem({
     super.key,
@@ -192,6 +231,7 @@ class _ReelItem extends StatefulWidget {
     required this.onOpenProfile,
     required this.currentUserId,
     this.onVideoEnd,
+    this.preloadedController,
   });
 
   @override
@@ -265,40 +305,45 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   Future<void> _initializeVideo() async {
-    _videoController = VideoPlayerController.networkUrl(
-      Uri.parse(widget.post.videoUrl!),
-    );
+    if (widget.preloadedController != null) {
+      _videoController = widget.preloadedController!;
+      _isInitialized = _videoController.value.isInitialized;
+    } else {
+      _videoController = VideoPlayerController.networkUrl(
+        Uri.parse(widget.post.videoUrl!),
+      );
+    }
+
     try {
-      await _videoController.initialize();
-      await _videoController.setLooping(
-        false,
-      ); // Change to false for sequence playback
+      if (!_isInitialized) {
+        await _videoController.initialize();
+      }
+      await _videoController.setLooping(false);
       if (mounted) {
         setState(() => _isInitialized = true);
         if (widget.isActive) {
           _videoController.play();
           ScreenAwakeController.acquire();
-          // Track view for the first reel if active
           AnalyticsService().trackView(widget.post.postId, _ownerId);
         }
 
-        _videoController.addListener(() {
-          if (_isInitialized && !_videoController.value.isLooping) {
-            final position = _videoController.value.position;
-            final duration = _videoController.value.duration;
-            if (position >= duration &&
-                duration > Duration.zero &&
-                !_endEventDispatched) {
-              _endEventDispatched = true;
-              widget.onVideoEnd?.call();
-            }
-          }
-          // Optimization: Removed constant setState here.
-          // Buffering and progress now handled via ValueListenableBuilder in build().
-        });
+        _videoController.addListener(_videoListener);
       }
     } catch (e) {
       debugPrint('Error initializing reel video: $e');
+    }
+  }
+
+  void _videoListener() {
+    if (_isInitialized && !_videoController.value.isLooping) {
+      final position = _videoController.value.position;
+      final duration = _videoController.value.duration;
+      if (position >= duration &&
+          duration > Duration.zero &&
+          !_endEventDispatched) {
+        _endEventDispatched = true;
+        widget.onVideoEnd?.call();
+      }
     }
   }
 
@@ -308,6 +353,14 @@ class _ReelItemState extends State<_ReelItem>
     if (!_isLikeUpdating) {
       _isLiked = widget.post.isLikedBy(_activeUserId);
       _likeCount = widget.post.likeCount;
+    }
+
+    if (widget.preloadedController != null &&
+        _videoController != widget.preloadedController) {
+      _videoController.removeListener(_videoListener);
+      _videoController = widget.preloadedController!;
+      _isInitialized = _videoController.value.isInitialized;
+      _videoController.addListener(_videoListener);
     }
 
     if (widget.isActive && !oldWidget.isActive) {
@@ -773,7 +826,11 @@ class _ReelItemState extends State<_ReelItem>
     if (_isInitialized && _videoController.value.isPlaying) {
       ScreenAwakeController.release();
     }
-    _videoController.dispose();
+    _videoController.removeListener(_videoListener);
+    // ONLY dispose if we created it locally
+    if (widget.preloadedController == null) {
+      _videoController.dispose();
+    }
     _heartAnimationController.dispose();
     super.dispose();
   }
