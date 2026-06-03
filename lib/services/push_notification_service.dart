@@ -5,6 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../firebase_options.dart';
+import 'post_service.dart';
+import '../widgets/post_details_sheet.dart';
 
 // Top-level handler required by FCM for background/terminated messages.
 @pragma('vm:entry-point')
@@ -139,6 +141,22 @@ class PushNotificationService {
     if (payload == null || navigatorKey == null) return;
     final parts = payload.split(';');
     final type = parts.isNotEmpty ? parts[0] : '';
+    final postId = parts.length > 1 ? parts[1] : '';
+
+    final context = navigatorKey.currentContext;
+
+    // Handle deep linking to post
+    if (postId.isNotEmpty &&
+        context != null &&
+        (type == 'like_post' ||
+            type == 'comment' ||
+            type == 'mention_followers' ||
+            type == 'mention_user' ||
+            type == 'like_comment')) {
+      _openPostDetails(context, postId);
+      return;
+    }
+
     // Navigate to notifications tab (index 4)
     if (type == 'follow' ||
         type == 'like_post' ||
@@ -149,6 +167,31 @@ class PushNotificationService {
     // DM — navigate to messages tab
     if (type == 'message') {
       navigatorKey.currentState?.pushNamed('/messages');
+    }
+  }
+
+  static Future<void> _openPostDetails(BuildContext context, String postId) async {
+    try {
+      final post = await PostService().getPost(postId);
+      if (post != null && context.mounted) {
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => DraggableScrollableSheet(
+            expand: false,
+            minChildSize: 0.3,
+            maxChildSize: 0.85,
+            builder: (context, scrollController) => PostDetailsSheet(
+              post: post,
+              currentUserId: currentUserId,
+              scrollController: scrollController,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[FCM] Error opening post details: $e');
     }
   }
 
