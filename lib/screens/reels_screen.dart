@@ -25,20 +25,28 @@ import 'profile_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
   final ValueNotifier<bool> tabActiveNotifier;
+  final FirebaseFirestore? firestore;
 
-  const ReelsScreen({super.key, required this.tabActiveNotifier});
+  const ReelsScreen({
+    super.key,
+    required this.tabActiveNotifier,
+    this.firestore,
+  });
 
   @override
   State<ReelsScreen> createState() => ReelsScreenState();
 }
 
 class ReelsScreenState extends State<ReelsScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseFirestore _firestore;
   final PageController _pageController = PageController();
   int _activeIndex = 0;
   // Tracks whether this tab is the currently visible one.
   bool _tabVisible = false;
   int _refreshSeed = Random().nextInt(1000000);
+
+  @visibleForTesting
+  int get refreshSeed => _refreshSeed;
 
   void refreshReels() {
     setState(() {
@@ -58,6 +66,7 @@ class ReelsScreenState extends State<ReelsScreen> {
   @override
   void initState() {
     super.initState();
+    _firestore = widget.firestore ?? FirebaseFirestore.instance;
     _tabVisible = widget.tabActiveNotifier.value;
     widget.tabActiveNotifier.addListener(_onTabVisibilityChanged);
   }
