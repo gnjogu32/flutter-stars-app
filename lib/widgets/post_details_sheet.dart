@@ -9,6 +9,8 @@ import 'package:starpage/utils/auth_guard.dart';
 import 'package:starpage/screens/profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:starpage/widgets/expandable_text.dart';
+import 'package:starpage/widgets/video_player_widget.dart';
+import 'package:starpage/widgets/audio_player_widget.dart';
 
 class PostDetailsSheet extends StatefulWidget {
   final PostModel post;
@@ -195,6 +197,49 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                     style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
                     trimLines: 10,
                   ),
+                ],
+                const SizedBox(height: 16),
+
+                // Media: Images
+                if (widget.post.imageUrls.isNotEmpty) ...[
+                  ...widget.post.imageUrls.map((url) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                            imageUrl: url,
+                            fit: BoxFit.contain,
+                            placeholder: (context, url) => const Center(
+                                child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.broken_image),
+                          ),
+                        ),
+                      )),
+                  const SizedBox(height: 12),
+                ],
+
+                // Media: Audio
+                if (widget.post.audioUrl != null &&
+                    widget.post.audioUrl!.isNotEmpty) ...[
+                  AudioPlayerWidget(audioUrl: widget.post.audioUrl!),
+                  const SizedBox(height: 16),
+                ],
+
+                // Media: Video
+                if (widget.post.videoUrl != null &&
+                    widget.post.videoUrl!.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: VideoPlayerWidget(
+                      videoUrl: widget.post.videoUrl!,
+                      autoPlay: true,
+                      looping: true,
+                      post: widget.post,
+                      currentUserId: widget.currentUserId,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ],
             ),
