@@ -1,5 +1,9 @@
 name: Automated Testing Suite
 
+permissions:
+  contents: read
+  issues: write
+
 on:
   push:
     branches:
@@ -122,7 +126,7 @@ jobs:
   build-test:
     name: Build Test (Debug)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     
     steps:
       - name: Checkout code
@@ -146,7 +150,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK (debug)
-        run: flutter build apk --debug --verbose --android-skip-build-dependency-validation
+        run: flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Verify build artifacts
         run: |
@@ -204,8 +208,9 @@ jobs:
           retention-days: 30
 
       - name: Comment PR with test results
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
