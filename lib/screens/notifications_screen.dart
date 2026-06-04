@@ -161,16 +161,26 @@ class _NotificationItemState extends State<_NotificationItem>
       duration: const Duration(milliseconds: 300),
       color: backgroundColor,
       child: ListTile(
-        leading: AnimatedScale(
-          duration: const Duration(milliseconds: 300),
-          scale: notification.isRead ? 1.0 : 1.05,
-          child: CircleAvatar(
-            backgroundImage: notification.triggeredByImageUrl != null
-                ? CachedNetworkImageProvider(notification.triggeredByImageUrl!)
-                : null,
-            child: notification.triggeredByImageUrl == null
-                ? const Icon(Icons.person)
-                : null,
+        leading: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) =>
+                    ProfileScreen(userId: notification.triggeredBy),
+              ),
+            );
+          },
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 300),
+            scale: notification.isRead ? 1.0 : 1.05,
+            child: CircleAvatar(
+              backgroundImage: notification.triggeredByImageUrl != null
+                  ? CachedNetworkImageProvider(notification.triggeredByImageUrl!)
+                  : null,
+              child: notification.triggeredByImageUrl == null
+                  ? const Icon(Icons.person)
+                  : null,
+            ),
           ),
         ),
         title: Text(
