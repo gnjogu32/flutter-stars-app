@@ -170,7 +170,10 @@ class PushNotificationService {
     }
   }
 
-  static Future<void> _openPostDetails(BuildContext context, String postId) async {
+  static Future<void> _openPostDetails(
+    BuildContext context,
+    String postId,
+  ) async {
     try {
       final post = await PostService().getPost(postId);
       if (post != null && context.mounted) {

@@ -89,8 +89,9 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           return _FullScreenVideoItem(
             post: post,
             autoPlay: index == _currentIndex,
-            startPosition:
-                index == widget.initialIndex ? widget.startPosition : null,
+            startPosition: index == widget.initialIndex
+                ? widget.startPosition
+                : null,
             currentUserId: widget.currentUserId,
           );
         },
@@ -229,9 +230,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                 ? Text(_error!, style: const TextStyle(color: Colors.white))
                 : _isInitialized
                 ? AspectRatio(
-                  aspectRatio: _controller.value.aspectRatio,
-                  child: VideoPlayer(_controller),
-                )
+                    aspectRatio: _controller.value.aspectRatio,
+                    child: VideoPlayer(_controller),
+                  )
                 : const CircularProgressIndicator(color: Colors.white),
           ),
 

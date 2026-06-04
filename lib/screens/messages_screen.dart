@@ -331,9 +331,9 @@ class _ConversationItemState extends State<_ConversationItem>
                         FirebaseAuth.instance.currentUser?.uid ?? '';
                     final otherUserId = widget.conversation.participantIds
                         .firstWhere(
-                      (id) => id != currentUserId,
-                      orElse: () => '',
-                    );
+                          (id) => id != currentUserId,
+                          orElse: () => '',
+                        );
                     if (otherUserId.isNotEmpty) {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -345,8 +345,8 @@ class _ConversationItemState extends State<_ConversationItem>
                   },
                   child: CircleAvatar(
                     radius: 24,
-                    backgroundImage: widget.conversation.otherUserImageUrl !=
-                            null
+                    backgroundImage:
+                        widget.conversation.otherUserImageUrl != null
                         ? CachedNetworkImageProvider(
                             widget.conversation.otherUserImageUrl!,
                           )

@@ -53,7 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Image.asset('assets/icon.png', height: 28, width: 28),
             const SizedBox(width: 8),
-            const Text('Starpage', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Starpage',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         centerTitle: true,

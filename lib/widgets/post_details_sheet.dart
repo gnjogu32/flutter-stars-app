@@ -202,20 +202,22 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
 
                 // Media: Images
                 if (widget.post.imageUrls.isNotEmpty) ...[
-                  ...widget.post.imageUrls.map((url) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CachedNetworkImage(
-                            imageUrl: url,
-                            fit: BoxFit.contain,
-                            placeholder: (context, url) => const Center(
-                                child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.broken_image),
-                          ),
+                  ...widget.post.imageUrls.map(
+                    (url) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(
+                          imageUrl: url,
+                          fit: BoxFit.contain,
+                          placeholder: (context, url) =>
+                              const Center(child: CircularProgressIndicator()),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.broken_image),
                         ),
-                      )),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                 ],
 

@@ -111,11 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const SizedBox(height: 40),
             // Logo
-            Image.asset(
-              'assets/icon.png',
-              height: 100,
-              width: 100,
-            ),
+            Image.asset('assets/icon.png', height: 100, width: 100),
             const SizedBox(height: 16),
             Text(
               'Starpage',
