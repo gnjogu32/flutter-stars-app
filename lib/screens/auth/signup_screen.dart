@@ -136,6 +136,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Column(
           children: [
             const SizedBox(height: 24),
+            Image.asset(
+              'assets/icon.png',
+              height: 80,
+              width: 80,
+            ),
+            const SizedBox(height: 16),
             Text(
               'Join Starpage',
               style: Theme.of(

@@ -110,7 +110,13 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
-            // Logo/Title
+            // Logo
+            Image.asset(
+              'assets/icon.png',
+              height: 100,
+              width: 100,
+            ),
+            const SizedBox(height: 16),
             Text(
               'Starpage',
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
