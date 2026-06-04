@@ -158,14 +158,28 @@ class ReelsScreenState extends State<ReelsScreen> {
               .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
               .toList();
 
-          // Optimization: Only update the list if the document IDs have changed.
-          // This prevents re-shuffling and UI jumping when only metadata (likes/views) changes.
-          final newIds = newReels.map((p) => p.postId).join(',');
-          final oldIds = _cachedReels.map((p) => p.postId).join(',');
+          // Optimization: Only update the order if the document IDs have changed.
+          // This prevents re-shuffling while ensuring metadata (likes/views) updates are reflected.
+          final newIds = newReels.map((p) => p.postId).toList();
+          final oldIds = _cachedReels.map((p) => p.postId).toList();
 
-          if (_cachedReels.isEmpty || newIds != oldIds) {
+          final bool listStructureChanged =
+              _cachedReels.isEmpty ||
+              newIds.length != oldIds.length ||
+              !newIds.every((id) => oldIds.contains(id));
+
+          if (listStructureChanged) {
             _cachedReels = newReels;
             _cachedReels.shuffle(Random(_refreshSeed));
+          } else {
+            // Update the existing cached objects in place to preserve order but refresh data
+            for (int i = 0; i < _cachedReels.length; i++) {
+              final String currentId = _cachedReels[i].postId;
+              final PostModel updatedData = newReels.firstWhere(
+                (p) => p.postId == currentId,
+              );
+              _cachedReels[i] = updatedData;
+            }
           }
 
           if (_cachedReels.isEmpty) {
