@@ -23,6 +23,15 @@ To maintain compatibility with current Flutter plugins (such as Firebase, sqflit
 
 Additionally, the NDK version is strictly enforced to `28.2.13676358` in the root `android/build.gradle.kts` using reflection. This ensures that all 24+ subprojects (including native plugins like `integration_test`) use the exact same NDK version, avoiding "NDK version mismatch" errors during the build.
 
+## Branding & UX Enhancements
+
+This project has been updated with a complete branding suite and optimized discovery features:
+
+- **Professional Branding**: Custom launcher icons and a high-performance native splash screen.
+- **Automated Discovery**: Session-stable "Automatic Shuffle" for video content (Reels), ensuring diverse talent exposure.
+- **Unified Interactions**: A standardized interaction model across all video playback modes (Feed, Reels, and Fullscreen).
+- **Social Connectivity**: Real-time unread badges for messages/notifications and deep-linked notification navigation.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
