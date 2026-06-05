@@ -175,7 +175,9 @@ class _NotificationItemState extends State<_NotificationItem>
             scale: notification.isRead ? 1.0 : 1.05,
             child: CircleAvatar(
               backgroundImage: notification.triggeredByImageUrl != null
-                  ? CachedNetworkImageProvider(notification.triggeredByImageUrl!)
+                  ? CachedNetworkImageProvider(
+                      notification.triggeredByImageUrl!,
+                    )
                   : null,
               child: notification.triggeredByImageUrl == null
                   ? const Icon(Icons.person)
