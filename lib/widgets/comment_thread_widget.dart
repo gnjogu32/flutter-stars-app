@@ -35,6 +35,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   bool _showEditEmojiPanel = false;
   bool _isSavingEdit = false;
   late bool _isLiked;
+  bool _showReplies = false;
   final CommentService _commentService = CommentService();
   final Set<String> _hiddenCommentIds = {};
 
@@ -582,16 +583,35 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
         StreamBuilder<List<CommentModel>>(
           stream: _commentService.getReplies(widget.comment.commentId),
           builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            final replies = snapshot.data ?? [];
+            if (replies.isEmpty) {
               return const SizedBox.shrink();
             }
-            final replies = snapshot.data!;
+
             return Padding(
               padding: const EdgeInsets.only(left: 32.0),
               child: Column(
-                children: replies
-                    .map((reply) => _buildReplyWidget(reply, theme))
-                    .toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => _showReplies = !_showReplies),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Text(
+                        _showReplies
+                            ? 'Hide replies'
+                            : 'View ${replies.length} ${replies.length == 1 ? 'reply' : 'replies'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_showReplies)
+                    ...replies.map((reply) => _buildReplyWidget(reply, theme)),
+                ],
               ),
             );
           },
