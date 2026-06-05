@@ -518,30 +518,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                       Row(
                         children: [
                           InkWell(
-                            onTap: _toggleLike,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  _isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  size: 16,
-                                  color: _isLiked
-                                      ? Colors.red
-                                      : secondaryTextColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${widget.comment.likes.length}',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: secondaryTextColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          InkWell(
                             onTap: () {
                               if (widget.currentUserId.isEmpty) {
                                 AuthGuard.show(context);
@@ -563,6 +539,30 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                                 const SizedBox(width: 4),
                                 Text(
                                   'Reply',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: secondaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          InkWell(
+                            onTap: _toggleLike,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _isLiked
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  size: 16,
+                                  color: _isLiked
+                                      ? Colors.red
+                                      : secondaryTextColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${widget.comment.likes.length}',
                                   style: theme.textTheme.labelSmall?.copyWith(
                                     color: secondaryTextColor,
                                   ),
@@ -691,6 +691,22 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                   Row(
                     children: [
                       InkWell(
+                        onTap: () {
+                          // Use root comment ID as parent
+                          final pId = reply.parentId.isEmpty
+                              ? reply.commentId
+                              : reply.parentId;
+                          widget.onReply?.call(reply, pId);
+                        },
+                        child: Text(
+                          'Reply',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      InkWell(
                         onTap: () => _toggleReplyLike(reply, isReplyLiked),
                         child: Row(
                           children: [
@@ -711,22 +727,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      InkWell(
-                        onTap: () {
-                          // Use root comment ID as parent
-                          final pId = reply.parentId.isEmpty
-                              ? reply.commentId
-                              : reply.parentId;
-                          widget.onReply?.call(reply, pId);
-                        },
-                        child: Text(
-                          'Reply',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: secondaryTextColor,
-                          ),
                         ),
                       ),
                     ],

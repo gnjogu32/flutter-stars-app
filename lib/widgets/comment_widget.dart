@@ -608,28 +608,6 @@ class _CommentWidgetState extends State<CommentWidget> {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: _toggleLike,
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isLiked ? Icons.favorite : Icons.favorite_border,
-                            size: 14,
-                            color: _isLiked ? Colors.red : null,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.comment.likeCount > 0
-                                ? '${widget.comment.likeCount}'
-                                : '',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: textColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    GestureDetector(
                       onTap: () {
                         if (widget.onReply != null) {
                           widget.onReply!(
@@ -655,6 +633,28 @@ class _CommentWidgetState extends State<CommentWidget> {
                             'Reply',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: isDark ? Colors.white60 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _toggleLike,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isLiked ? Icons.favorite : Icons.favorite_border,
+                            size: 14,
+                            color: _isLiked ? Colors.red : null,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.comment.likeCount > 0
+                                ? '${widget.comment.likeCount}'
+                                : '',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: textColor,
                             ),
                           ),
                         ],
