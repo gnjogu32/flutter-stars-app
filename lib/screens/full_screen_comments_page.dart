@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/comment_model.dart';
 import '../models/user_model.dart';
 import '../services/comment_service.dart';
@@ -43,7 +44,12 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
     // Automatically focus when page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _focusNode.requestFocus();
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) {
+            _focusNode.requestFocus();
+            SystemChannels.textInput.invokeMethod('TextInput.show');
+          }
+        });
       }
     });
   }
@@ -139,7 +145,14 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
       _replyTo = replyTo;
       _replyParentId = parentId;
     });
-    _focusNode.requestFocus();
+    // Add small delay to ensure keyboard pops up correctly
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        _focusNode.requestFocus();
+        // Force show keyboard
+        SystemChannels.textInput.invokeMethod('TextInput.show');
+      }
+    });
   }
 
   void _cancelReply() {
