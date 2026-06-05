@@ -376,47 +376,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                             ),
                           ],
                           const Spacer(),
-                          if (widget.currentUserId == widget.comment.authorId)
-                            PopupMenuButton<String>(
-                              onSelected: (value) {
-                                if (value == 'edit') _startEdit();
-                                if (value == 'delete') _deleteComment();
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.delete,
-                                        size: 18,
-                                        color: Colors.red,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Delete',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              child: Icon(
-                                Icons.more_vert,
-                                size: 18,
-                                color: secondaryTextColor,
-                              ),
-                            ),
                         ],
                       ),
                       if (_isEditing)
@@ -675,28 +634,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                         ),
                       ),
                       const Spacer(),
-                      if (widget.currentUserId == reply.authorId)
-                        PopupMenuButton<String>(
-                          onSelected: (value) {
-                            if (value == 'edit') startReplyEdit(reply);
-                            if (value == 'delete') deleteReply(reply.commentId);
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Edit'),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Delete'),
-                            ),
-                          ],
-                          child: Icon(
-                            Icons.more_vert,
-                            size: 14,
-                            color: secondaryTextColor,
-                          ),
-                        ),
                     ],
                   ),
                   if (isEditingThisReply)
