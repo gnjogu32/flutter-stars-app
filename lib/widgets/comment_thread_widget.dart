@@ -36,6 +36,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   bool _isSavingEdit = false;
   late bool _isLiked;
   final CommentService _commentService = CommentService();
+  final Set<String> _hiddenCommentIds = {};
 
   void _openAuthorProfile(String userId) {
     if (userId.isEmpty) return;
@@ -197,6 +198,81 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     _editFocusNode.unfocus();
   }
 
+  void _copyComment(String content) {
+    Clipboard.setData(ClipboardData(text: content));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Copied to clipboard')),
+    );
+  }
+
+  void _hideComment(String commentId) {
+    setState(() {
+      _hiddenCommentIds.add(commentId);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Comment hidden')),
+    );
+  }
+
+  void _showActionMenu(CommentModel comment, bool isReply) {
+    final isAuthor = widget.currentUserId == comment.authorId;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isAuthor) ...[
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Edit'),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (isReply) {
+                    startReplyEdit(comment);
+                  } else {
+                    _startEdit();
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Delete', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (isReply) {
+                    deleteReply(comment.commentId);
+                  } else {
+                    _deleteComment();
+                  }
+                },
+              ),
+            ],
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('Copy'),
+              onTap: () {
+                Navigator.pop(context);
+                _copyComment(comment.content);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.visibility_off),
+              title: const Text('Hide'),
+              onTap: () {
+                Navigator.pop(context);
+                _hideComment(comment.commentId);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveEdit() async {
     if (_editController.text.trim().isEmpty || _isSavingEdit) return;
 
@@ -230,6 +306,9 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (_hiddenCommentIds.contains(widget.comment.commentId)) {
+      return const SizedBox.shrink();
+    }
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -238,260 +317,266 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                onTap: () => _openAuthorProfile(widget.comment.authorId),
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundImage: widget.comment.authorImageUrl != null
-                      ? CachedNetworkImageProvider(
-                          widget.comment.authorImageUrl!,
-                        )
-                      : null,
-                  child: widget.comment.authorImageUrl == null
-                      ? const Icon(Icons.person, size: 16)
-                      : null,
+        GestureDetector(
+          onLongPress: () => _showActionMenu(widget.comment, false),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () => _openAuthorProfile(widget.comment.authorId),
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundImage: widget.comment.authorImageUrl != null
+                        ? CachedNetworkImageProvider(
+                            widget.comment.authorImageUrl!,
+                          )
+                        : null,
+                    child: widget.comment.authorImageUrl == null
+                        ? const Icon(Icons.person, size: 16)
+                        : null,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () =>
-                              _openAuthorProfile(widget.comment.authorId),
-                          child: Text(
-                            widget.comment.authorName,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          TimeUtils.formatShorthand(widget.comment.createdAt),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                        if (widget.comment.isEdited) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '(edited)',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontStyle: FontStyle.italic,
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                        ],
-                        const Spacer(),
-                        if (widget.currentUserId == widget.comment.authorId)
-                          PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'edit') _startEdit();
-                              if (value == 'delete') _deleteComment();
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 18),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete,
-                                      size: 18,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Delete',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            child: Icon(
-                              Icons.more_vert,
-                              size: 18,
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (_isEditing)
-                      Column(
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _showEditEmojiPanel = !_showEditEmojiPanel;
-                                  });
-                                  if (_showEditEmojiPanel) {
-                                    SystemChannels.textInput.invokeMethod(
-                                      'TextInput.hide',
-                                    );
-                                  } else {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(_editFocusNode);
-                                  }
-                                },
-                                icon: Icon(
-                                  _showEditEmojiPanel
-                                      ? Icons.keyboard
-                                      : Icons.emoji_emotions_outlined,
-                                  color: secondaryTextColor,
-                                ),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _editController,
-                                  focusNode: _editFocusNode,
-                                  maxLines: null,
-                                  style: TextStyle(color: textColor),
-                                  decoration: InputDecoration(
-                                    hintText: 'Edit your comment...',
-                                    hintStyle: TextStyle(
-                                      color: secondaryTextColor,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_showEditEmojiPanel)
-                            SizedBox(
-                              height: 150,
-                              child: GridView.builder(
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 8,
-                                    ),
-                                itemCount: _quickEmojis.length,
-                                itemBuilder: (context, index) => InkWell(
-                                  onTap: () {
-                                    _editController.text += _quickEmojis[index];
-                                  },
-                                  child: Center(
-                                    child: Text(
-                                      _quickEmojis[index],
-                                      style: const TextStyle(fontSize: 20),
-                                    ),
-                                  ),
-                                ),
+                          GestureDetector(
+                            onTap: () =>
+                                _openAuthorProfile(widget.comment.authorId),
+                            child: Text(
+                              widget.comment.authorName,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
                               ),
                             ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                onPressed: _cancelEdit,
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                onPressed: _isSavingEdit ? null : _saveEdit,
-                                child: _isSavingEdit
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Text('Save'),
-                              ),
-                            ],
                           ),
-                        ],
-                      )
-                    else
-                      custom.ExpandableText(
-                        widget.comment.content,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: textColor,
-                        ),
-                      ),
-                    Row(
-                      children: [
-                        InkWell(
-                          onTap: _toggleLike,
-                          child: Row(
-                            children: [
-                              Icon(
-                                _isLiked
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                size: 16,
-                                color: _isLiked
-                                    ? Colors.red
-                                    : secondaryTextColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${widget.comment.likes.length}',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: secondaryTextColor,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(width: 8),
+                          Text(
+                            TimeUtils.formatShorthand(widget.comment.createdAt),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: secondaryTextColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        InkWell(
-                          onTap: () {
-                            if (widget.currentUserId.isEmpty) {
-                              AuthGuard.show(context);
-                            } else {
-                              // Use parentId if this is already a reply, otherwise use commentId
-                              final pId = widget.comment.parentId.isEmpty
-                                  ? widget.comment.commentId
-                                  : widget.comment.parentId;
-                              widget.onReply?.call(widget.comment, pId);
-                            }
-                          },
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.reply,
-                                size: 16,
+                          if (widget.comment.isEdited) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '(edited)',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontStyle: FontStyle.italic,
                                 color: secondaryTextColor,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Reply',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: secondaryTextColor,
+                            ),
+                          ],
+                          const Spacer(),
+                          if (widget.currentUserId == widget.comment.authorId)
+                            PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'edit') _startEdit();
+                                if (value == 'delete') _deleteComment();
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete,
+                                        size: 18,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              child: Icon(
+                                Icons.more_vert,
+                                size: 18,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (_isEditing)
+                        Column(
+                          children: [
+                            Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _showEditEmojiPanel =
+                                          !_showEditEmojiPanel;
+                                    });
+                                    if (_showEditEmojiPanel) {
+                                      SystemChannels.textInput.invokeMethod(
+                                        'TextInput.hide',
+                                      );
+                                    } else {
+                                      FocusScope.of(
+                                        context,
+                                      ).requestFocus(_editFocusNode);
+                                    }
+                                  },
+                                  icon: Icon(
+                                    _showEditEmojiPanel
+                                        ? Icons.keyboard
+                                        : Icons.emoji_emotions_outlined,
+                                    color: secondaryTextColor,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _editController,
+                                    focusNode: _editFocusNode,
+                                    maxLines: null,
+                                    style: TextStyle(color: textColor),
+                                    decoration: InputDecoration(
+                                      hintText: 'Edit your comment...',
+                                      hintStyle: TextStyle(
+                                        color: secondaryTextColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_showEditEmojiPanel)
+                              SizedBox(
+                                height: 150,
+                                child: GridView.builder(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 8,
+                                      ),
+                                  itemCount: _quickEmojis.length,
+                                  itemBuilder: (context, index) => InkWell(
+                                    onTap: () {
+                                      _editController.text +=
+                                          _quickEmojis[index];
+                                    },
+                                    child: Center(
+                                      child: Text(
+                                        _quickEmojis[index],
+                                        style: const TextStyle(fontSize: 20),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ],
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: _cancelEdit,
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: _isSavingEdit ? null : _saveEdit,
+                                  child: _isSavingEdit
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Save'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      else
+                        custom.ExpandableText(
+                          widget.comment.content,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: textColor,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      Row(
+                        children: [
+                          InkWell(
+                            onTap: _toggleLike,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _isLiked
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  size: 16,
+                                  color: _isLiked
+                                      ? Colors.red
+                                      : secondaryTextColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${widget.comment.likes.length}',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: secondaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          InkWell(
+                            onTap: () {
+                              if (widget.currentUserId.isEmpty) {
+                                AuthGuard.show(context);
+                              } else {
+                                // Use parentId if this is already a reply, otherwise use commentId
+                                final pId = widget.comment.parentId.isEmpty
+                                    ? widget.comment.commentId
+                                    : widget.comment.parentId;
+                                widget.onReply?.call(widget.comment, pId);
+                              }
+                            },
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.reply,
+                                  size: 16,
+                                  color: secondaryTextColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Reply',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: secondaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         StreamBuilder<List<CommentModel>>(
@@ -516,134 +601,141 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   }
 
   Widget _buildReplyWidget(CommentModel reply, ThemeData theme) {
+    if (_hiddenCommentIds.contains(reply.commentId)) {
+      return const SizedBox.shrink();
+    }
     final bool isReplyLiked = reply.likes.contains(widget.currentUserId);
     final bool isEditingThisReply = replyEditId == reply.commentId;
     final isDark = theme.brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
     final secondaryTextColor = isDark ? Colors.white60 : Colors.black54;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () => _openAuthorProfile(reply.authorId),
-            child: CircleAvatar(
-              radius: 12,
-              backgroundImage: reply.authorImageUrl != null
-                  ? CachedNetworkImageProvider(reply.authorImageUrl!)
-                  : null,
-              child: reply.authorImageUrl == null
-                  ? const Icon(Icons.person, size: 12)
-                  : null,
+    return GestureDetector(
+      onLongPress: () => _showActionMenu(reply, true),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () => _openAuthorProfile(reply.authorId),
+              child: CircleAvatar(
+                radius: 12,
+                backgroundImage: reply.authorImageUrl != null
+                    ? CachedNetworkImageProvider(reply.authorImageUrl!)
+                    : null,
+                child: reply.authorImageUrl == null
+                    ? const Icon(Icons.person, size: 12)
+                    : null,
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => _openAuthorProfile(reply.authorId),
-                      child: Text(
-                        reply.authorName,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _openAuthorProfile(reply.authorId),
+                        child: Text(
+                          reply.authorName,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      TimeUtils.formatShorthand(reply.createdAt),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (widget.currentUserId == reply.authorId)
-                      PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'edit') startReplyEdit(reply);
-                          if (value == 'delete') deleteReply(reply.commentId);
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Edit'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Delete'),
-                          ),
-                        ],
-                        child: Icon(
-                          Icons.more_vert,
-                          size: 14,
-                          color: secondaryTextColor,
-                        ),
-                      ),
-                  ],
-                ),
-                if (isEditingThisReply)
-                  _buildReplyEditField(reply)
-                else
-                  Text(
-                    reply.content,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: textColor,
-                    ),
-                  ),
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: () => _toggleReplyLike(reply, isReplyLiked),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isReplyLiked
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 14,
-                            color: isReplyLiked
-                                ? Colors.red
-                                : secondaryTextColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${reply.likes.length}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    InkWell(
-                      onTap: () {
-                        // Use root comment ID as parent
-                        final pId = reply.parentId.isEmpty
-                            ? reply.commentId
-                            : reply.parentId;
-                        widget.onReply?.call(reply, pId);
-                      },
-                      child: Text(
-                        'Reply',
+                      const SizedBox(width: 8),
+                      Text(
+                        TimeUtils.formatShorthand(reply.createdAt),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: secondaryTextColor,
                         ),
                       ),
+                      const Spacer(),
+                      if (widget.currentUserId == reply.authorId)
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'edit') startReplyEdit(reply);
+                            if (value == 'delete') deleteReply(reply.commentId);
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Text('Edit'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete'),
+                            ),
+                          ],
+                          child: Icon(
+                            Icons.more_vert,
+                            size: 14,
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (isEditingThisReply)
+                    _buildReplyEditField(reply)
+                  else
+                    Text(
+                      reply.content,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: textColor,
+                      ),
                     ),
-                  ],
-                ),
-              ],
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () => _toggleReplyLike(reply, isReplyLiked),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isReplyLiked
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 14,
+                              color: isReplyLiked
+                                  ? Colors.red
+                                  : secondaryTextColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${reply.likes.length}',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      InkWell(
+                        onTap: () {
+                          // Use root comment ID as parent
+                          final pId = reply.parentId.isEmpty
+                              ? reply.commentId
+                              : reply.parentId;
+                          widget.onReply?.call(reply, pId);
+                        },
+                        child: Text(
+                          'Reply',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
