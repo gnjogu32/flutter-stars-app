@@ -754,6 +754,162 @@ class _PostWidgetState extends State<PostWidget>
     );
   }
 
+  void _openGallery(int index) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _FullScreenImageGallery(
+          imageUrls: widget.post.imageUrls,
+          initialIndex: index,
+          canSaveImages:
+              (widget.post.originalAuthorId ?? widget.post.authorId) ==
+              widget.currentUserId,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridItem(String url, int index, double width, double height) {
+    return GestureDetector(
+      onTap: () => _openGallery(index),
+      onLongPress: () => _showImageOptions(url),
+      child: CachedNetworkImage(
+        imageUrl: url,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        memCacheHeight: 600,
+        memCacheWidth: 600,
+        placeholder: (context, url) => Container(
+          width: width,
+          height: height,
+          color: Colors.black12,
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+        errorWidget: (context, url, error) => Container(
+          width: width,
+          height: height,
+          color: Colors.black12,
+          child: const Icon(Icons.broken_image),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageGallery() {
+    final urls = widget.post.imageUrls;
+    if (urls.isEmpty) return const SizedBox.shrink();
+
+    if (urls.length == 1) {
+      return GestureDetector(
+        onTap: () => _openGallery(0),
+        onLongPress: () => _showImageOptions(urls.first),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxHeight: 420),
+            color: Colors.black.withValues(alpha: 0.04),
+            child: CachedNetworkImage(
+              imageUrl: urls.first,
+              fit: BoxFit.contain,
+              memCacheHeight: 800,
+              placeholder: (context, url) => const SizedBox(
+                height: 220,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              errorWidget: (context, url, error) => const SizedBox(
+                height: 220,
+                child: Center(child: Icon(Icons.broken_image, size: 36)),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Grid layout for multiple images
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const double spacing = 2.0;
+          final double totalWidth = constraints.maxWidth;
+
+          if (urls.length == 2) {
+            final double itemWidth = (totalWidth - spacing) / 2;
+            return Row(
+              children: [
+                _buildGridItem(urls[0], 0, itemWidth, 200),
+                const SizedBox(width: spacing),
+                _buildGridItem(urls[1], 1, itemWidth, 200),
+              ],
+            );
+          } else if (urls.length == 3) {
+            final double itemWidth = (totalWidth - spacing) / 2;
+            return Column(
+              children: [
+                _buildGridItem(urls[0], 0, totalWidth, 200),
+                const SizedBox(height: spacing),
+                Row(
+                  children: [
+                    _buildGridItem(urls[1], 1, itemWidth, 150),
+                    const SizedBox(width: spacing),
+                    _buildGridItem(urls[2], 2, itemWidth, 150),
+                  ],
+                ),
+              ],
+            );
+          } else {
+            // 4 or more images
+            final double itemWidth = (totalWidth - spacing) / 2;
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    _buildGridItem(urls[0], 0, itemWidth, 150),
+                    const SizedBox(width: spacing),
+                    _buildGridItem(urls[1], 1, itemWidth, 150),
+                  ],
+                ),
+                const SizedBox(height: spacing),
+                Row(
+                  children: [
+                    _buildGridItem(urls[2], 2, itemWidth, 150),
+                    const SizedBox(width: spacing),
+                    Stack(
+                      children: [
+                        _buildGridItem(urls[3], 3, itemWidth, 150),
+                        if (urls.length > 4)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              onTap: () => _openGallery(3),
+                              child: Container(
+                                color: Colors.black45,
+                                child: Center(
+                                  child: Text(
+                                    '+${urls.length - 4}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }
+        },
+      ),
+    );
+  }
+
   Future<void> _openCommentsSheet({String? postContent}) async {
     if (!mounted) return;
     await showModalBottomSheet(
@@ -1116,108 +1272,7 @@ class _PostWidgetState extends State<PostWidget>
               const SizedBox(height: 12),
             ],
             // Images
-            if (widget.post.imageUrls.isNotEmpty)
-              widget.post.imageUrls.length == 1
-                  ? GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => _FullScreenImageGallery(
-                              imageUrls: widget.post.imageUrls,
-                              initialIndex: 0,
-                              canSaveImages:
-                                  (widget.post.originalAuthorId ??
-                                      widget.post.authorId) ==
-                                  widget.currentUserId,
-                            ),
-                          ),
-                        );
-                      },
-                      onLongPress: () =>
-                          _showImageOptions(widget.post.imageUrls.first),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          width: double.infinity,
-                          constraints: const BoxConstraints(maxHeight: 420),
-                          color: Colors.black.withValues(alpha: 0.04),
-                          child: CachedNetworkImage(
-                            imageUrl: widget.post.imageUrls.first,
-                            fit: BoxFit.contain,
-                            memCacheHeight: 800,
-                            placeholder: (context, url) => const SizedBox(
-                              height: 220,
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                            errorWidget: (context, url, error) =>
-                                const SizedBox(
-                                  height: 220,
-                                  child: Center(
-                                    child: Icon(Icons.broken_image, size: 36),
-                                  ),
-                                ),
-                          ),
-                        ),
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: widget.post.imageUrls.asMap().entries.map((
-                          entry,
-                        ) {
-                          final idx = entry.key;
-                          final imageUrl = entry.value;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        _FullScreenImageGallery(
-                                          imageUrls: widget.post.imageUrls,
-                                          initialIndex: idx,
-                                          canSaveImages:
-                                              (widget.post.originalAuthorId ??
-                                                  widget.post.authorId) ==
-                                              widget.currentUserId,
-                                        ),
-                                  ),
-                                );
-                              },
-                              onLongPress: () => _showImageOptions(imageUrl),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: imageUrl,
-                                  height: 200,
-                                  width: 200,
-                                  fit: BoxFit.cover,
-                                  memCacheHeight: 400,
-                                  memCacheWidth: 400,
-                                  placeholder: (context, url) => Container(
-                                    height: 200,
-                                    width: 200,
-                                    color: Colors.black12,
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                        height: 200,
-                                        width: 200,
-                                        color: Colors.black12,
-                                        child: const Icon(Icons.broken_image),
-                                      ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
+            _buildImageGallery(),
             const SizedBox(height: 12),
             _buildResponsiveFeedInteractions(),
           ],
