@@ -27,10 +27,18 @@ class MainAppState extends State<MainApp> {
   final ValueNotifier<bool> _reelsTabActive = ValueNotifier(false);
   final NotificationService _notificationService = NotificationService();
   final ChatService _chatService = ChatService();
+  final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
   final GlobalKey<ReelsScreenState> _reelsKey = GlobalKey<ReelsScreenState>();
 
   void setSelectedIndex(int index, {bool refresh = false}) {
+    final wasHome = _selectedIndex == 0;
     final wasReels = _selectedIndex == 1;
+
+    if (index == 0 && wasHome && !refresh) {
+      _homeKey.currentState?.scrollToTop();
+      return;
+    }
+
     _reelsTabActive.value = index == 1;
     setState(() {
       _selectedIndex = index;
@@ -57,7 +65,7 @@ class MainAppState extends State<MainApp> {
     }
 
     _screens = [
-      const HomeScreen(),
+      HomeScreen(key: _homeKey),
       ReelsScreen(key: _reelsKey, tabActiveNotifier: _reelsTabActive),
       const DiscoverScreen(),
       const MessagesScreen(),

@@ -11,12 +11,13 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ScrollController _scrollController = ScrollController();
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
   Stream<QuerySnapshot>? _postsStream;
@@ -26,6 +27,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _postsStream = _buildPostsStream();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   Stream<QuerySnapshot> _buildPostsStream() {
@@ -115,6 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                     .toList();
                 return ListView.builder(
+                  controller: _scrollController,
                   itemCount: posts.length + 1, // +1 for trending section
                   physics: const ClampingScrollPhysics(),
                   itemBuilder: (context, index) {
