@@ -201,18 +201,18 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
 
   void _copyComment(String content) {
     Clipboard.setData(ClipboardData(text: content));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied to clipboard')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
   }
 
   void _hideComment(String commentId) {
     setState(() {
       _hiddenCommentIds.add(commentId);
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Comment hidden')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Comment hidden')));
   }
 
   void _showActionMenu(CommentModel comment, bool isReply) {
@@ -241,7 +241,10 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Delete', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   if (isReply) {

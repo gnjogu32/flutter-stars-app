@@ -141,18 +141,18 @@ class _CommentWidgetState extends State<CommentWidget> {
 
   void _copyComment(String content) {
     Clipboard.setData(ClipboardData(text: content));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied to clipboard')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
   }
 
   void _hideComment(String commentId) {
     setState(() {
       _hiddenCommentIds.add(commentId);
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Comment hidden')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Comment hidden')));
   }
 
   void _showActionMenu(CommentModel comment) {
@@ -177,7 +177,10 @@ class _CommentWidgetState extends State<CommentWidget> {
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Delete', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _deleteComment();
@@ -838,8 +841,8 @@ class _ReplyItemState extends State<_ReplyItem> {
                                 _openAuthorProfile(widget.reply.authorId),
                             child: CircleAvatar(
                               radius: 12,
-                              backgroundImage: widget.reply.authorImageUrl !=
-                                      null
+                              backgroundImage:
+                                  widget.reply.authorImageUrl != null
                                   ? CachedNetworkImageProvider(
                                       widget.reply.authorImageUrl!,
                                     )
@@ -977,7 +980,9 @@ class _ReplyItemState extends State<_ReplyItem> {
                                     if (text.isEmpty) {
                                       messenger.showSnackBar(
                                         const SnackBar(
-                                          content: Text('Reply cannot be empty'),
+                                          content: Text(
+                                            'Reply cannot be empty',
+                                          ),
                                         ),
                                       );
                                       return;
