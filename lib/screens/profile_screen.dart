@@ -16,6 +16,7 @@ import '../utils/animation_utils.dart';
 import '../widgets/post_widget.dart';
 import 'analytics_dashboard_screen.dart';
 import 'chat_screen.dart';
+import 'followers_following_screen.dart';
 import 'repost_queue_screen.dart';
 
 enum _ProfileMediaFolder { all, photos, videos }
@@ -379,8 +380,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildStat('Posts', postCount),
-                    _buildStat('Followers', user.followerCount),
-                    _buildStat('Following', user.followingCount),
+                    _buildStat(
+                      'Followers',
+                      user.followerCount,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => FollowersFollowingScreen(
+                              userId: user.uid,
+                              initialTabIndex: 0,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildStat(
+                      'Following',
+                      user.followingCount,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => FollowersFollowingScreen(
+                              userId: user.uid,
+                              initialTabIndex: 1,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 );
               },
@@ -468,12 +495,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStat(String label, int count) {
-    return Column(
-      children: [
-        Text(count.toString(), style: Theme.of(context).textTheme.titleLarge),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
+  Widget _buildStat(String label, int count, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        children: [
+          Text(count.toString(), style: Theme.of(context).textTheme.titleLarge),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
     );
   }
 
