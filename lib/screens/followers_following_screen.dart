@@ -16,7 +16,8 @@ class FollowersFollowingScreen extends StatefulWidget {
   });
 
   @override
-  State<FollowersFollowingScreen> createState() => _FollowersFollowingScreenState();
+  State<FollowersFollowingScreen> createState() =>
+      _FollowersFollowingScreenState();
 }
 
 class _FollowersFollowingScreenState extends State<FollowersFollowingScreen> {
@@ -124,9 +125,9 @@ class _UserListState extends State<_UserList> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading users: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading users: $e')));
       }
     } finally {
       if (mounted) {
@@ -155,9 +156,9 @@ class _UserListState extends State<_UserList> {
       widget.onFollowStatusChanged();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -177,7 +178,9 @@ class _UserListState extends State<_UserList> {
     if (_users.isEmpty) {
       return Center(
         child: Text(
-          widget.isFollowers ? 'No followers yet.' : 'Not following anyone yet.',
+          widget.isFollowers
+              ? 'No followers yet.'
+              : 'Not following anyone yet.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
@@ -220,13 +223,13 @@ class _UserListState extends State<_UserList> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isFollowing
                           ? (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[800]
-                              : Colors.grey[300])
+                                ? Colors.grey[800]
+                                : Colors.grey[300])
                           : Theme.of(context).colorScheme.primary,
                       foregroundColor: isFollowing
                           ? (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : Colors.black87)
+                                ? Colors.white70
+                                : Colors.black87)
                           : Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
