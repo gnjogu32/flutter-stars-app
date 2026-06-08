@@ -8,8 +8,11 @@ import '../models/message_model.dart';
 import '../models/user_model.dart';
 import '../services/chat_service.dart';
 import '../services/user_service.dart';
+import '../services/media_service.dart';
+import 'package:image_picker/image_picker.dart';
 import '../utils/animation_utils.dart';
 import '../utils/time_utils.dart';
+import '../widgets/video_player_widget.dart';
 import 'profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -33,6 +36,8 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final ChatService _chatService = ChatService();
   final UserService _userService = UserService();
+  final MediaService _mediaService = MediaService();
+  final ImagePicker _imagePicker = ImagePicker();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
@@ -41,6 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isUserTyping = false;
   bool _showEmojiPanel = false;
   Timer? _typingTimer;
+  bool _isMediaUploading = false;
 
   static const List<String> _quickEmojis = [
     '😀',
@@ -255,12 +261,13 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: Colors.blue.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.photo_library, color: Colors.blue),
+                        child:
+                            const Icon(Icons.photo_library, color: Colors.blue),
                       ),
                       title: const Text('Gallery'),
                       onTap: () {
                         Navigator.pop(context);
-                        // Future: Implement image sending in chat
+                        _pickChatMedia(ImageSource.gallery);
                       },
                     ),
                     ListTile(
@@ -270,12 +277,28 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: Colors.green.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.green),
+                        child:
+                            const Icon(Icons.camera_alt, color: Colors.green),
                       ),
                       title: const Text('Camera'),
                       onTap: () {
                         Navigator.pop(context);
-                        // Future: Implement image sending in chat
+                        _pickChatMedia(ImageSource.camera);
+                      },
+                    ),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.videocam, color: Colors.red),
+                      ),
+                      title: const Text('Video'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickChatVideo();
                       },
                     ),
                   ],
@@ -286,6 +309,92 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickChatMedia(ImageSource source) async {
+    try {
+      final XFile? file = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 70,
+      );
+      if (file == null) return;
+
+      setState(() => _isMediaUploading = true);
+
+      final String? imageUrl = await _mediaService.uploadChatMedia(
+        widget.conversationId,
+        file,
+      );
+
+      if (imageUrl != null) {
+        await _sendMediaMessage(imageUrl: imageUrl);
+      } else {
+        throw Exception('Failed to upload image');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isMediaUploading = false);
+    }
+  }
+
+  Future<void> _pickChatVideo() async {
+    try {
+      final XFile? file = await _imagePicker.pickVideo(
+        source: ImageSource.gallery,
+      );
+      if (file == null) return;
+
+      setState(() => _isMediaUploading = true);
+
+      final String? videoUrl = await _mediaService.uploadChatVideo(
+        widget.conversationId,
+        file,
+      );
+
+      if (videoUrl != null) {
+        await _sendMediaMessage(videoUrl: videoUrl);
+      } else {
+        throw Exception('Failed to upload video');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isMediaUploading = false);
+    }
+  }
+
+  Future<void> _sendMediaMessage({String? imageUrl, String? videoUrl}) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null || _currentUser == null) return;
+
+      await _chatService.sendMessage(
+        senderId: currentUser.uid,
+        senderName: _currentUser!.displayName,
+        senderImageUrl: _currentUser!.profileImageUrl,
+        recipientId: widget.otherUserId,
+        recipientName: widget.otherUserName,
+        recipientImageUrl: widget.otherUserImageUrl,
+        content: '',
+        imageUrl: imageUrl,
+        videoUrl: videoUrl,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send media: $e')));
+      }
+    }
   }
 
   @override
@@ -414,7 +523,7 @@ class _ChatScreenState extends State<ChatScreen> {
             builder: (context, snapshot) {
               final isTyping = snapshot.data ?? false;
 
-              if (!isTyping) {
+              if (!isTyping && !_isMediaUploading) {
                 return const SizedBox.shrink();
               }
 
@@ -425,41 +534,58 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 child: Row(
                   children: [
-                    Text(
-                      '${widget.otherUserName} is typing',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+                    if (_isMediaUploading) ...[
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    // Animated typing dots
-                    SizedBox(
-                      width: 20,
-                      height: 12,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(3, (index) {
-                          return AnimatedOpacity(
-                            opacity:
-                                ((DateTime.now().millisecond ~/ 200) + index) %
-                                        3 ==
-                                    0
-                                ? 0.3
-                                : 1,
-                            duration: const Duration(milliseconds: 200),
-                            child: Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.grey,
-                                shape: BoxShape.circle,
+                      const SizedBox(width: 8),
+                      Text(
+                        'Sending media...',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ] else if (isTyping) ...[
+                      Text(
+                        '${widget.otherUserName} is typing',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Animated typing dots
+                      SizedBox(
+                        width: 20,
+                        height: 12,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List.generate(3, (index) {
+                            return AnimatedOpacity(
+                              opacity:
+                                  ((DateTime.now().millisecond ~/ 200) + index) %
+                                          3 ==
+                                      0
+                                  ? 0.3
+                                  : 1,
+                              duration: const Duration(milliseconds: 200),
+                              child: Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          }),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               );
@@ -586,15 +712,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageBubble(MessageModel message, double maxWidth) {
     final isCurrentUser = message.senderId == _auth.currentUser?.uid;
     final theme = Theme.of(context);
-    final alignment = isCurrentUser
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
+    final alignment =
+        isCurrentUser ? Alignment.centerRight : Alignment.centerLeft;
     final bgColor = isCurrentUser
         ? theme.colorScheme.primary
         : theme.colorScheme.surfaceContainerHighest;
     final textColor = isCurrentUser
         ? theme.colorScheme.onPrimary
         : theme.colorScheme.onSurface;
+
+    final bool hasMedia = message.imageUrl != null || message.videoUrl != null;
 
     return GestureDetector(
       onLongPress: () => _showMessageOptions(message),
@@ -614,20 +741,29 @@ class _ChatScreenState extends State<ChatScreen> {
                   ? CrossAxisAlignment.end
                   : CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+                if (hasMedia)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _buildChatMedia(message),
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(12),
+                if (message.content.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      message.content,
+                      style: TextStyle(color: textColor),
+                    ),
                   ),
-                  child: Text(
-                    message.content,
-                    style: TextStyle(color: textColor),
-                  ),
-                ),
                 const SizedBox(height: 4),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -650,7 +786,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           Flexible(
                             child: Text(
                               'Read ${TimeUtils.formatShorthand(message.readAt!)}',
-                              style: Theme.of(context).textTheme.labelSmall
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
                                   ?.copyWith(
                                     fontSize: 10,
                                     color: Colors.blue.withValues(alpha: 0.7),
@@ -669,6 +807,51 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildChatMedia(MessageModel message) {
+    if (message.imageUrl != null) {
+      return GestureDetector(
+        onTap: () {
+          // Open fullscreen image viewer (reuse from PostWidget or create common)
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => Scaffold(
+                backgroundColor: Colors.black,
+                appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+                body: InteractiveViewer(
+                  child: Center(
+                    child: CachedNetworkImage(imageUrl: message.imageUrl!),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+        child: CachedNetworkImage(
+          imageUrl: message.imageUrl!,
+          placeholder: (context, url) => Container(
+            height: 200,
+            width: double.infinity,
+            color: Colors.black12,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+        ),
+      );
+    } else if (message.videoUrl != null) {
+      return Container(
+        constraints: const BoxConstraints(maxHeight: 300),
+        child: VideoPlayerWidget(
+          videoUrl: message.videoUrl!,
+          autoPlay: false,
+          looping: true,
+          muted: false,
+          currentUserId: _auth.currentUser?.uid ?? '',
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   void _showMessageOptions(MessageModel message) {

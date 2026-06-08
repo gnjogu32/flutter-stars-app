@@ -23,6 +23,8 @@ class ChatService {
     required String recipientName,
     required String? recipientImageUrl,
     required String content,
+    String? imageUrl,
+    String? videoUrl,
   }) async {
     try {
       final conversationId = _getConversationId(senderId, recipientId);
@@ -33,7 +35,6 @@ class ChatService {
           .doc(conversationId);
 
       // Ensure conversation exists before writing message.
-      // Important: do not rewrite participantIds on existing legacy docs.
       final existingConversation = await conversationRef.get();
       if (!existingConversation.exists) {
         final sortedParticipants = ([senderId, recipientId]..sort());
@@ -45,7 +46,7 @@ class ChatService {
           'lastMessageTime': now,
           'otherUserName': recipientName,
           'otherUserImageUrl': recipientImageUrl,
-          'createdBy': senderId, // Track who initiated the conversation
+          'createdBy': senderId,
           'createdAt': now,
           'updatedAt': now,
         }, SetOptions(merge: true));
@@ -58,6 +59,8 @@ class ChatService {
         senderName: senderName,
         senderImageUrl: senderImageUrl,
         content: content,
+        imageUrl: imageUrl,
+        videoUrl: videoUrl,
         sentAt: now,
       );
 
@@ -67,9 +70,13 @@ class ChatService {
           .doc(messageId)
           .set(message.toJson());
 
-      // Update conversation metadata for both users
+      // Update conversation metadata
+      final String lastMessageText = imageUrl != null
+          ? '📷 Photo'
+          : (videoUrl != null ? '🎥 Video' : content);
+
       await conversationRef.set({
-        'lastMessage': content,
+        'lastMessage': lastMessageText,
         'lastSenderId': senderId,
         'lastMessageTime': now,
         'updatedAt': now,

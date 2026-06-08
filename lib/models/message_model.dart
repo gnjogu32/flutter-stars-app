@@ -7,6 +7,8 @@ class MessageModel {
   final String senderName;
   final String? senderImageUrl;
   final String content;
+  final String? imageUrl;
+  final String? videoUrl;
   final bool isRead;
   final DateTime sentAt;
   final DateTime? readAt;
@@ -18,6 +20,8 @@ class MessageModel {
     required this.senderName,
     this.senderImageUrl,
     required this.content,
+    this.imageUrl,
+    this.videoUrl,
     this.isRead = false,
     required this.sentAt,
     this.readAt,
@@ -32,6 +36,8 @@ class MessageModel {
       'senderName': senderName,
       'senderImageUrl': senderImageUrl,
       'content': content,
+      'imageUrl': imageUrl,
+      'videoUrl': videoUrl,
       'isRead': isRead,
       'sentAt': sentAt,
       'readAt': readAt,
@@ -47,6 +53,8 @@ class MessageModel {
       senderName: json['senderName'] ?? '',
       senderImageUrl: json['senderImageUrl'],
       content: json['content'] ?? '',
+      imageUrl: json['imageUrl'],
+      videoUrl: json['videoUrl'],
       isRead: json['isRead'] ?? false,
       sentAt: json['sentAt'] is Timestamp
           ? (json['sentAt'] as Timestamp).toDate()
@@ -65,6 +73,8 @@ class MessageModel {
     String? senderName,
     String? senderImageUrl,
     String? content,
+    String? imageUrl,
+    String? videoUrl,
     bool? isRead,
     DateTime? sentAt,
     DateTime? readAt,
@@ -76,6 +86,8 @@ class MessageModel {
       senderName: senderName ?? this.senderName,
       senderImageUrl: senderImageUrl ?? this.senderImageUrl,
       content: content ?? this.content,
+      imageUrl: imageUrl ?? this.imageUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
       isRead: isRead ?? this.isRead,
       sentAt: sentAt ?? this.sentAt,
       readAt: readAt ?? this.readAt,
