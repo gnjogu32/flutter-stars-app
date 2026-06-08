@@ -14,6 +14,7 @@ import '../services/repost_queue_service.dart';
 import '../services/user_service.dart';
 import '../utils/animation_utils.dart';
 import '../widgets/post_widget.dart';
+import '../widgets/post_details_sheet.dart';
 import 'analytics_dashboard_screen.dart';
 import 'chat_screen.dart';
 import 'followers_following_screen.dart';
@@ -40,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isFollowing = false;
   bool _isLoadingFollow = false;
   _ProfileMediaFolder _selectedFolder = _ProfileMediaFolder.all;
+  bool _isGridView = true;
 
   @override
   void initState() {
@@ -738,22 +740,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
+              Row(
                 children: [
-                  ChoiceChip(
-                    label: const Text('All'),
-                    selected: _selectedFolder == _ProfileMediaFolder.all,
-                    onSelected: (_) {
-                      setState(() {
-                        _selectedFolder = _ProfileMediaFolder.all;
-                      });
-                    },
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('All'),
+                          selected: _selectedFolder == _ProfileMediaFolder.all,
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedFolder = _ProfileMediaFolder.all;
+                            });
+                          },
+                        ),
+                        ChoiceChip(
+                          label: Text('${filteredPosts.length} visible'),
+                          selected: false,
+                          onSelected: null,
+                        ),
+                      ],
+                    ),
                   ),
-                  ChoiceChip(
-                    label: Text('${filteredPosts.length} visible'),
-                    selected: false,
-                    onSelected: null,
+                  IconButton(
+                    icon: Icon(
+                      _isGridView ? Icons.grid_view : Icons.view_agenda_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    onPressed: () => setState(() => _isGridView = !_isGridView),
+                    tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
                   ),
                 ],
               ),
@@ -766,12 +782,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               folderSection,
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
                 child: Text(
                   _selectedFolder == _ProfileMediaFolder.all
                       ? 'No posts yet'
                       : 'No ${_selectedFolder.name} posts yet',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             ],
@@ -781,20 +799,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Column(
           children: [
             folderSection,
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filteredPosts.length,
-              itemBuilder: (context, index) {
-                return PostWidget(
-                  post: filteredPosts[index],
-                  currentUserId: _auth.currentUser?.uid ?? '',
-                );
-              },
-            ),
+            _isGridView
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 4,
+                        mainAxisSpacing: 4,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: filteredPosts.length,
+                      itemBuilder: (context, index) {
+                        return _buildGridPostItem(filteredPosts[index]);
+                      },
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filteredPosts.length,
+                    itemBuilder: (context, index) {
+                      return PostWidget(
+                        post: filteredPosts[index],
+                        currentUserId: _auth.currentUser?.uid ?? '',
+                      );
+                    },
+                  ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildGridPostItem(PostModel post) {
+    final String? thumbnailUrl = post.imageUrls.isNotEmpty ? post.imageUrls.first : null;
+    final bool isVideo = post.postType == 'video' || (post.videoUrl != null && post.videoUrl!.isNotEmpty);
+
+    return GestureDetector(
+      onTap: () {
+        // When tapping a grid item, show post details
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => DraggableScrollableSheet(
+            expand: false,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            initialChildSize: 0.9,
+            builder: (context, scrollController) => PostDetailsSheet(
+              post: post,
+              currentUserId: _auth.currentUser?.uid ?? '',
+              scrollController: scrollController,
+            ),
+          ),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (thumbnailUrl != null)
+              CachedNetworkImage(
+                imageUrl: thumbnailUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(color: Colors.black12),
+                errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+              )
+            else if (isVideo)
+              Container(
+                color: Colors.black87,
+                child: const Icon(Icons.play_circle_outline, color: Colors.white70, size: 32),
+              )
+            else
+              Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  post.content,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
+            if (isVideo && thumbnailUrl != null)
+              const Positioned(
+                top: 4,
+                right: 4,
+                child: Icon(Icons.play_circle_fill, color: Colors.white, size: 16),
+              ),
+            if (post.imageUrls.length > 1)
+              const Positioned(
+                top: 4,
+                right: 4,
+                child: Icon(Icons.copy, color: Colors.white, size: 16),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
