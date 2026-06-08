@@ -151,6 +151,108 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  void _showProfilePhotoPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.35,
+        minChildSize: 0.2,
+        maxChildSize: 0.5,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'Change Profile Photo',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.photo_library,
+                            color: Theme.of(context).colorScheme.primary),
+                      ),
+                      title: const Text('Choose from Gallery',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickProfileImageFromGallery();
+                      },
+                    ),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.camera_alt,
+                            color: Theme.of(context).colorScheme.primary),
+                      ),
+                      title: const Text('Take a Photo',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickProfileImageFromCamera();
+                      },
+                    ),
+                    if (_selectedProfileImageBytes != null ||
+                        (_currentUser?.profileImageUrl != null &&
+                            !_shouldDeletePhoto))
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.delete_outline,
+                              color: Colors.red),
+                        ),
+                        title: const Text('Remove Current Photo',
+                            style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _removeProfileImage();
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _updateProfile() async {
     if (_displayNameController.text.trim().isEmpty) {
       setState(() {
@@ -268,7 +370,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   clipBehavior: Clip.none,
                   children: [
                     GestureDetector(
-                      onTap: _pickProfileImageFromGallery,
+                      onTap: _showProfilePhotoPicker,
                       child: CircleAvatar(
                         radius: 60,
                         backgroundImage: _selectedProfileImageBytes != null
@@ -290,7 +392,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       bottom: 0,
                       right: 0,
                       child: GestureDetector(
-                        onTap: _pickProfileImageFromCamera,
+                        onTap: _showProfilePhotoPicker,
                         child: Container(
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary,

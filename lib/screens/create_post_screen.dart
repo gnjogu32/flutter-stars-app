@@ -272,6 +272,113 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
+  void _showMediaPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.4,
+        minChildSize: 0.2,
+        maxChildSize: 0.6,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'Add Media',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    _buildPickerOption(
+                      icon: Icons.photo_library,
+                      label: 'Gallery (Multi)',
+                      subtitle: 'Choose from your photos',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickImage();
+                      },
+                    ),
+                    _buildPickerOption(
+                      icon: Icons.camera_alt,
+                      label: 'Camera',
+                      subtitle: 'Take a new photo',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _takePhoto();
+                      },
+                    ),
+                    _buildPickerOption(
+                      icon: Icons.videocam,
+                      label: 'Video',
+                      subtitle: 'Select a video file',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickVideo();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPickerOption({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      ),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildRemoveButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white24
+            : Colors.black54,
+        shape: BoxShape.circle,
+      ),
+      padding: const EdgeInsets.all(4),
+      child: const Icon(Icons.close, color: Colors.white, size: 16),
+    );
+  }
+
   Future<void> _createPost() async {
     // Validation
     if (_contentController.text.trim().isEmpty &&
@@ -408,19 +515,56 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       bottomNavigationBar: showKeyboardPrompt
           ? SafeArea(
               top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  0,
-                  16,
-                  MediaQuery.viewInsetsOf(context).bottom + 12,
-                ),
-                child: const KeyboardPromptBanner(
-                  visible: true,
-                  text:
-                      'Sharing your post. Add the final details before publishing.',
-                  icon: Icons.edit_note_outlined,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Media Toolbar for easy access while typing
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: _showMediaPicker,
+                          icon: Icon(Icons.add_circle_outline, color: Theme.of(context).colorScheme.primary),
+                          tooltip: 'Add Media',
+                        ),
+                        IconButton(
+                          onPressed: _pickImage,
+                          icon: const Icon(Icons.image_outlined),
+                          tooltip: 'Gallery',
+                        ),
+                        IconButton(
+                          onPressed: _takePhoto,
+                          icon: const Icon(Icons.camera_alt_outlined),
+                          tooltip: 'Camera',
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _isLoading ? null : _createPost,
+                          child: const Text('Post', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      0,
+                      16,
+                      MediaQuery.viewInsetsOf(context).bottom + 12,
+                    ),
+                    child: const KeyboardPromptBanner(
+                      visible: true,
+                      text:
+                          'Sharing your post. Add the final details before publishing.',
+                      icon: Icons.edit_note_outlined,
+                    ),
+                  ),
+                ],
               ),
             )
           : null,
@@ -475,98 +619,94 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Video selection button
+            // Media Selection Trigger
             Text(
-              'Add Video (Optional)',
+              'Add Media',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _pickVideo,
-                icon: const Icon(Icons.videocam_outlined),
-                label: const Text('Video'),
-              ),
-            ),
-            // Video selection preview
-            if (_selectedVideo != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Theme.of(context).dividerColor),
+            InkWell(
+              onTap: _showMediaPicker,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    width: 1,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.videocam, color: Colors.red),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Video: ${_selectedVideo!.name}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.add_a_photo_outlined,
+                      size: 32,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap to add photos or video',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w500,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => setState(() => _selectedVideo = null),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            const SizedBox(height: 16),
-
-            // Image selection buttons
-            Text(
-              'Add Images (Optional)',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _pickImage,
-                    icon: const Icon(Icons.image),
-                    label: const Text('Gallery (Multi)'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _takePhoto,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Camera'),
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: 16),
 
-            // Selected images preview
-            if (_selectedImages.isNotEmpty)
+            // Selected media preview
+            if (_selectedImages.isNotEmpty || _selectedVideo != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Selected Images (${_selectedImages.length})',
+                    'Attachments',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   SizedBox(
                     height: 120,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount: _selectedImages.length,
+                      itemCount: _selectedImages.length + (_selectedVideo != null ? 1 : 0),
                       itemBuilder: (context, index) {
+                        if (_selectedVideo != null && index == 0) {
+                          // Video Preview
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(Icons.videocam, color: Colors.white, size: 40),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _selectedVideo = null),
+                                    child: _buildRemoveButton(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final imageIndex = _selectedVideo != null ? index - 1 : index;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: Stack(
@@ -575,13 +715,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                 borderRadius: BorderRadius.circular(8),
                                 child: kIsWeb
                                     ? Image.network(
-                                        _selectedImages[index].path,
+                                        _selectedImages[imageIndex].path,
                                         width: 120,
                                         height: 120,
                                         fit: BoxFit.cover,
                                       )
                                     : Image.file(
-                                        File(_selectedImages[index].path),
+                                        File(_selectedImages[imageIndex].path),
                                         width: 120,
                                         height: 120,
                                         fit: BoxFit.cover,
@@ -591,23 +731,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                 top: 4,
                                 right: 4,
                                 child: GestureDetector(
-                                  onTap: () => _removeImage(index),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.white24
-                                          : Colors.black54,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    padding: const EdgeInsets.all(4),
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                  ),
+                                  onTap: () => _removeImage(imageIndex),
+                                  child: _buildRemoveButton(),
                                 ),
                               ),
                             ],
