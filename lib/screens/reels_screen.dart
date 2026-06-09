@@ -347,24 +347,24 @@ class _ReelItemState extends State<_ReelItem>
       if (wasSaved) {
         await userService.unsavePost(_activeUserId, widget.post.postId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Removed from Saved ✓')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Removed from Saved ✓')));
         }
       } else {
         await userService.savePost(_activeUserId, widget.post.postId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Added to Saved ✓')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Added to Saved ✓')));
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaved = wasSaved);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }

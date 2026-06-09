@@ -288,7 +288,10 @@ class UserService {
   // Get saved posts of a user
   Future<List<String>> getSavedPostIds(String userId) async {
     try {
-      final doc = await _firebaseFirestore.collection('users').doc(userId).get();
+      final doc = await _firebaseFirestore
+          .collection('users')
+          .doc(userId)
+          .get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         return List<String>.from(data['savedPosts'] ?? []);

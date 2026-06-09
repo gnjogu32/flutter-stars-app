@@ -520,16 +520,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 children: [
                   // Media Toolbar for easy access while typing
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
-                      border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
+                      border: Border(
+                        top: BorderSide(color: Theme.of(context).dividerColor),
+                      ),
                     ),
                     child: Row(
                       children: [
                         IconButton(
                           onPressed: _showMediaPicker,
-                          icon: Icon(Icons.add_circle_outline, color: Theme.of(context).colorScheme.primary),
+                          icon: Icon(
+                            Icons.add_circle_outline,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                           tooltip: 'Add Media',
                         ),
                         IconButton(
@@ -545,7 +553,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         const Spacer(),
                         TextButton(
                           onPressed: _isLoading ? null : _createPost,
-                          child: const Text('Post', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Post',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),
@@ -620,10 +631,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             const SizedBox(height: 24),
 
             // Media Selection Trigger
-            Text(
-              'Add Media',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
+            Text('Add Media', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 12),
             InkWell(
               onTap: _showMediaPicker,
@@ -635,7 +643,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -674,7 +684,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     height: 120,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount: _selectedImages.length + (_selectedVideo != null ? 1 : 0),
+                      itemCount:
+                          _selectedImages.length +
+                          (_selectedVideo != null ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (_selectedVideo != null && index == 0) {
                           // Video Preview
@@ -690,14 +702,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Center(
-                                    child: Icon(Icons.videocam, color: Colors.white, size: 40),
+                                    child: Icon(
+                                      Icons.videocam,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
                                   ),
                                 ),
                                 Positioned(
                                   top: 4,
                                   right: 4,
                                   child: GestureDetector(
-                                    onTap: () => setState(() => _selectedVideo = null),
+                                    onTap: () =>
+                                        setState(() => _selectedVideo = null),
                                     child: _buildRemoveButton(),
                                   ),
                                 ),
@@ -706,7 +723,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           );
                         }
 
-                        final imageIndex = _selectedVideo != null ? index - 1 : index;
+                        final imageIndex = _selectedVideo != null
+                            ? index - 1
+                            : index;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: Stack(

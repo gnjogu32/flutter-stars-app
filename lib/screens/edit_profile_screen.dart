@@ -194,11 +194,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           color: Theme.of(context).colorScheme.primaryContainer,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.photo_library,
-                            color: Theme.of(context).colorScheme.primary),
+                        child: Icon(
+                          Icons.photo_library,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                      title: const Text('Choose from Gallery',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      title: const Text(
+                        'Choose from Gallery',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       onTap: () {
                         Navigator.pop(context);
                         _pickProfileImageFromGallery();
@@ -211,11 +215,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           color: Theme.of(context).colorScheme.primaryContainer,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.camera_alt,
-                            color: Theme.of(context).colorScheme.primary),
+                        child: Icon(
+                          Icons.camera_alt,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                      title: const Text('Take a Photo',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      title: const Text(
+                        'Take a Photo',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       onTap: () {
                         Navigator.pop(context);
                         _pickProfileImageFromCamera();
@@ -231,13 +239,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             color: Colors.red.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.delete_outline,
-                              color: Colors.red),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
                         ),
-                        title: const Text('Remove Current Photo',
-                            style: TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.w600)),
+                        title: const Text(
+                          'Remove Current Photo',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         onTap: () {
                           Navigator.pop(context);
                           _removeProfileImage();
