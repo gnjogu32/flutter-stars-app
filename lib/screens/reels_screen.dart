@@ -264,6 +264,7 @@ class _ReelItemState extends State<_ReelItem>
   bool _showLikeHeart = false;
   bool _showDetails = true;
   bool _endEventDispatched = false;
+  bool _isSaved = false;
   late AnimationController _heartAnimationController;
 
   static const List<String> _quickEmojis = [
@@ -316,6 +317,56 @@ class _ReelItemState extends State<_ReelItem>
       duration: const Duration(milliseconds: 500),
     );
     _initializeVideo();
+    _checkSavedStatus();
+  }
+
+  Future<void> _checkSavedStatus() async {
+    if (_activeUserId.isEmpty) return;
+    try {
+      final userService = UserService();
+      final savedIds = await userService.getSavedPostIds(_activeUserId);
+      if (mounted) {
+        setState(() {
+          _isSaved = savedIds.contains(widget.post.postId);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSave() async {
+    if (_activeUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    final wasSaved = _isSaved;
+    setState(() => _isSaved = !wasSaved);
+
+    try {
+      final userService = UserService();
+      if (wasSaved) {
+        await userService.unsavePost(_activeUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Removed from Saved ✓')),
+          );
+        }
+      } else {
+        await userService.savePost(_activeUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Added to Saved ✓')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaved = wasSaved);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _initializeVideo() async {
@@ -816,9 +867,11 @@ class _ReelItemState extends State<_ReelItem>
           isLiked: _isLiked,
           likeCount: _likeCount,
           isReposting: _isReposting,
+          isSaved: _isSaved,
           onLike: _toggleLike,
           onComments: _openComments,
           onRepost: _confirmRepost,
+          onSave: _toggleSave,
           onShare: _sharePost,
           scrollController: scrollController,
         ),
@@ -1019,6 +1072,13 @@ class _ReelItemState extends State<_ReelItem>
                         label: 'Share',
                         onTap: _sharePost,
                       ),
+                      const SizedBox(height: 14),
+                      _InteractionButton(
+                        icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        iconColor: _isSaved ? Colors.amberAccent : Colors.white,
+                        label: _isSaved ? 'Saved' : 'Save',
+                        onTap: _toggleSave,
+                      ),
                       if ((widget.post.originalAuthorId ??
                               widget.post.authorId) ==
                           _activeUserId) ...[
@@ -1198,9 +1258,11 @@ class _ReelInteractionsSheet extends StatefulWidget {
   final bool isLiked;
   final int likeCount;
   final bool isReposting;
+  final bool isSaved;
   final Future<void> Function() onLike;
   final Future<void> Function() onComments;
   final Future<void> Function() onRepost;
+  final Future<void> Function() onSave;
   final VoidCallback onShare;
   final ScrollController scrollController;
 
@@ -1209,9 +1271,11 @@ class _ReelInteractionsSheet extends StatefulWidget {
     required this.isLiked,
     required this.likeCount,
     required this.isReposting,
+    required this.isSaved,
     required this.onLike,
     required this.onComments,
     required this.onRepost,
+    required this.onSave,
     required this.onShare,
     required this.scrollController,
   });
@@ -1235,6 +1299,12 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
   Future<void> _handleRepost() async {
     Navigator.of(context).pop();
     await widget.onRepost();
+  }
+
+  Future<void> _handleSave() async {
+    await widget.onSave();
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   @override
@@ -1278,13 +1348,14 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
             ),
           const Divider(height: 1),
           DefaultTabController(
-            length: 4,
+            length: 5,
             child: TabBar(
               onTap: (index) {
                 if (index == 0) _handleLike();
                 if (index == 1) _handleComments();
                 if (index == 2) _handleRepost();
-                if (index == 3) {
+                if (index == 3) _handleSave();
+                if (index == 4) {
                   widget.onShare();
                   Navigator.of(context).pop();
                 }
@@ -1325,6 +1396,15 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
                     widget.isReposting ? '...' : '${widget.post.repostCount}',
                     style: const TextStyle(fontSize: 11),
                   ),
+                ),
+                Tab(
+                  height: 60,
+                  icon: Icon(
+                    widget.isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: widget.isSaved ? Colors.amberAccent : null,
+                    size: 24,
+                  ),
+                  child: const Text('Save', style: TextStyle(fontSize: 11)),
                 ),
                 const Tab(
                   height: 60,
