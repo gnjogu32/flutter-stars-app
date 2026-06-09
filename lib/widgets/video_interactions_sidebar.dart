@@ -228,12 +228,6 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _InteractionButton(
-          icon: widget.isMuted ? Icons.volume_off : Icons.volume_up,
-          label: widget.isMuted ? 'Muted' : 'Mute',
-          onTap: widget.onToggleMute,
-        ),
-        const SizedBox(height: 14),
-        _InteractionButton(
           icon: _isLiked ? Icons.favorite : Icons.favorite_border,
           iconColor: _isLiked ? Colors.redAccent : Colors.white,
           label: '$_likeCount',

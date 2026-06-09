@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -265,6 +266,8 @@ class _ReelItemState extends State<_ReelItem>
   bool _showDetails = true;
   bool _endEventDispatched = false;
   bool _isSaved = false;
+  bool _showMuteIndicator = false;
+  Timer? _muteIndicatorTimer;
   late AnimationController _heartAnimationController;
 
   static const List<String> _quickEmojis = [
@@ -890,6 +893,7 @@ class _ReelItemState extends State<_ReelItem>
 
   @override
   void dispose() {
+    _muteIndicatorTimer?.cancel();
     if (_isInitialized && _videoController.value.isPlaying) {
       ScreenAwakeController.release();
     }
@@ -903,9 +907,29 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _toggleMute() {
+    _muteIndicatorTimer?.cancel();
     setState(() {
       _isMuted = !_isMuted;
       _videoController.setVolume(_isMuted ? 0 : 1);
+      _showMuteIndicator = true;
+    });
+
+    _muteIndicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() => _showMuteIndicator = false);
+      }
+    });
+  }
+
+  void _togglePlayPause() {
+    setState(() {
+      if (_videoController.value.isPlaying) {
+        _videoController.pause();
+        ScreenAwakeController.release();
+      } else {
+        _videoController.play();
+        ScreenAwakeController.acquire();
+      }
     });
   }
 
@@ -977,18 +1001,8 @@ class _ReelItemState extends State<_ReelItem>
         if (_isInitialized)
           GestureDetector(
             onDoubleTap: _handleDoubleTap,
-            onTap: () {
-              setState(() {
-                _showDetails = !_showDetails;
-                if (_videoController.value.isPlaying) {
-                  _videoController.pause();
-                  ScreenAwakeController.release();
-                } else {
-                  _videoController.play();
-                  ScreenAwakeController.acquire();
-                }
-              });
-            },
+            onLongPress: _togglePlayPause,
+            onTap: _toggleMute,
             child: Center(
               child: AspectRatio(
                 aspectRatio: _videoController.value.aspectRatio,
@@ -998,6 +1012,23 @@ class _ReelItemState extends State<_ReelItem>
           )
         else
           const Center(child: CircularProgressIndicator(color: Colors.white)),
+
+        // Mute/Unmute Indicator
+        if (_showMuteIndicator)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black45,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _isMuted ? Icons.volume_off : Icons.volume_up,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+          ),
 
         // Buffering Indicator
         if (_isInitialized)
@@ -1040,12 +1071,6 @@ class _ReelItemState extends State<_ReelItem>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _InteractionButton(
-                        icon: _isMuted ? Icons.volume_off : Icons.volume_up,
-                        label: _isMuted ? 'Muted' : 'Mute',
-                        onTap: _toggleMute,
-                      ),
-                      const SizedBox(height: 14),
                       _InteractionButton(
                         icon: _isLiked ? Icons.favorite : Icons.favorite_border,
                         iconColor: _isLiked ? Colors.redAccent : Colors.white,

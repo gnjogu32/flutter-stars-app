@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:starpage/models/post_model.dart';
 import 'package:starpage/widgets/video_interactions_sidebar.dart';
@@ -122,6 +123,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   bool _isInitialized = false;
   bool _showControls = true;
   bool _isMuted = false;
+  bool _showMuteIndicator = false;
+  Timer? _muteIndicatorTimer;
   String? _error;
 
   @override
@@ -173,6 +176,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
 
   @override
   void dispose() {
+    _muteIndicatorTimer?.cancel();
     if (_isInitialized && _controller.value.isPlaying) {
       ScreenAwakeController.release();
     }
@@ -195,16 +199,25 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   }
 
   void _toggleMute() {
+    _muteIndicatorTimer?.cancel();
     setState(() {
       _isMuted = !_isMuted;
       _controller.setVolume(_isMuted ? 0 : 1);
+      _showMuteIndicator = true;
+    });
+
+    _muteIndicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() => _showMuteIndicator = false);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
+      onTap: _toggleMute,
+      onLongPress: () {
         setState(() {
           _showControls = !_showControls;
         });
@@ -235,6 +248,23 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                   )
                 : const CircularProgressIndicator(color: Colors.white),
           ),
+
+          // Mute/Unmute Indicator
+          if (_showMuteIndicator)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Colors.black45,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isMuted ? Icons.volume_off : Icons.volume_up,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+            ),
 
           // Buffering Indicator
           if (_isInitialized)
