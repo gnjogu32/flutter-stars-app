@@ -10,6 +10,7 @@ class UserModel {
   talent; // Category of talent (e.g., Art, Music, Writing, Dance, etc.)
   final List<String> followers;
   final List<String> following;
+  final List<String> savedPosts;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? fcmToken;
@@ -23,6 +24,7 @@ class UserModel {
     this.talent,
     this.followers = const [],
     this.following = const [],
+    this.savedPosts = const [],
     required this.createdAt,
     required this.updatedAt,
     this.fcmToken,
@@ -39,6 +41,7 @@ class UserModel {
       'talent': talent,
       'followers': followers,
       'following': following,
+      'savedPosts': savedPosts,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'fcmToken': fcmToken,
@@ -56,6 +59,7 @@ class UserModel {
       talent: json['talent'],
       followers: List<String>.from(json['followers'] ?? []),
       following: List<String>.from(json['following'] ?? []),
+      savedPosts: List<String>.from(json['savedPosts'] ?? []),
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -86,6 +90,7 @@ class UserModel {
       talent: data['talent'],
       followers: List<String>.from(data['followers'] ?? []),
       following: List<String>.from(data['following'] ?? []),
+      savedPosts: List<String>.from(data['savedPosts'] ?? []),
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -110,6 +115,7 @@ class UserModel {
     String? talent,
     List<String>? followers,
     List<String>? following,
+    List<String>? savedPosts,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? fcmToken,
@@ -123,6 +129,7 @@ class UserModel {
       talent: talent ?? this.talent,
       followers: followers ?? this.followers,
       following: following ?? this.following,
+      savedPosts: savedPosts ?? this.savedPosts,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       fcmToken: fcmToken ?? this.fcmToken,

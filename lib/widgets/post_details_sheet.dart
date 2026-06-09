@@ -33,12 +33,53 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
   late int _likeCount;
   bool _isLikeUpdating = false;
   bool _isReposting = false;
+  bool _isSaved = false;
 
   @override
   void initState() {
     super.initState();
     _isLiked = widget.post.isLikedBy(widget.currentUserId);
     _likeCount = widget.post.likeCount;
+    _checkSavedStatus();
+  }
+
+  Future<void> _checkSavedStatus() async {
+    if (widget.currentUserId.isEmpty) return;
+    try {
+      final userService = UserService();
+      final savedIds = await userService.getSavedPostIds(widget.currentUserId);
+      if (mounted) {
+        setState(() {
+          _isSaved = savedIds.contains(widget.post.postId);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSave() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    final wasSaved = _isSaved;
+    setState(() => _isSaved = !wasSaved);
+
+    try {
+      final userService = UserService();
+      if (wasSaved) {
+        await userService.unsavePost(widget.currentUserId, widget.post.postId);
+      } else {
+        await userService.savePost(widget.currentUserId, widget.post.postId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaved = wasSaved);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _toggleLike() async {
@@ -250,13 +291,14 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
 
           // Interaction TabBar (Consistent with Feed)
           DefaultTabController(
-            length: 4,
+            length: 5,
             child: TabBar(
               onTap: (index) {
                 if (index == 0) _toggleLike();
                 if (index == 1) _openComments();
                 if (index == 2) _repost();
-                if (index == 3) _share();
+                if (index == 3) _toggleSave();
+                if (index == 4) _share();
               },
               indicatorColor: Colors.transparent,
               labelColor: theme.colorScheme.primary,
@@ -294,6 +336,14 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                     '${widget.post.repostCount}',
                     style: const TextStyle(fontSize: 10),
                   ),
+                ),
+                Tab(
+                  height: 48,
+                  icon: Icon(
+                    _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    size: 20,
+                  ),
+                  child: const Text('Save', style: TextStyle(fontSize: 10)),
                 ),
                 const Tab(
                   height: 48,

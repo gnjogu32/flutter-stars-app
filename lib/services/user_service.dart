@@ -262,4 +262,40 @@ class UserService {
       rethrow;
     }
   }
+
+  // Save a post
+  Future<void> savePost(String userId, String postId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(userId).update({
+        'savedPosts': FieldValue.arrayUnion([postId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Unsave a post
+  Future<void> unsavePost(String userId, String postId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(userId).update({
+        'savedPosts': FieldValue.arrayRemove([postId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Get saved posts of a user
+  Future<List<String>> getSavedPostIds(String userId) async {
+    try {
+      final doc = await _firebaseFirestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return List<String>.from(data['savedPosts'] ?? []);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 }

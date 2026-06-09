@@ -409,6 +409,41 @@ class _PostWidgetState extends State<PostWidget>
     }
   }
 
+  Future<void> _toggleSave() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    try {
+      final userService = UserService();
+      final savedIds = await userService.getSavedPostIds(widget.currentUserId);
+      final bool isSaved = savedIds.contains(widget.post.postId);
+
+      if (isSaved) {
+        await userService.unsavePost(widget.currentUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Removed from Saved ✓')),
+          );
+        }
+      } else {
+        await userService.savePost(widget.currentUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Added to Saved ✓')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   void _editPost() {
     debugPrint('_editPost called for post: ${widget.post.postId}');
     debugPrint('Post content: ${widget.post.content}');
@@ -1071,63 +1106,74 @@ class _PostWidgetState extends State<PostWidget>
                   TimeUtils.formatShorthand(widget.post.createdAt),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                // Menu button for post owner or original author
-                if (widget.post.authorId == widget.currentUserId ||
-                    widget.post.originalAuthorId == widget.currentUserId)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _editPost();
-                      } else if (value == 'delete') {
-                        _deletePost();
-                      } else if (value == 'download') {
-                        _downloadVideo();
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      if (widget.post.videoUrl != null &&
-                          widget.post.videoUrl!.isNotEmpty &&
-                          (widget.post.originalAuthorId ??
-                                  widget.post.authorId) ==
-                              widget.currentUserId)
-                        const PopupMenuItem(
-                          value: 'download',
-                          child: Row(
-                            children: [
-                              Icon(Icons.download),
-                              SizedBox(width: 8),
-                              Text('Download Video'),
-                            ],
-                          ),
+                // Menu button for post management
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _editPost();
+                    } else if (value == 'delete') {
+                      _deletePost();
+                    } else if (value == 'download') {
+                      _downloadVideo();
+                    } else if (value == 'save') {
+                      _toggleSave();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    // Save is available for everyone
+                    const PopupMenuItem(
+                      value: 'save',
+                      child: Row(
+                        children: [
+                          Icon(Icons.bookmark_border),
+                          SizedBox(width: 8),
+                          Text('Save / Unsave'),
+                        ],
+                      ),
+                    ),
+                    if (widget.post.videoUrl != null &&
+                        widget.post.videoUrl!.isNotEmpty &&
+                        (widget.post.originalAuthorId ??
+                                widget.post.authorId) ==
+                            widget.currentUserId)
+                      const PopupMenuItem(
+                        value: 'download',
+                        child: Row(
+                          children: [
+                            Icon(Icons.download),
+                            SizedBox(width: 8),
+                            Text('Download Video'),
+                          ],
                         ),
-                      if (widget.post.authorId == widget.currentUserId) ...[
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
-                          ),
+                      ),
+                    if (widget.post.authorId == widget.currentUserId) ...[
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit),
+                            SizedBox(width: 8),
+                            Text('Edit'),
+                          ],
                         ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ],
-                          ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text(
+                              'Delete',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ],
-                  ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 12),

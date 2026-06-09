@@ -20,7 +20,7 @@ import 'chat_screen.dart';
 import 'followers_following_screen.dart';
 import 'repost_queue_screen.dart';
 
-enum _ProfileMediaFolder { all, photos, videos }
+enum _ProfileMediaFolder { all, photos, videos, saved }
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -302,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildProfileHeader(user, isOwnProfile),
                 const Divider(),
                 // User Posts
-                _buildUserPosts(user.uid, isOwnProfile),
+                _buildUserPosts(user, isOwnProfile),
               ],
             );
           },
@@ -628,55 +628,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     final isSelected = _selectedFolder == folder;
 
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedFolder = folder;
-          });
-        },
-        borderRadius: BorderRadius.circular(14),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedFolder = folder;
+        });
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 100, // Fixed width for scrollable row
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: isSelected
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          border: Border.all(
             color: isSelected
-                ? Theme.of(context).colorScheme.primaryContainer
-                : Theme.of(context).colorScheme.surfaceContainerHighest,
-            border: Border.all(
+                ? Theme.of(context).colorScheme.primary
+                : Colors.transparent,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
-                  : Colors.transparent,
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w600,
                 color: isSelected
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                    : null,
               ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  bool _matchesSelectedFolder(PostModel post) {
+  bool _matchesSelectedFolder(PostModel post, List<String> savedIds) {
     switch (_selectedFolder) {
       case _ProfileMediaFolder.all:
         return true;
@@ -684,16 +683,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return post.imageUrls.isNotEmpty;
       case _ProfileMediaFolder.videos:
         return post.videoUrl != null && post.videoUrl!.isNotEmpty;
+      case _ProfileMediaFolder.saved:
+        return savedIds.contains(post.postId);
     }
   }
 
-  Widget _buildUserPosts(String userId, bool isOwnProfile) {
+  Widget _buildUserPosts(UserModel user, bool isOwnProfile) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore
-          .collection('posts')
-          .where('authorId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
+      stream: _selectedFolder == _ProfileMediaFolder.saved
+          ? _firestore.collection('posts').orderBy('createdAt', descending: true).snapshots()
+          : _firestore
+              .collection('posts')
+              .where('authorId', isEqualTo: user.uid)
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -712,7 +715,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   )
                   .toList();
 
-        final filteredPosts = allPosts.where(_matchesSelectedFolder).toList();
+        final filteredPosts = allPosts.where((post) => _matchesSelectedFolder(post, user.savedPosts)).toList();
 
         final folderSection = Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -724,20 +727,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildFolderCard(
-                    label: 'Photos',
-                    icon: Icons.folder_copy_outlined,
-                    folder: _ProfileMediaFolder.photos,
-                  ),
-                  const SizedBox(width: 10),
-                  _buildFolderCard(
-                    label: 'Videos',
-                    icon: Icons.folder_special_outlined,
-                    folder: _ProfileMediaFolder.videos,
-                  ),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFolderCard(
+                      label: 'Photos',
+                      icon: Icons.folder_copy_outlined,
+                      folder: _ProfileMediaFolder.photos,
+                    ),
+                    const SizedBox(width: 10),
+                    _buildFolderCard(
+                      label: 'Videos',
+                      icon: Icons.folder_special_outlined,
+                      folder: _ProfileMediaFolder.videos,
+                    ),
+                    if (isOwnProfile) ...[
+                      const SizedBox(width: 10),
+                      _buildFolderCard(
+                        label: 'Saved',
+                        icon: Icons.bookmark_border_outlined,
+                        folder: _ProfileMediaFolder.saved,
+                      ),
+                    ],
+                  ],
+                ),
               ),
               const SizedBox(height: 10),
               Row(
