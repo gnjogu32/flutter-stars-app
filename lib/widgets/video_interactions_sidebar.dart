@@ -37,6 +37,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
+  bool _isSaved = false;
   final AnalyticsService _analyticsService = AnalyticsService();
 
   @override
@@ -44,6 +45,56 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
     super.initState();
     _isLiked = widget.post.isLikedBy(widget.currentUserId);
     _likeCount = widget.post.likeCount;
+    _checkSavedStatus();
+  }
+
+  Future<void> _checkSavedStatus() async {
+    if (widget.currentUserId.isEmpty) return;
+    try {
+      final userService = UserService();
+      final savedIds = await userService.getSavedPostIds(widget.currentUserId);
+      if (mounted) {
+        setState(() {
+          _isSaved = savedIds.contains(widget.post.postId);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSave() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    final wasSaved = _isSaved;
+    setState(() => _isSaved = !wasSaved);
+
+    try {
+      final userService = UserService();
+      if (wasSaved) {
+        await userService.unsavePost(widget.currentUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Removed from Saved ✓')),
+          );
+        }
+      } else {
+        await userService.savePost(widget.currentUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Added to Saved ✓')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaved = wasSaved);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _toggleLike() async {
@@ -206,12 +257,19 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           label: 'Share',
           onTap: _share,
         ),
+        const SizedBox(height: 14),
+        _InteractionButton(
+          icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
+          iconColor: _isSaved ? Colors.amberAccent : Colors.white,
+          label: _isSaved ? 'Saved' : 'Save',
+          onTap: _toggleSave,
+        ),
         if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
             widget.currentUserId) ...[
           const SizedBox(height: 14),
           _InteractionButton(
             icon: Icons.download_outlined,
-            label: 'Save',
+            label: 'Download',
             onTap: _download,
           ),
         ],
