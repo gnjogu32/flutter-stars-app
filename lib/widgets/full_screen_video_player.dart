@@ -4,6 +4,10 @@ import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:starpage/models/post_model.dart';
 import 'package:starpage/widgets/video_interactions_sidebar.dart';
+import 'package:starpage/widgets/expandable_text.dart';
+import 'package:starpage/screens/profile_screen.dart';
+import 'package:starpage/screens/full_screen_comments_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../utils/screen_awake_controller.dart';
 
 class FullScreenVideoPlayer extends StatefulWidget {
@@ -213,8 +217,36 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
     });
   }
 
+  void _onOpenProfile() {
+    final userId =
+        (widget.post.originalAuthorId ?? widget.post.authorId).trim();
+    if (userId.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(userId: userId),
+      ),
+    );
+  }
+
+  void _openComments() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => FullScreenCommentsPage(
+          postId: widget.post.postId,
+          postAuthorId: (widget.post.originalAuthorId ?? widget.post.authorId),
+          currentUserId: widget.currentUserId ?? '',
+          postContent: widget.post.content,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
+        .trim();
+
     return GestureDetector(
       onTap: _toggleMute,
       onLongPress: () {
@@ -310,43 +342,130 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
               ),
             ),
 
-          // Bottom Progress bar and duration
+          // Bottom Details & Progress bar
           if (_showControls && _isInitialized)
             Positioned(
-              bottom: 20,
-              left: 20,
-              right: 80,
-              child: Column(
-                children: [
-                  VideoProgressIndicator(
-                    _controller,
-                    allowScrubbing: true,
-                    colors: const VideoProgressColors(
-                      playedColor: Colors.red,
-                      bufferedColor: Colors.white30,
-                      backgroundColor: Colors.white12,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black87],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: _onOpenProfile,
+                                    child: CircleAvatar(
+                                      radius: 18,
+                                      backgroundImage: (widget.post
+                                                      .originalAuthorImageUrl ??
+                                                  widget.post.authorImageUrl) !=
+                                              null
+                                          ? CachedNetworkImageProvider(
+                                              widget.post
+                                                      .originalAuthorImageUrl ??
+                                                  widget.post.authorImageUrl!,
+                                            )
+                                          : null,
+                                      child: (widget.post
+                                                      .originalAuthorImageUrl ??
+                                                  widget.post.authorImageUrl) ==
+                                              null
+                                          ? const Icon(Icons.person)
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      ownerName.isEmpty ? 'Unknown' : ownerName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${widget.post.videoViewCount} views',
+                                    style:
+                                        const TextStyle(color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                              if (widget.post.content.trim().isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                ExpandableText(
+                                  widget.post.content,
+                                  style: const TextStyle(color: Colors.white),
+                                  trimLines: 3,
+                                  actionStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  onTap: _openComments,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 60), // Space for sidebar
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ValueListenableBuilder(
-                        valueListenable: _controller,
-                        builder: (context, VideoPlayerValue value, child) {
-                          return Text(
-                            _formatDuration(value.position),
-                            style: const TextStyle(color: Colors.white),
-                          );
-                        },
+                    const SizedBox(height: 12),
+                    VideoProgressIndicator(
+                      _controller,
+                      allowScrubbing: true,
+                      colors: const VideoProgressColors(
+                        playedColor: Colors.red,
+                        bufferedColor: Colors.white30,
+                        backgroundColor: Colors.white12,
                       ),
-                      Text(
-                        _formatDuration(_controller.value.duration),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ValueListenableBuilder(
+                          valueListenable: _controller,
+                          builder: (context, VideoPlayerValue value, child) {
+                            return Text(
+                              _formatDuration(value.position),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            );
+                          },
+                        ),
+                        Text(
+                          _formatDuration(_controller.value.duration),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
 
