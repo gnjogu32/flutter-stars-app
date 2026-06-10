@@ -12,7 +12,6 @@ import '../services/analytics_service.dart';
 import '../services/chat_service.dart';
 import '../services/repost_queue_service.dart';
 import '../services/user_service.dart';
-import '../utils/animation_utils.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_details_sheet.dart';
 import 'analytics_dashboard_screen.dart';
@@ -43,38 +42,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
   _ProfileMediaFolder _selectedFolder = _ProfileMediaFolder.all;
   bool _isGridView = true;
 
+  // Cached futures to prevent jumpy UI during rebuilds
+  Future<Map<String, dynamic>>? _analyticsFuture;
+  Future<Map<String, int>>? _repostStatsFuture;
+
   @override
   void initState() {
     super.initState();
-    _checkFollowStatus();
+    _initProfile();
   }
 
   @override
   void didUpdateWidget(covariant ProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.userId != widget.userId) {
-      _checkFollowStatus();
+      _initProfile();
     }
   }
 
-  Future<void> _checkFollowStatus() async {
-    if (_auth.currentUser?.uid == null) return;
+  void _initProfile() {
+    final effectiveUserId =
+        widget.userId.isEmpty ? (_auth.currentUser?.uid ?? '') : widget.userId;
 
-    final effectiveUserId = widget.userId.isEmpty
-        ? (_auth.currentUser?.uid ?? '')
-        : widget.userId;
+    if (effectiveUserId.isNotEmpty) {
+      _checkFollowStatus(effectiveUserId);
+      _loadSummaries(effectiveUserId);
+    }
+  }
 
-    if (effectiveUserId.isEmpty || effectiveUserId == _auth.currentUser?.uid) {
-      if (mounted) {
-        setState(() {
-          _isFollowing = false;
-        });
-      }
+  void _loadSummaries(String userId) {
+    _analyticsFuture = _analyticsService.getAuthorSummary(userId);
+    _repostStatsFuture = _repostQueueService.getRepostStats(userId);
+  }
+
+  Future<void> _checkFollowStatus(String effectiveUserId) async {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null || effectiveUserId == currentUserId) {
+      if (mounted) setState(() => _isFollowing = false);
       return;
     }
 
     try {
-      final currentUser = await _userService.getUser(_auth.currentUser!.uid);
+      final currentUser = await _userService.getUser(currentUserId);
       if (currentUser != null && mounted) {
         setState(() {
           _isFollowing = currentUser.following.contains(effectiveUserId);
@@ -184,43 +193,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // If userId is empty, use current user's ID
-    final effectiveUserId = widget.userId.isEmpty
-        ? (_auth.currentUser?.uid ?? '')
-        : widget.userId;
+    final effectiveUserId =
+        widget.userId.isEmpty ? (_auth.currentUser?.uid ?? '') : widget.userId;
 
     final isOwnProfile = effectiveUserId == _auth.currentUser?.uid;
 
-    // Debug output
-    if (kDebugMode) {
-      debugPrint('ProfileScreen - widget.userId: "${widget.userId}"');
-      debugPrint('ProfileScreen - effectiveUserId: "$effectiveUserId"');
-      debugPrint(
-        'ProfileScreen - currentUser?.uid: "${_auth.currentUser?.uid}"',
-      );
-      debugPrint('ProfileScreen - isOwnProfile: $isOwnProfile');
-    }
-
-    // If still no user ID, show loading or auth error
     if (effectiveUserId.isEmpty) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Profile'),
-          centerTitle: true,
-          elevation: 0,
-        ),
+        appBar: AppBar(title: const Text('Profile'), centerTitle: true),
         body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text(
-                'Loading profile...',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text('Please wait while we load your profile.'),
+              Text('Loading profile...',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -246,270 +234,385 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.logout),
-                  onPressed: () {
-                    _showLogoutDialog(context);
-                  },
+                  onPressed: () => _showLogoutDialog(context),
                 ),
               ]
             : null,
       ),
-      body: SingleChildScrollView(
-        child: StreamBuilder<DocumentSnapshot>(
-          stream: _firestore
-              .collection('users')
-              .doc(effectiveUserId)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: _firestore.collection('users').doc(effectiveUserId).snapshots(),
+        builder: (context, userSnapshot) {
+          if (userSnapshot.connectionState == ConnectionState.waiting &&
+              !userSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text('Error: ${snapshot.error}'),
-                  ],
-                ),
-              );
-            }
-
-            if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_off, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text('User not found'),
-                  ],
-                ),
-              );
-            }
-
-            final user = UserModel.fromFirestoreDoc(snapshot.data!);
-
-            return Column(
-              children: [
-                // Profile Header
-                _buildProfileHeader(user, isOwnProfile),
-                const Divider(),
-                // User Posts
-                _buildUserPosts(user, isOwnProfile),
-              ],
+          if (userSnapshot.hasError ||
+              !userSnapshot.hasData ||
+              !userSnapshot.data!.exists) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(userSnapshot.hasError
+                      ? 'Error: ${userSnapshot.error}'
+                      : 'User not found'),
+                ],
+              ),
             );
-          },
-        ),
+          }
+
+          final user = UserModel.fromFirestoreDoc(userSnapshot.data!);
+
+          return StreamBuilder<QuerySnapshot>(
+            stream: _selectedFolder == _ProfileMediaFolder.saved
+                ? _firestore
+                    .collection('posts')
+                    .orderBy('createdAt', descending: true)
+                    .snapshots()
+                : _firestore
+                    .collection('posts')
+                    .where('authorId', isEqualTo: user.uid)
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+            builder: (context, postsSnapshot) {
+              final allPosts = (!postsSnapshot.hasData ||
+                      postsSnapshot.data!.docs.isEmpty)
+                  ? <PostModel>[]
+                  : postsSnapshot.data!.docs
+                      .map((doc) =>
+                          PostModel.fromJson(doc.data() as Map<String, dynamic>))
+                      .toList();
+
+              final filteredPosts = allPosts
+                  .where((post) => _matchesSelectedFolder(post, user.savedPosts))
+                  .toList();
+
+              return CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildProfileHeader(user, isOwnProfile),
+                  ),
+                  const SliverToBoxAdapter(child: Divider()),
+                  SliverToBoxAdapter(
+                    child: _buildFolderSection(isOwnProfile, filteredPosts.length),
+                  ),
+                  if (postsSnapshot.connectionState == ConnectionState.waiting &&
+                      !postsSnapshot.hasData)
+                    const SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    )
+                  else if (filteredPosts.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
+                        child: Center(
+                          child: Text(
+                            _selectedFolder == _ProfileMediaFolder.all
+                                ? 'No posts yet'
+                                : 'No ${_selectedFolder.name} posts yet',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (_isGridView)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 4,
+                          mainAxisSpacing: 4,
+                          childAspectRatio: 1,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              _buildGridPostItem(filteredPosts[index]),
+                          childCount: filteredPosts.length,
+                        ),
+                      ),
+                    )
+                  else
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => PostWidget(
+                          post: filteredPosts[index],
+                          currentUserId: _auth.currentUser?.uid ?? '',
+                        ),
+                        childCount: filteredPosts.length,
+                      ),
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
 
   Widget _buildProfileHeader(UserModel user, bool isOwnProfile) {
-    return AnimationUtils.slideUpAnimation(
-      duration: const Duration(milliseconds: 500),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Profile Image
-            AnimatedScale(
-              duration: const Duration(milliseconds: 300),
-              scale: 1.0,
-              child: GestureDetector(
-                onTap:
-                    user.profileImageUrl == null ||
-                        user.profileImageUrl!.isEmpty
-                    ? null
-                    : () => _openProfilePhotoViewer(
-                        user.profileImageUrl,
-                        user.displayName,
-                        isOwnProfile,
-                      ),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundImage: user.profileImageUrl != null
-                      ? CachedNetworkImageProvider(user.profileImageUrl!)
-                      : null,
-                  child: user.profileImageUrl == null
-                      ? const Icon(Icons.person, size: 50)
-                      : null,
-                ),
-              ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          // Profile Image
+          GestureDetector(
+            onTap: user.profileImageUrl == null || user.profileImageUrl!.isEmpty
+                ? null
+                : () => _openProfilePhotoViewer(
+                      user.profileImageUrl,
+                      user.displayName,
+                      isOwnProfile,
+                    ),
+            child: CircleAvatar(
+              radius: 50,
+              backgroundImage: user.profileImageUrl != null
+                  ? CachedNetworkImageProvider(user.profileImageUrl!)
+                  : null,
+              child: user.profileImageUrl == null
+                  ? const Icon(Icons.person, size: 50)
+                  : null,
             ),
-            const SizedBox(height: 16),
-            // Name
+          ),
+          const SizedBox(height: 16),
+          // Name
+          Text(
+            user.displayName,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          // Username
+          if (user.username != null)
             Text(
-              user.displayName,
-              style: Theme.of(context).textTheme.headlineSmall,
+              '@${user.username}',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(color: Colors.grey),
             ),
-            // Username
-            if (user.username != null)
-              Text(
-                '@${user.username}',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.grey),
-              ),
-            // Talent
-            if (user.talent != null)
-              Text(
-                user.talent!,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            // Bio
-            if (user.bio != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  user.bio!,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            const SizedBox(height: 16),
-            // Stats - Get post count from stream
-            StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('posts')
-                  .where('authorId', isEqualTo: user.uid)
-                  .snapshots(),
-              builder: (context, postSnapshot) {
-                final postCount = postSnapshot.hasData
-                    ? postSnapshot.data!.docs.length
-                    : 0;
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildStat(
-                      'Posts',
-                      postCount,
-                      onTap: () {
-                        setState(() {
-                          _isGridView = false;
-                          _selectedFolder = _ProfileMediaFolder.all;
-                        });
-                      },
-                    ),
-                    _buildStat(
-                      'Followers',
-                      user.followerCount,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => FollowersFollowingScreen(
-                              userId: user.uid,
-                              initialTabIndex: 0,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildStat(
-                      'Following',
-                      user.followingCount,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => FollowersFollowingScreen(
-                              userId: user.uid,
-                              initialTabIndex: 1,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                );
-              },
+          // Talent
+          if (user.talent != null)
+            Text(
+              user.talent!,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
             ),
-            if (isOwnProfile) _buildQuickSummaryCards(user.uid),
-            const SizedBox(height: 20),
-            // Edit Profile / Follow Button & Message Button
-            if (isOwnProfile)
-              SizedBox(
-                width: double.infinity,
-                height: 45,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pushNamed('/edit-profile');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text(
-                    'Edit Profile',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              )
-            else
-              Column(
+          // Bio
+          if (user.bio != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                user.bio!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          const SizedBox(height: 16),
+          // Stats row
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('posts')
+                .where('authorId', isEqualTo: user.uid)
+                .snapshots(),
+            builder: (context, postSnapshot) {
+              final postCount = postSnapshot.hasData ? postSnapshot.data!.docs.length : 0;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 45,
-                    child: ElevatedButton(
-                      onPressed: _isLoadingFollow
-                          ? null
-                          : () => _toggleFollow(user),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isFollowing
-                            ? (Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.grey[800]
-                                  : Colors.grey[300])
-                            : Theme.of(context).colorScheme.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: _isLoadingFollow
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              _isFollowing ? 'Following' : 'Follow',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: _isFollowing
-                                    ? (Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.white70
-                                          : Colors.black87)
-                                    : Colors.white,
-                              ),
-                            ),
-                    ),
+                  _buildStat(
+                    'Posts',
+                    postCount,
+                    onTap: () {
+                      setState(() {
+                        _isGridView = false;
+                        _selectedFolder = _ProfileMediaFolder.all;
+                      });
+                    },
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 45,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _navigateToChat(user),
-                      icon: const Icon(Icons.mail),
-                      label: const Text(
-                        'Message',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
+                  _buildStat(
+                    'Followers',
+                    user.followerCount,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => FollowersFollowingScreen(
+                            userId: user.uid,
+                            initialTabIndex: 0,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildStat(
+                    'Following',
+                    user.followingCount,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => FollowersFollowingScreen(
+                            userId: user.uid,
+                            initialTabIndex: 1,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
+              );
+            },
+          ),
+          if (isOwnProfile) _buildQuickSummaryCards(user.uid),
+          const SizedBox(height: 20),
+          // Action buttons
+          if (isOwnProfile)
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushNamed('/edit-profile');
+                },
+                child: const Text('Edit Profile', style: TextStyle(fontSize: 16)),
               ),
-          ],
-        ),
+            )
+          else
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 45,
+                  child: ElevatedButton(
+                    onPressed: _isLoadingFollow ? null : () => _toggleFollow(user),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isFollowing
+                          ? (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[800]
+                              : Colors.grey[300])
+                          : Theme.of(context).colorScheme.primary,
+                    ),
+                    child: _isLoadingFollow
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            _isFollowing ? 'Following' : 'Follow',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _isFollowing
+                                  ? (Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white70
+                                      : Colors.black87)
+                                  : Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 45,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _navigateToChat(user),
+                    icon: const Icon(Icons.mail),
+                    label: const Text('Message', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFolderSection(bool isOwnProfile, int visibleCount) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isOwnProfile ? 'Author Media Folders' : 'Media',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFolderCard(
+                  label: 'Photos',
+                  icon: Icons.folder_copy_outlined,
+                  folder: _ProfileMediaFolder.photos,
+                ),
+                const SizedBox(width: 10),
+                _buildFolderCard(
+                  label: 'Videos',
+                  icon: Icons.folder_special_outlined,
+                  folder: _ProfileMediaFolder.videos,
+                ),
+                if (isOwnProfile) ...[
+                  const SizedBox(width: 10),
+                  _buildFolderCard(
+                    label: 'Saved',
+                    icon: Icons.bookmark_border_outlined,
+                    folder: _ProfileMediaFolder.saved,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('All'),
+                      selected: _selectedFolder == _ProfileMediaFolder.all,
+                      onSelected: (_) =>
+                          setState(() => _selectedFolder = _ProfileMediaFolder.all),
+                    ),
+                    ChoiceChip(
+                      label: Text('$visibleCount visible'),
+                      selected: false,
+                      onSelected: null,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _isGridView ? Icons.grid_view : Icons.view_agenda_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                onPressed: () => setState(() => _isGridView = !_isGridView),
+                tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -529,22 +632,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildQuickSummaryCards(String userId) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: _analyticsService.getAuthorSummary(userId),
+      future: _analyticsFuture,
       builder: (context, analyticsSnapshot) {
         return FutureBuilder<Map<String, int>>(
-          future: _repostQueueService.getRepostStats(userId),
+          future: _repostStatsFuture,
           builder: (context, repostSnapshot) {
             if (analyticsSnapshot.connectionState == ConnectionState.waiting ||
                 repostSnapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 24),
                 child: Center(child: CircularProgressIndicator()),
               );
             }
 
             final analytics = analyticsSnapshot.data ?? const {};
-            final reposts =
-                repostSnapshot.data ??
+            final reposts = repostSnapshot.data ??
                 const {'pending': 0, 'sent': 0, 'failed': 0};
 
             final totalEngagements = analytics['totalEngagements'] ?? 0;
@@ -703,177 +805,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case _ProfileMediaFolder.saved:
         return savedIds.contains(post.postId);
     }
-  }
-
-  Widget _buildUserPosts(UserModel user, bool isOwnProfile) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _selectedFolder == _ProfileMediaFolder.saved
-          ? _firestore
-                .collection('posts')
-                .orderBy('createdAt', descending: true)
-                .snapshots()
-          : _firestore
-                .collection('posts')
-                .where('authorId', isEqualTo: user.uid)
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-
-        final allPosts = (!snapshot.hasData || snapshot.data!.docs.isEmpty)
-            ? <PostModel>[]
-            : snapshot.data!.docs
-                  .map(
-                    (doc) =>
-                        PostModel.fromJson(doc.data() as Map<String, dynamic>),
-                  )
-                  .toList();
-
-        final filteredPosts = allPosts
-            .where((post) => _matchesSelectedFolder(post, user.savedPosts))
-            .toList();
-
-        final folderSection = Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isOwnProfile ? 'Author Media Folders' : 'Media',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildFolderCard(
-                      label: 'Photos',
-                      icon: Icons.folder_copy_outlined,
-                      folder: _ProfileMediaFolder.photos,
-                    ),
-                    const SizedBox(width: 10),
-                    _buildFolderCard(
-                      label: 'Videos',
-                      icon: Icons.folder_special_outlined,
-                      folder: _ProfileMediaFolder.videos,
-                    ),
-                    if (isOwnProfile) ...[
-                      const SizedBox(width: 10),
-                      _buildFolderCard(
-                        label: 'Saved',
-                        icon: Icons.bookmark_border_outlined,
-                        folder: _ProfileMediaFolder.saved,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('All'),
-                          selected: _selectedFolder == _ProfileMediaFolder.all,
-                          onSelected: (_) {
-                            setState(() {
-                              _selectedFolder = _ProfileMediaFolder.all;
-                            });
-                          },
-                        ),
-                        ChoiceChip(
-                          label: Text('${filteredPosts.length} visible'),
-                          selected: false,
-                          onSelected: null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      _isGridView
-                          ? Icons.grid_view
-                          : Icons.view_agenda_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    onPressed: () => setState(() => _isGridView = !_isGridView),
-                    tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-
-        if (filteredPosts.isEmpty) {
-          return Column(
-            children: [
-              folderSection,
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 32,
-                ),
-                child: Text(
-                  _selectedFolder == _ProfileMediaFolder.all
-                      ? 'No posts yet'
-                      : 'No ${_selectedFolder.name} posts yet',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          children: [
-            folderSection,
-            _isGridView
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 4,
-                            mainAxisSpacing: 4,
-                            childAspectRatio: 1,
-                          ),
-                      itemCount: filteredPosts.length,
-                      itemBuilder: (context, index) {
-                        return _buildGridPostItem(filteredPosts[index]);
-                      },
-                    ),
-                  )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filteredPosts.length,
-                    itemBuilder: (context, index) {
-                      return PostWidget(
-                        post: filteredPosts[index],
-                        currentUserId: _auth.currentUser?.uid ?? '',
-                      );
-                    },
-                  ),
-          ],
-        );
-      },
-    );
   }
 
   Widget _buildGridPostItem(PostModel post) {
