@@ -389,7 +389,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStat('Posts', postCount),
+                    _buildStat(
+                      'Posts',
+                      postCount,
+                      onTap: () {
+                        setState(() {
+                          _isGridView = false;
+                          _selectedFolder = _ProfileMediaFolder.all;
+                        });
+                      },
+                    ),
                     _buildStat(
                       'Followers',
                       user.followerCount,
