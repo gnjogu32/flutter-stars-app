@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
+import '../widgets/author_profile_avatar.dart';
 import 'profile_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
@@ -58,6 +59,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AuthorProfileAvatar(),
         title: const Text('Discover Talents'),
         centerTitle: true,
         elevation: 0,

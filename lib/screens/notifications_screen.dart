@@ -8,6 +8,7 @@ import '../utils/animation_utils.dart';
 import '../screens/profile_screen.dart';
 import '../screens/chat_screen.dart';
 import '../widgets/post_details_sheet.dart';
+import '../widgets/author_profile_avatar.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -39,6 +40,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AuthorProfileAvatar(),
         title: const Text('Notifications'),
         centerTitle: true,
         elevation: 0,

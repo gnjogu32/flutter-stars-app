@@ -22,6 +22,7 @@ import '../services/share_service.dart';
 import '../services/user_service.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/keyboard_prompt_banner.dart';
+import '../widgets/author_profile_avatar.dart';
 import 'profile_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
@@ -1065,6 +1066,11 @@ class _ReelItemState extends State<_ReelItem>
             ignoring: !_showDetails,
             child: Stack(
               children: [
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 12,
+                  child: const AuthorProfileAvatar(),
+                ),
                 Positioned(
                   right: 12,
                   bottom: 120,

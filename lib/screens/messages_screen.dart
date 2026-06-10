@@ -6,6 +6,7 @@ import '../services/chat_service.dart';
 import '../utils/animation_utils.dart';
 import '../utils/time_utils.dart';
 import '../widgets/keyboard_prompt_banner.dart';
+import '../widgets/author_profile_avatar.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
 
@@ -149,6 +150,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AuthorProfileAvatar(),
         title: const Text('Messages'),
         centerTitle: true,
         elevation: 0,

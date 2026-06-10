@@ -6,6 +6,7 @@ import '../widgets/search_overlay.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
+import '../widgets/author_profile_avatar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -65,6 +66,7 @@ class HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AuthorProfileAvatar(),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

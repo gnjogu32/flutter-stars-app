@@ -5,7 +5,6 @@ import '../services/chat_service.dart';
 import '../utils/auth_guard.dart';
 import 'home_screen.dart';
 import 'discover_screen.dart';
-import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
 import 'reels_screen.dart';
@@ -70,7 +69,6 @@ class MainAppState extends State<MainApp> {
       const DiscoverScreen(),
       const MessagesScreen(),
       const NotificationsScreen(),
-      ProfileScreen(userId: currentUser?.uid ?? ''),
     ];
   }
 
@@ -88,8 +86,8 @@ class MainAppState extends State<MainApp> {
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         onTap: (index) async {
-          // Protected tabs: Messages(3), Notifications(4), Profile(5)
-          const protectedTabs = {3, 4, 5};
+          // Protected tabs: Messages(3), Notifications(4)
+          const protectedTabs = {3, 4};
           final currentUser = FirebaseAuth.instance.currentUser;
           if (protectedTabs.contains(index) && currentUser == null) {
             await AuthGuard.show(context);
@@ -142,10 +140,6 @@ class MainAppState extends State<MainApp> {
               },
             ),
             label: 'Notifications',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
           ),
         ],
       ),
