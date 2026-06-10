@@ -63,6 +63,38 @@ class UserService {
     }
   }
 
+  // Check if username is available
+  Future<bool> isUsernameAvailable(String username) async {
+    try {
+      final querySnapshot = await _firebaseFirestore
+          .collection('users')
+          .where('username', isEqualTo: username.toLowerCase())
+          .limit(1)
+          .get();
+      return querySnapshot.docs.isEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Get user by username
+  Future<UserModel?> getUserByUsername(String username) async {
+    try {
+      final querySnapshot = await _firebaseFirestore
+          .collection('users')
+          .where('username', isEqualTo: username.toLowerCase())
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return UserModel.fromFirestoreDoc(querySnapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Get users by talent
   Future<List<UserModel>> getUsersByTalent(String talent) async {
     try {
@@ -169,6 +201,7 @@ class UserService {
   Future<void> updateUserProfile({
     required String uid,
     String? displayName,
+    String? username,
     String? bio,
     String? profileImageUrl,
     String? talent,
@@ -178,6 +211,7 @@ class UserService {
       final Map<String, dynamic> updateData = {};
 
       if (displayName != null) updateData['displayName'] = displayName;
+      if (username != null) updateData['username'] = username.toLowerCase();
       if (bio != null) updateData['bio'] = bio;
       if (clearProfileImage) {
         updateData['profileImageUrl'] = FieldValue.delete();

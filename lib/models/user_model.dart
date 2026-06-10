@@ -4,10 +4,11 @@ class UserModel {
   final String uid;
   final String email;
   final String displayName;
+  final String? username;
   final String? profileImageUrl;
   final String? bio;
   final String?
-  talent; // Category of talent (e.g., Art, Music, Writing, Dance, etc.)
+      talent; // Category of talent (e.g., Art, Music, Writing, Dance, etc.)
   final List<String> followers;
   final List<String> following;
   final List<String> savedPosts;
@@ -19,6 +20,7 @@ class UserModel {
     required this.uid,
     required this.email,
     required this.displayName,
+    this.username,
     this.profileImageUrl,
     this.bio,
     this.talent,
@@ -36,6 +38,7 @@ class UserModel {
       'uid': uid,
       'email': email,
       'displayName': displayName,
+      'username': username,
       'profileImageUrl': profileImageUrl,
       'bio': bio,
       'talent': talent,
@@ -54,6 +57,7 @@ class UserModel {
       uid: json['uid'] ?? '',
       email: json['email'] ?? '',
       displayName: json['displayName'] ?? '',
+      username: json['username'],
       profileImageUrl: json['profileImageUrl'],
       bio: json['bio'],
       talent: json['talent'],
@@ -85,6 +89,7 @@ class UserModel {
           : docUid,
       email: data['email'] ?? '',
       displayName: data['displayName'] ?? '',
+      username: data['username'],
       profileImageUrl: data['profileImageUrl'],
       bio: data['bio'],
       talent: data['talent'],
@@ -110,6 +115,7 @@ class UserModel {
     String? uid,
     String? email,
     String? displayName,
+    String? username,
     String? profileImageUrl,
     String? bio,
     String? talent,
@@ -124,6 +130,7 @@ class UserModel {
       uid: uid ?? this.uid,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      username: username ?? this.username,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       bio: bio ?? this.bio,
       talent: talent ?? this.talent,

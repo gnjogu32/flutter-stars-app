@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -21,12 +22,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   late TextEditingController _displayNameController;
   final FocusNode _displayNameFocusNode = FocusNode();
+  late TextEditingController _usernameController;
+  final FocusNode _usernameFocusNode = FocusNode();
   late TextEditingController _bioController;
   final FocusNode _bioFocusNode = FocusNode();
   String? _selectedTalent;
   XFile? _selectedProfileImage;
   Uint8List? _selectedProfileImageBytes;
   bool _isLoading = false;
+  bool _isCheckingUsername = false;
+  String? _usernameError;
   String? _errorMessage;
   UserModel? _currentUser;
   bool _shouldDeletePhoto = false; // Track if user wants to delete photo
@@ -49,8 +54,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _displayNameController = TextEditingController();
+    _usernameController = TextEditingController();
     _bioController = TextEditingController();
     _displayNameFocusNode.addListener(_handleFocusChanged);
+    _usernameFocusNode.addListener(_handleFocusChanged);
     _bioFocusNode.addListener(_handleFocusChanged);
     _loadUserData();
   }
@@ -70,6 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           setState(() {
             _currentUser = user;
             _displayNameController.text = user?.displayName ?? '';
+            _usernameController.text = user?.username ?? '';
             _bioController.text = user?.bio ?? '';
             _selectedTalent = user?.talent;
           });
@@ -87,10 +95,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _displayNameFocusNode.removeListener(_handleFocusChanged);
+    _usernameFocusNode.removeListener(_handleFocusChanged);
     _bioFocusNode.removeListener(_handleFocusChanged);
     _displayNameFocusNode.dispose();
+    _usernameFocusNode.dispose();
     _bioFocusNode.dispose();
     _displayNameController.dispose();
+    _usernameController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -254,11 +265,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
-    if (_displayNameController.text.trim().isEmpty) {
+    final displayName = _displayNameController.text.trim();
+    final username = _usernameController.text.trim().toLowerCase();
+
+    if (displayName.isEmpty) {
       setState(() {
         _errorMessage = 'Display name cannot be empty';
       });
       return;
+    }
+
+    if (username.isNotEmpty) {
+      if (username.length < 3) {
+        setState(() {
+          _errorMessage = 'Username must be at least 3 characters';
+        });
+        return;
+      }
+      if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(username)) {
+        setState(() {
+          _errorMessage =
+              'Username can only contain letters, numbers, dots, and underscores';
+        });
+        return;
+      }
     }
 
     setState(() {
@@ -269,6 +299,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final userId = _authService.currentUser?.uid;
       if (userId == null) throw Exception('User not authenticated');
+
+      // Check username uniqueness if it changed
+      if (username.isNotEmpty && username != _currentUser?.username) {
+        final isAvailable = await _userService.isUsernameAvailable(username);
+        if (!isAvailable) {
+          throw Exception('Username is already taken');
+        }
+      }
 
       String? profileImageUrl = _currentUser?.profileImageUrl;
 
@@ -296,7 +334,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Update user profile with new data
       await _userService.updateUserProfile(
         uid: userId,
-        displayName: _displayNameController.text.trim(),
+        displayName: displayName,
+        username: username.isEmpty ? null : username,
         bio: _bioController.text.trim(),
         profileImageUrl: profileImageUrl,
         talent: _selectedTalent,
@@ -307,10 +346,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Keep Firebase Auth display name in sync with Firestore
       final currentAuthUser = _authService.currentUser;
       if (currentAuthUser != null &&
-          currentAuthUser.displayName != _displayNameController.text.trim()) {
-        await currentAuthUser.updateDisplayName(
-          _displayNameController.text.trim(),
-        );
+          currentAuthUser.displayName != displayName) {
+        await currentAuthUser.updateDisplayName(displayName);
         await currentAuthUser.reload();
       }
 
@@ -323,7 +360,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Error updating profile: $e';
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
         });
       }
     } finally {
@@ -454,6 +491,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Username
+            TextField(
+              controller: _usernameController,
+              decoration: InputDecoration(
+                labelText: 'Username',
+                prefixIcon: const Icon(Icons.alternate_email),
+                prefixText: '@',
+                helperText: 'Unique handle for mentions',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9._]')),
+              ],
             ),
             const SizedBox(height: 16),
 

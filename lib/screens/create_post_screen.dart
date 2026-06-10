@@ -114,9 +114,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final matchingUsers = _mentionableUsers
         .where((user) {
           if (user.uid == currentUserId) return false;
-          final handle = MentionUtils.normalizeDisplayNameToHandle(
-            user.displayName,
-          );
+          final handle = user.username ??
+              MentionUtils.normalizeDisplayNameToHandle(user.displayName);
           return normalizedQuery.isEmpty ||
               handle.startsWith(normalizedQuery) ||
               user.displayName.toLowerCase().contains(normalizedQuery);
@@ -176,9 +175,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               onTap: () => _insertMentionHandle('followers'),
             ),
           ..._filteredMentionUsers.map((user) {
-            final handle = MentionUtils.normalizeDisplayNameToHandle(
-              user.displayName,
-            );
+            final handle = user.username ??
+                MentionUtils.normalizeDisplayNameToHandle(user.displayName);
             return ListTile(
               dense: true,
               leading: CircleAvatar(

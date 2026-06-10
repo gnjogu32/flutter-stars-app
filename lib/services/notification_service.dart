@@ -105,11 +105,16 @@ class NotificationService {
             ? (data['uid'] as String).trim()
             : doc.id;
 
+        final username = data['username'] as String?;
+        if (username != null && username.isNotEmpty) {
+          handleToUserId.putIfAbsent(username.toLowerCase(), () => userId);
+        }
+
         final displayName = (data['displayName'] as String?) ?? '';
         final normalizedHandle = _normalizeDisplayNameToHandle(displayName);
-        if (normalizedHandle.isEmpty) continue;
-
-        handleToUserId.putIfAbsent(normalizedHandle, () => userId);
+        if (normalizedHandle.isNotEmpty) {
+          handleToUserId.putIfAbsent(normalizedHandle, () => userId);
+        }
       }
 
       final recipients = <String>{};

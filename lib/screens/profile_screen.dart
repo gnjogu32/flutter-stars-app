@@ -349,6 +349,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               user.displayName,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            // Username
+            if (user.username != null)
+              Text(
+                '@${user.username}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
             // Talent
             if (user.talent != null)
               Text(
