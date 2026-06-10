@@ -218,14 +218,12 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   }
 
   void _onOpenProfile() {
-    final userId =
-        (widget.post.originalAuthorId ?? widget.post.authorId).trim();
+    final userId = (widget.post.originalAuthorId ?? widget.post.authorId)
+        .trim();
     if (userId.isEmpty) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ProfileScreen(userId: userId),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: userId)));
   }
 
   void _openComments() {
@@ -374,18 +372,19 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                     onTap: _onOpenProfile,
                                     child: CircleAvatar(
                                       radius: 18,
-                                      backgroundImage: (widget.post
-                                                      .originalAuthorImageUrl ??
+                                      backgroundImage:
+                                          (widget.post.originalAuthorImageUrl ??
                                                   widget.post.authorImageUrl) !=
                                               null
                                           ? CachedNetworkImageProvider(
-                                              widget.post
+                                              widget
+                                                      .post
                                                       .originalAuthorImageUrl ??
                                                   widget.post.authorImageUrl!,
                                             )
                                           : null,
-                                      child: (widget.post
-                                                      .originalAuthorImageUrl ??
+                                      child:
+                                          (widget.post.originalAuthorImageUrl ??
                                                   widget.post.authorImageUrl) ==
                                               null
                                           ? const Icon(Icons.person)
@@ -405,8 +404,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                   ),
                                   Text(
                                     '${widget.post.videoViewCount} views',
-                                    style:
-                                        const TextStyle(color: Colors.white70),
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
                                   ),
                                 ],
                               ),

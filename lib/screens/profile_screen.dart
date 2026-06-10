@@ -61,8 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _initProfile() {
-    final effectiveUserId =
-        widget.userId.isEmpty ? (_auth.currentUser?.uid ?? '') : widget.userId;
+    final effectiveUserId = widget.userId.isEmpty
+        ? (_auth.currentUser?.uid ?? '')
+        : widget.userId;
 
     if (effectiveUserId.isNotEmpty) {
       _checkFollowStatus(effectiveUserId);
@@ -193,8 +194,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveUserId =
-        widget.userId.isEmpty ? (_auth.currentUser?.uid ?? '') : widget.userId;
+    final effectiveUserId = widget.userId.isEmpty
+        ? (_auth.currentUser?.uid ?? '')
+        : widget.userId;
 
     final isOwnProfile = effectiveUserId == _auth.currentUser?.uid;
 
@@ -207,8 +209,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Loading profile...',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'Loading profile...',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
         ),
@@ -256,9 +260,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   const Icon(Icons.error_outline, size: 64, color: Colors.grey),
                   const SizedBox(height: 16),
-                  Text(userSnapshot.hasError
-                      ? 'Error: ${userSnapshot.error}'
-                      : 'User not found'),
+                  Text(
+                    userSnapshot.hasError
+                        ? 'Error: ${userSnapshot.error}'
+                        : 'User not found',
+                  ),
                 ],
               ),
             );
@@ -269,25 +275,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return StreamBuilder<QuerySnapshot>(
             stream: _selectedFolder == _ProfileMediaFolder.saved
                 ? _firestore
-                    .collection('posts')
-                    .orderBy('createdAt', descending: true)
-                    .snapshots()
+                      .collection('posts')
+                      .orderBy('createdAt', descending: true)
+                      .snapshots()
                 : _firestore
-                    .collection('posts')
-                    .where('authorId', isEqualTo: user.uid)
-                    .orderBy('createdAt', descending: true)
-                    .snapshots(),
+                      .collection('posts')
+                      .where('authorId', isEqualTo: user.uid)
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
             builder: (context, postsSnapshot) {
-              final allPosts = (!postsSnapshot.hasData ||
-                      postsSnapshot.data!.docs.isEmpty)
+              final allPosts =
+                  (!postsSnapshot.hasData || postsSnapshot.data!.docs.isEmpty)
                   ? <PostModel>[]
                   : postsSnapshot.data!.docs
-                      .map((doc) =>
-                          PostModel.fromJson(doc.data() as Map<String, dynamic>))
-                      .toList();
+                        .map(
+                          (doc) => PostModel.fromJson(
+                            doc.data() as Map<String, dynamic>,
+                          ),
+                        )
+                        .toList();
 
               final filteredPosts = allPosts
-                  .where((post) => _matchesSelectedFolder(post, user.savedPosts))
+                  .where(
+                    (post) => _matchesSelectedFolder(post, user.savedPosts),
+                  )
                   .toList();
 
               return CustomScrollView(
@@ -298,9 +309,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SliverToBoxAdapter(child: Divider()),
                   SliverToBoxAdapter(
-                    child: _buildFolderSection(isOwnProfile, filteredPosts.length),
+                    child: _buildFolderSection(
+                      isOwnProfile,
+                      filteredPosts.length,
+                    ),
                   ),
-                  if (postsSnapshot.connectionState == ConnectionState.waiting &&
+                  if (postsSnapshot.connectionState ==
+                          ConnectionState.waiting &&
                       !postsSnapshot.hasData)
                     const SliverToBoxAdapter(
                       child: Center(
@@ -313,16 +328,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   else if (filteredPosts.isEmpty)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 48,
+                        ),
                         child: Center(
                           child: Text(
                             _selectedFolder == _ProfileMediaFolder.all
                                 ? 'No posts yet'
                                 : 'No ${_selectedFolder.name} posts yet',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: Colors.grey),
                           ),
                         ),
@@ -334,11 +349,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       sliver: SliverGrid(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 4,
-                          mainAxisSpacing: 4,
-                          childAspectRatio: 1,
-                        ),
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 4,
+                              mainAxisSpacing: 4,
+                              childAspectRatio: 1,
+                            ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) =>
                               _buildGridPostItem(filteredPosts[index]),
@@ -376,10 +391,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: user.profileImageUrl == null || user.profileImageUrl!.isEmpty
                 ? null
                 : () => _openProfilePhotoViewer(
-                      user.profileImageUrl,
-                      user.displayName,
-                      isOwnProfile,
-                    ),
+                    user.profileImageUrl,
+                    user.displayName,
+                    isOwnProfile,
+                  ),
             child: CircleAvatar(
               radius: 50,
               backgroundImage: user.profileImageUrl != null
@@ -400,18 +415,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (user.username != null)
             Text(
               '@${user.username}',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: Colors.grey),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.grey),
             ),
           // Talent
           if (user.talent != null)
             Text(
               user.talent!,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           // Bio
           if (user.bio != null)
@@ -431,7 +445,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 .where('authorId', isEqualTo: user.uid)
                 .snapshots(),
             builder: (context, postSnapshot) {
-              final postCount = postSnapshot.hasData ? postSnapshot.data!.docs.length : 0;
+              final postCount = postSnapshot.hasData
+                  ? postSnapshot.data!.docs.length
+                  : 0;
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -488,7 +504,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () {
                   Navigator.of(context).pushNamed('/edit-profile');
                 },
-                child: const Text('Edit Profile', style: TextStyle(fontSize: 16)),
+                child: const Text(
+                  'Edit Profile',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             )
           else
@@ -498,12 +517,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: double.infinity,
                   height: 45,
                   child: ElevatedButton(
-                    onPressed: _isLoadingFollow ? null : () => _toggleFollow(user),
+                    onPressed: _isLoadingFollow
+                        ? null
+                        : () => _toggleFollow(user),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isFollowing
                           ? (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[800]
-                              : Colors.grey[300])
+                                ? Colors.grey[800]
+                                : Colors.grey[300])
                           : Theme.of(context).colorScheme.primary,
                     ),
                     child: _isLoadingFollow
@@ -518,9 +539,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: _isFollowing
-                                  ? (Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white70
-                                      : Colors.black87)
+                                  ? (Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white70
+                                        : Colors.black87)
                                   : Colors.white,
                             ),
                           ),
@@ -533,7 +555,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _navigateToChat(user),
                     icon: const Icon(Icons.mail),
-                    label: const Text('Message', style: TextStyle(fontSize: 16)),
+                    label: const Text(
+                      'Message',
+                      style: TextStyle(fontSize: 16),
+                    ),
                   ),
                 ),
               ],
@@ -591,8 +616,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ChoiceChip(
                       label: const Text('All'),
                       selected: _selectedFolder == _ProfileMediaFolder.all,
-                      onSelected: (_) =>
-                          setState(() => _selectedFolder = _ProfileMediaFolder.all),
+                      onSelected: (_) => setState(
+                        () => _selectedFolder = _ProfileMediaFolder.all,
+                      ),
                     ),
                     ChoiceChip(
                       label: Text('$visibleCount visible'),
@@ -646,7 +672,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             }
 
             final analytics = analyticsSnapshot.data ?? const {};
-            final reposts = repostSnapshot.data ??
+            final reposts =
+                repostSnapshot.data ??
                 const {'pending': 0, 'sent': 0, 'failed': 0};
 
             final totalEngagements = analytics['totalEngagements'] ?? 0;

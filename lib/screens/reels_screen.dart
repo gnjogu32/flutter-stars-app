@@ -1157,15 +1157,15 @@ class _ReelItemState extends State<_ReelItem>
                                 radius: 18,
                                 backgroundImage:
                                     (widget.post.originalAuthorImageUrl ??
-                                                widget.post.authorImageUrl) !=
-                                            null
-                                        ? CachedNetworkImageProvider(
-                                            widget.post
-                                                    .originalAuthorImageUrl ??
-                                                widget.post.authorImageUrl!,
-                                          )
-                                        : null,
-                                child: (widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl) !=
+                                        null
+                                    ? CachedNetworkImageProvider(
+                                        widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl!,
+                                      )
+                                    : null,
+                                child:
+                                    (widget.post.originalAuthorImageUrl ??
                                             widget.post.authorImageUrl) ==
                                         null
                                     ? const Icon(Icons.person)
