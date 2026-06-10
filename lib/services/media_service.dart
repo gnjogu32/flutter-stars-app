@@ -7,8 +7,11 @@ class MediaService {
 
   Future<String?> uploadChatMedia(String conversationId, XFile file) async {
     try {
-      final String fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
-      final Reference ref = _storage.ref().child('chats/$conversationId/$fileName');
+      final String fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
+      final Reference ref = _storage.ref().child(
+        'chats/$conversationId/$fileName',
+      );
 
       final UploadTask uploadTask = ref.putFile(File(file.path));
       final TaskSnapshot snapshot = await uploadTask.whenComplete(() {});
@@ -20,8 +23,11 @@ class MediaService {
 
   Future<String?> uploadChatVideo(String conversationId, XFile file) async {
     try {
-      final String fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
-      final Reference ref = _storage.ref().child('chats/$conversationId/videos/$fileName');
+      final String fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
+      final Reference ref = _storage.ref().child(
+        'chats/$conversationId/videos/$fileName',
+      );
 
       final UploadTask uploadTask = ref.putFile(File(file.path));
       final TaskSnapshot snapshot = await uploadTask.whenComplete(() {});

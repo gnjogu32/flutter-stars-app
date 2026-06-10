@@ -261,8 +261,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: Colors.blue.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child:
-                            const Icon(Icons.photo_library, color: Colors.blue),
+                        child: const Icon(
+                          Icons.photo_library,
+                          color: Colors.blue,
+                        ),
                       ),
                       title: const Text('Gallery'),
                       onTap: () {
@@ -277,8 +279,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: Colors.green.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child:
-                            const Icon(Icons.camera_alt, color: Colors.green),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.green,
+                        ),
                       ),
                       title: const Text('Camera'),
                       onTap: () {
@@ -538,16 +542,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'Sending media...',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                       ),
                     ] else if (isTyping) ...[
                       Text(
@@ -567,7 +569,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           children: List.generate(3, (index) {
                             return AnimatedOpacity(
                               opacity:
-                                  ((DateTime.now().millisecond ~/ 200) + index) %
+                                  ((DateTime.now().millisecond ~/ 200) +
+                                              index) %
                                           3 ==
                                       0
                                   ? 0.3
@@ -712,8 +715,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageBubble(MessageModel message, double maxWidth) {
     final isCurrentUser = message.senderId == _auth.currentUser?.uid;
     final theme = Theme.of(context);
-    final alignment =
-        isCurrentUser ? Alignment.centerRight : Alignment.centerLeft;
+    final alignment = isCurrentUser
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
     final bgColor = isCurrentUser
         ? theme.colorScheme.primary
         : theme.colorScheme.surfaceContainerHighest;
@@ -786,9 +790,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           Flexible(
                             child: Text(
                               'Read ${TimeUtils.formatShorthand(message.readAt!)}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
+                              style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     fontSize: 10,
                                     color: Colors.blue.withValues(alpha: 0.7),
@@ -818,7 +820,10 @@ class _ChatScreenState extends State<ChatScreen> {
             MaterialPageRoute(
               builder: (context) => Scaffold(
                 backgroundColor: Colors.black,
-                appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+                appBar: AppBar(
+                  backgroundColor: Colors.black,
+                  iconTheme: const IconThemeData(color: Colors.white),
+                ),
                 body: InteractiveViewer(
                   child: Center(
                     child: CachedNetworkImage(imageUrl: message.imageUrl!),

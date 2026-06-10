@@ -423,23 +423,23 @@ class _PostWidgetState extends State<PostWidget>
       if (isSaved) {
         await userService.unsavePost(widget.currentUserId, widget.post.postId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Removed from Saved ✓')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Removed from Saved ✓')));
         }
       } else {
         await userService.savePost(widget.currentUserId, widget.post.postId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Added to Saved ✓')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Added to Saved ✓')));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1164,10 +1164,7 @@ class _PostWidgetState extends State<PostWidget>
                           children: [
                             Icon(Icons.delete, color: Colors.red),
                             SizedBox(width: 8),
-                            Text(
-                              'Delete',
-                              style: TextStyle(color: Colors.red),
-                            ),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),

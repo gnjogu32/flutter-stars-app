@@ -353,9 +353,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (user.username != null)
               Text(
                 '@${user.username}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.grey),
               ),
             // Talent
             if (user.talent != null)
@@ -708,12 +708,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildUserPosts(UserModel user, bool isOwnProfile) {
     return StreamBuilder<QuerySnapshot>(
       stream: _selectedFolder == _ProfileMediaFolder.saved
-          ? _firestore.collection('posts').orderBy('createdAt', descending: true).snapshots()
+          ? _firestore
+                .collection('posts')
+                .orderBy('createdAt', descending: true)
+                .snapshots()
           : _firestore
-              .collection('posts')
-              .where('authorId', isEqualTo: user.uid)
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
+                .collection('posts')
+                .where('authorId', isEqualTo: user.uid)
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -732,7 +735,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   )
                   .toList();
 
-        final filteredPosts = allPosts.where((post) => _matchesSelectedFolder(post, user.savedPosts)).toList();
+        final filteredPosts = allPosts
+            .where((post) => _matchesSelectedFolder(post, user.savedPosts))
+            .toList();
 
         final folderSection = Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -796,7 +801,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   IconButton(
                     icon: Icon(
-                      _isGridView ? Icons.grid_view : Icons.view_agenda_outlined,
+                      _isGridView
+                          ? Icons.grid_view
+                          : Icons.view_agenda_outlined,
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     onPressed: () => setState(() => _isGridView = !_isGridView),
@@ -813,14 +820,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               folderSection,
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 32,
+                ),
                 child: Text(
                   _selectedFolder == _ProfileMediaFolder.all
                       ? 'No posts yet'
                       : 'No ${_selectedFolder.name} posts yet',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                 ),
               ),
             ],
@@ -836,12 +846,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 4,
-                        mainAxisSpacing: 4,
-                        childAspectRatio: 1,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4,
+                            childAspectRatio: 1,
+                          ),
                       itemCount: filteredPosts.length,
                       itemBuilder: (context, index) {
                         return _buildGridPostItem(filteredPosts[index]);
@@ -866,8 +877,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGridPostItem(PostModel post) {
-    final String? thumbnailUrl = post.imageUrls.isNotEmpty ? post.imageUrls.first : null;
-    final bool isVideo = post.postType == 'video' || (post.videoUrl != null && post.videoUrl!.isNotEmpty);
+    final String? thumbnailUrl = post.imageUrls.isNotEmpty
+        ? post.imageUrls.first
+        : null;
+    final bool isVideo =
+        post.postType == 'video' ||
+        (post.videoUrl != null && post.videoUrl!.isNotEmpty);
 
     return GestureDetector(
       onTap: () {
@@ -898,12 +913,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 imageUrl: thumbnailUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(color: Colors.black12),
-                errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+                errorWidget: (context, url, error) =>
+                    const Icon(Icons.broken_image),
               )
             else if (isVideo)
               Container(
                 color: Colors.black87,
-                child: const Icon(Icons.play_circle_outline, color: Colors.white70, size: 32),
+                child: const Icon(
+                  Icons.play_circle_outline,
+                  color: Colors.white70,
+                  size: 32,
+                ),
               )
             else
               Container(
@@ -920,7 +940,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Positioned(
                 top: 4,
                 right: 4,
-                child: Icon(Icons.play_circle_fill, color: Colors.white, size: 16),
+                child: Icon(
+                  Icons.play_circle_fill,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
             if (post.imageUrls.length > 1)
               const Positioned(

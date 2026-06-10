@@ -16,7 +16,10 @@ class AuthorProfileAvatar extends StatelessWidget {
     }
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || !snapshot.data!.exists) {
           return const Padding(

@@ -8,7 +8,7 @@ class UserModel {
   final String? profileImageUrl;
   final String? bio;
   final String?
-      talent; // Category of talent (e.g., Art, Music, Writing, Dance, etc.)
+  talent; // Category of talent (e.g., Art, Music, Writing, Dance, etc.)
   final List<String> followers;
   final List<String> following;
   final List<String> savedPosts;
