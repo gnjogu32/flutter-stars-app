@@ -92,6 +92,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         itemBuilder: (context, index) {
           final post = _videos[index];
           return _FullScreenVideoItem(
+            key: ValueKey('fs_${post.postId}_$index'),
             post: post,
             autoPlay: index == _currentIndex,
             startPosition: index == widget.initialIndex
@@ -112,6 +113,7 @@ class _FullScreenVideoItem extends StatefulWidget {
   final String? currentUserId;
 
   const _FullScreenVideoItem({
+    super.key,
     required this.post,
     required this.autoPlay,
     this.startPosition,
@@ -144,19 +146,23 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
     _controller = VideoPlayerController.networkUrl(Uri.parse(url));
     try {
       await _controller.initialize();
+      if (!mounted) {
+        _controller.dispose();
+        return;
+      }
+
       if (widget.startPosition != null) {
         await _controller.seekTo(widget.startPosition!);
       }
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-          if (widget.autoPlay) {
-            _controller.play();
-            _showControls = false;
-            ScreenAwakeController.acquire();
-          }
-        });
-      }
+
+      setState(() {
+        _isInitialized = true;
+        if (widget.autoPlay) {
+          _controller.play();
+          _showControls = false;
+          ScreenAwakeController.acquire();
+        }
+      });
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -169,22 +175,34 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   @override
   void didUpdateWidget(_FullScreenVideoItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!_isInitialized) return;
+
     if (widget.autoPlay && !oldWidget.autoPlay) {
-      _controller.play();
-      ScreenAwakeController.acquire();
+      if (!_controller.value.isPlaying) {
+        _controller.play();
+        ScreenAwakeController.acquire();
+      }
     } else if (!widget.autoPlay && oldWidget.autoPlay) {
-      _controller.pause();
-      ScreenAwakeController.release();
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+        ScreenAwakeController.release();
+      }
     }
   }
 
   @override
   void dispose() {
     _muteIndicatorTimer?.cancel();
-    if (_isInitialized && _controller.value.isPlaying) {
-      ScreenAwakeController.release();
+    if (_isInitialized) {
+      if (_controller.value.isPlaying) {
+        ScreenAwakeController.release();
+      }
+      _controller.pause();
+      _controller.dispose();
+    } else {
+      // Still initializing or failed
+      _controller.dispose();
     }
-    _controller.dispose();
     super.dispose();
   }
 
