@@ -1205,14 +1205,46 @@ class _ReelItemState extends State<_ReelItem>
                         if (_isInitialized)
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
-                            child: VideoProgressIndicator(
-                              _videoController,
-                              allowScrubbing: true,
-                              colors: const VideoProgressColors(
-                                playedColor: Colors.white,
-                                bufferedColor: Colors.white24,
-                                backgroundColor: Colors.white12,
-                              ),
+                            child: Column(
+                              children: [
+                                VideoProgressIndicator(
+                                  _videoController,
+                                  allowScrubbing: true,
+                                  colors: const VideoProgressColors(
+                                    playedColor: Colors.white,
+                                    bufferedColor: Colors.white24,
+                                    backgroundColor: Colors.white12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    ValueListenableBuilder(
+                                      valueListenable: _videoController,
+                                      builder: (context, VideoPlayerValue value,
+                                          child) {
+                                        return Text(
+                                          _formatDuration(value.position),
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    Text(
+                                      _formatDuration(
+                                          _videoController.value.duration),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                       ],
@@ -1225,6 +1257,13 @@ class _ReelItemState extends State<_ReelItem>
         ),
       ],
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$minutes:$seconds";
   }
 }
 
