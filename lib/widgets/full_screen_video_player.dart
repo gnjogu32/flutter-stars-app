@@ -507,7 +507,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                     ),
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         ValueListenableBuilder(
                           valueListenable: _controller,
@@ -521,11 +520,23 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                             );
                           },
                         ),
+                        const Text(' / ',
+                            style:
+                                TextStyle(color: Colors.white30, fontSize: 12)),
                         Text(
                           _formatDuration(_controller.value.duration),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: _toggleMute,
+                          child: Icon(
+                            _isMuted ? Icons.volume_off : Icons.volume_up,
+                            color: Colors.white,
+                            size: 20,
                           ),
                         ),
                       ],

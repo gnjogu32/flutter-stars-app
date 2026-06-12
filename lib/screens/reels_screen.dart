@@ -1252,8 +1252,6 @@ class _ReelItemState extends State<_ReelItem>
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     ValueListenableBuilder(
                                       valueListenable: _videoController,
@@ -1268,12 +1266,27 @@ class _ReelItemState extends State<_ReelItem>
                                         );
                                       },
                                     ),
+                                    const Text(' / ',
+                                        style: TextStyle(
+                                            color: Colors.white30,
+                                            fontSize: 10)),
                                     Text(
                                       _formatDuration(
                                           _videoController.value.duration),
                                       style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 10,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    GestureDetector(
+                                      onTap: _toggleMute,
+                                      child: Icon(
+                                        _isMuted
+                                            ? Icons.volume_off
+                                            : Icons.volume_up,
+                                        color: Colors.white,
+                                        size: 18,
                                       ),
                                     ),
                                   ],

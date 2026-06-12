@@ -243,7 +243,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         ValueListenableBuilder(
                           valueListenable: _controller,
@@ -257,11 +256,23 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                             );
                           },
                         ),
+                        const Text(' / ',
+                            style:
+                                TextStyle(color: Colors.white30, fontSize: 10)),
                         Text(
                           _formatDuration(_controller.value.duration),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => setMuted(!_isMuted),
+                          child: Icon(
+                            _isMuted ? Icons.volume_off : Icons.volume_up,
+                            color: Colors.white70,
+                            size: 16,
                           ),
                         ),
                       ],
@@ -270,17 +281,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 ],
               ),
             ),
-          Positioned(
-            top: 10,
-            right: 10,
-            child: IconButton(
-              icon: Icon(
-                _isMuted ? Icons.volume_off : Icons.volume_up,
-                color: Colors.white70,
-              ),
-              onPressed: () => setMuted(!_isMuted),
-            ),
-          ),
         ],
       ),
     );
