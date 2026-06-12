@@ -61,7 +61,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       if (mounted) {
         setState(() {
           _isInitialized = true;
-          _controller.setLooping(widget.looping);
+          _controller.setLooping(true);
           _controller.setVolume(_isMuted ? 0 : 1);
           if (widget.autoPlay) {
             _controller.play();
@@ -78,8 +78,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             widget.onVideoEnd?.call();
             ScreenAwakeController.release();
           }
-          // Optimization: Removed constant setState(() {}) here.
-          // Frequent UI updates (progress) are now handled by ValueListenableBuilder.
         });
       }
     } catch (e) {

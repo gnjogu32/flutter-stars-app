@@ -153,6 +153,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         return;
       }
 
+      await _controller.setLooping(true);
       _controller.addListener(_videoListener);
 
       if (widget.startPosition != null) {

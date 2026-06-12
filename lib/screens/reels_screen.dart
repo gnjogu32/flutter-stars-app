@@ -388,7 +388,7 @@ class _ReelItemState extends State<_ReelItem>
       if (!_isInitialized) {
         await _videoController.initialize();
       }
-      await _videoController.setLooping(false);
+      await _videoController.setLooping(true);
       if (mounted) {
         setState(() => _isInitialized = true);
         if (widget.isActive) {
