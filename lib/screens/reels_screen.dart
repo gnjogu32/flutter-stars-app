@@ -267,7 +267,9 @@ class _ReelItemState extends State<_ReelItem>
   bool _endEventDispatched = false;
   bool _isSaved = false;
   bool _showMuteIndicator = false;
-  Timer? _muteIndicatorTimer;
+  bool _showPlayPauseIndicator = false;
+  bool _isVideoEnded = false;
+  Timer? _indicatorTimer;
   late AnimationController _heartAnimationController;
 
   static const List<String> _quickEmojis = [
@@ -399,19 +401,6 @@ class _ReelItemState extends State<_ReelItem>
       }
     } catch (e) {
       debugPrint('Error initializing reel video: $e');
-    }
-  }
-
-  void _videoListener() {
-    if (_isInitialized && !_videoController.value.isLooping) {
-      final position = _videoController.value.position;
-      final duration = _videoController.value.duration;
-      if (position >= duration &&
-          duration > Duration.zero &&
-          !_endEventDispatched) {
-        _endEventDispatched = true;
-        widget.onVideoEnd?.call();
-      }
     }
   }
 
@@ -893,7 +882,7 @@ class _ReelItemState extends State<_ReelItem>
 
   @override
   void dispose() {
-    _muteIndicatorTimer?.cancel();
+    _indicatorTimer?.cancel();
     if (_isInitialized && _videoController.value.isPlaying) {
       ScreenAwakeController.release();
     }
@@ -907,14 +896,15 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _toggleMute() {
-    _muteIndicatorTimer?.cancel();
+    _indicatorTimer?.cancel();
     setState(() {
       _isMuted = !_isMuted;
       _videoController.setVolume(_isMuted ? 0 : 1);
       _showMuteIndicator = true;
+      _showPlayPauseIndicator = false;
     });
 
-    _muteIndicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() => _showMuteIndicator = false);
       }
@@ -922,15 +912,53 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _togglePlayPause() {
+    _indicatorTimer?.cancel();
     setState(() {
       if (_videoController.value.isPlaying) {
         _videoController.pause();
         ScreenAwakeController.release();
       } else {
+        if (_isVideoEnded) {
+          _videoController.seekTo(Duration.zero);
+          _isVideoEnded = false;
+          _endEventDispatched = false;
+        }
         _videoController.play();
         ScreenAwakeController.acquire();
       }
+      _showPlayPauseIndicator = true;
+      _showMuteIndicator = false;
     });
+
+    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() => _showPlayPauseIndicator = false);
+      }
+    });
+  }
+
+  void _videoListener() {
+    if (_isInitialized) {
+      final position = _videoController.value.position;
+      final duration = _videoController.value.duration;
+
+      // Update ended state for replay button visibility/logic
+      if (position >= duration && duration > Duration.zero) {
+        if (!_isVideoEnded) {
+          setState(() {
+            _isVideoEnded = true;
+            _showPlayPauseIndicator = true; // Show replay/play icon
+          });
+        }
+
+        if (!_videoController.value.isLooping && !_endEventDispatched) {
+          _endEventDispatched = true;
+          widget.onVideoEnd?.call();
+        }
+      } else if (position < duration && _isVideoEnded) {
+        setState(() => _isVideoEnded = false);
+      }
+    }
   }
 
   Future<void> _downloadVideo() async {
@@ -1013,17 +1041,23 @@ class _ReelItemState extends State<_ReelItem>
         else
           const Center(child: CircularProgressIndicator(color: Colors.white)),
 
-        // Mute/Unmute Indicator
-        if (_showMuteIndicator)
+        // Mute/Unmute/Play/Pause Indicator
+        if (_showMuteIndicator || _showPlayPauseIndicator)
           Center(
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.black45,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                _isMuted ? Icons.volume_off : Icons.volume_up,
+                _showMuteIndicator
+                    ? (_isMuted ? Icons.volume_off : Icons.volume_up)
+                    : (_isVideoEnded
+                        ? Icons.replay
+                        : (_videoController.value.isPlaying
+                            ? Icons.pause
+                            : Icons.play_arrow)),
                 color: Colors.white,
                 size: 40,
               ),

@@ -130,7 +130,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   bool _showControls = true;
   bool _isMuted = false;
   bool _showMuteIndicator = false;
-  Timer? _muteIndicatorTimer;
+  bool _showPlayPauseIndicator = false;
+  bool _isVideoEnded = false;
+  Timer? _indicatorTimer;
   String? _error;
 
   @override
@@ -150,6 +152,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         _controller.dispose();
         return;
       }
+
+      _controller.addListener(_videoListener);
 
       if (widget.startPosition != null) {
         await _controller.seekTo(widget.startPosition!);
@@ -172,6 +176,24 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
     }
   }
 
+  void _videoListener() {
+    if (_isInitialized) {
+      final position = _controller.value.position;
+      final duration = _controller.value.duration;
+
+      if (position >= duration && duration > Duration.zero) {
+        if (!_isVideoEnded) {
+          setState(() {
+            _isVideoEnded = true;
+            _showControls = true; // Show controls to reveal replay button
+          });
+        }
+      } else if (position < duration && _isVideoEnded) {
+        setState(() => _isVideoEnded = false);
+      }
+    }
+  }
+
   @override
   void didUpdateWidget(_FullScreenVideoItem oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -179,6 +201,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
 
     if (widget.autoPlay && !oldWidget.autoPlay) {
       if (!_controller.value.isPlaying) {
+        if (_isVideoEnded) {
+          _controller.seekTo(Duration.zero);
+        }
         _controller.play();
         ScreenAwakeController.acquire();
       }
@@ -192,8 +217,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
 
   @override
   void dispose() {
-    _muteIndicatorTimer?.cancel();
+    _indicatorTimer?.cancel();
     if (_isInitialized) {
+      _controller.removeListener(_videoListener);
       if (_controller.value.isPlaying) {
         ScreenAwakeController.release();
       }
@@ -207,28 +233,42 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   }
 
   void _togglePlay() {
+    _indicatorTimer?.cancel();
     setState(() {
       if (_controller.value.isPlaying) {
         _controller.pause();
         _showControls = true;
         ScreenAwakeController.release();
       } else {
+        if (_isVideoEnded) {
+          _controller.seekTo(Duration.zero);
+          _isVideoEnded = false;
+        }
         _controller.play();
         _showControls = false;
         ScreenAwakeController.acquire();
+      }
+      _showPlayPauseIndicator = true;
+      _showMuteIndicator = false;
+    });
+
+    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() => _showPlayPauseIndicator = false);
       }
     });
   }
 
   void _toggleMute() {
-    _muteIndicatorTimer?.cancel();
+    _indicatorTimer?.cancel();
     setState(() {
       _isMuted = !_isMuted;
       _controller.setVolume(_isMuted ? 0 : 1);
       _showMuteIndicator = true;
+      _showPlayPauseIndicator = false;
     });
 
-    _muteIndicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() => _showMuteIndicator = false);
       }
@@ -297,8 +337,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                 : const CircularProgressIndicator(color: Colors.white),
           ),
 
-          // Mute/Unmute Indicator
-          if (_showMuteIndicator)
+          // Mute/Unmute/Play/Pause Indicator
+          if (_showMuteIndicator || _showPlayPauseIndicator)
             Center(
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -307,7 +347,13 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _isMuted ? Icons.volume_off : Icons.volume_up,
+                  _showMuteIndicator
+                      ? (_isMuted ? Icons.volume_off : Icons.volume_up)
+                      : (_isVideoEnded
+                          ? Icons.replay
+                          : (_controller.value.isPlaying
+                              ? Icons.pause
+                              : Icons.play_arrow)),
                   color: Colors.white,
                   size: 40,
                 ),
@@ -348,9 +394,11 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
             Center(
               child: IconButton(
                 icon: Icon(
-                  _controller.value.isPlaying
-                      ? Icons.pause_circle_filled
-                      : Icons.play_circle_filled,
+                  _isVideoEnded
+                      ? Icons.replay_circle_filled
+                      : (_controller.value.isPlaying
+                          ? Icons.pause_circle_filled
+                          : Icons.play_circle_filled),
                   color: Colors.white.withValues(alpha: 0.8),
                   size: 80,
                 ),
