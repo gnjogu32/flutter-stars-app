@@ -284,8 +284,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     ),
                   ),
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     child: Row(
                       children: [
                         ValueListenableBuilder(
@@ -300,9 +302,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                             );
                           },
                         ),
-                        const Text(' / ',
-                            style:
-                                TextStyle(color: Colors.white30, fontSize: 10)),
+                        const Text(
+                          ' / ',
+                          style: TextStyle(color: Colors.white30, fontSize: 10),
+                        ),
                         Text(
                           _formatDuration(_controller.value.duration),
                           style: const TextStyle(

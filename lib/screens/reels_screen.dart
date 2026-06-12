@@ -1053,10 +1053,10 @@ class _ReelItemState extends State<_ReelItem>
                 _showMuteIndicator
                     ? (_isMuted ? Icons.volume_off : Icons.volume_up)
                     : (_isVideoEnded
-                        ? Icons.replay
-                        : (_videoController.value.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow)),
+                          ? Icons.replay
+                          : (_videoController.value.isPlaying
+                                ? Icons.pause
+                                : Icons.play_arrow)),
                 color: Colors.white,
                 size: 40,
               ),
@@ -1254,24 +1254,32 @@ class _ReelItemState extends State<_ReelItem>
                                   children: [
                                     ValueListenableBuilder(
                                       valueListenable: _videoController,
-                                      builder: (context, VideoPlayerValue value,
-                                          child) {
-                                        return Text(
-                                          _formatDuration(value.position),
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 10,
-                                          ),
-                                        );
-                                      },
+                                      builder:
+                                          (
+                                            context,
+                                            VideoPlayerValue value,
+                                            child,
+                                          ) {
+                                            return Text(
+                                              _formatDuration(value.position),
+                                              style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 10,
+                                              ),
+                                            );
+                                          },
                                     ),
-                                    const Text(' / ',
-                                        style: TextStyle(
-                                            color: Colors.white30,
-                                            fontSize: 10)),
+                                    const Text(
+                                      ' / ',
+                                      style: TextStyle(
+                                        color: Colors.white30,
+                                        fontSize: 10,
+                                      ),
+                                    ),
                                     Text(
                                       _formatDuration(
-                                          _videoController.value.duration),
+                                        _videoController.value.duration,
+                                      ),
                                       style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 10,

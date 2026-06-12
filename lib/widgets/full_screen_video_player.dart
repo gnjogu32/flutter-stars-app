@@ -351,10 +351,10 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                   _showMuteIndicator
                       ? (_isMuted ? Icons.volume_off : Icons.volume_up)
                       : (_isVideoEnded
-                          ? Icons.replay
-                          : (_controller.value.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow)),
+                            ? Icons.replay
+                            : (_controller.value.isPlaying
+                                  ? Icons.pause
+                                  : Icons.play_arrow)),
                   color: Colors.white,
                   size: 40,
                 ),
@@ -398,8 +398,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                   _isVideoEnded
                       ? Icons.replay_circle_filled
                       : (_controller.value.isPlaying
-                          ? Icons.pause_circle_filled
-                          : Icons.play_circle_filled),
+                            ? Icons.pause_circle_filled
+                            : Icons.play_circle_filled),
                   color: Colors.white.withValues(alpha: 0.8),
                   size: 80,
                 ),
@@ -521,9 +521,10 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                             );
                           },
                         ),
-                        const Text(' / ',
-                            style:
-                                TextStyle(color: Colors.white30, fontSize: 12)),
+                        const Text(
+                          ' / ',
+                          style: TextStyle(color: Colors.white30, fontSize: 12),
+                        ),
                         Text(
                           _formatDuration(_controller.value.duration),
                           style: const TextStyle(
