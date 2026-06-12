@@ -208,8 +208,26 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         alignment: Alignment.center,
         children: [
           GestureDetector(
-            onTap: _togglePlay,
-            onLongPress: () {
+            onTap: () {
+              if (widget.post != null) {
+                final currentPosition = _controller.value.position;
+                _controller.pause();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => FullScreenVideoPlayer(
+                      videoUrl: widget.videoUrl,
+                      startPosition: currentPosition,
+                      post: widget.post,
+                      currentUserId: widget.currentUserId,
+                    ),
+                  ),
+                );
+              } else {
+                _togglePlay();
+              }
+            },
+            onLongPress: _togglePlay,
+            onDoubleTap: () {
               if (widget.showControls) {
                 setState(() => _showOverlay = !_showOverlay);
               }
@@ -340,23 +358,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               onPressed: () {
                 _controller.seekTo(
                   _controller.value.position + const Duration(seconds: 10),
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.fullscreen, color: Colors.white, size: 30),
-              onPressed: () {
-                final currentPosition = _controller.value.position;
-                _controller.pause();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => FullScreenVideoPlayer(
-                      videoUrl: widget.videoUrl,
-                      startPosition: currentPosition,
-                      post: widget.post,
-                      currentUserId: widget.currentUserId,
-                    ),
-                  ),
                 );
               },
             ),
