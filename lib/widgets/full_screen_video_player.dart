@@ -304,7 +304,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         .trim();
 
     return GestureDetector(
-      onTap: _toggleMute,
+      onTap: _togglePlay,
       onLongPress: () {
         setState(() {
           _showControls = !_showControls;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:video_player/video_player.dart';
 import '../models/post_model.dart';
 import 'full_screen_video_player.dart';
@@ -41,6 +42,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   bool _isInitialized = false;
   late bool _isMuted;
   bool _showOverlay = true;
+  bool _showPlayPauseIndicator = false;
+  Timer? _indicatorTimer;
   bool _playEventDispatched = false;
   String? _error;
 
@@ -100,6 +103,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    _indicatorTimer?.cancel();
     if (_isInitialized && _controller.value.isPlaying) {
       ScreenAwakeController.release();
     }
@@ -108,6 +112,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   void _togglePlay() {
+    _indicatorTimer?.cancel();
     setState(() {
       if (_controller.value.isPlaying) {
         _controller.pause();
@@ -118,6 +123,13 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         _showOverlay = false;
         _dispatchPlayEvent();
         ScreenAwakeController.acquire();
+      }
+      _showPlayPauseIndicator = true;
+    });
+
+    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() => _showPlayPauseIndicator = false);
       }
     });
   }
@@ -198,11 +210,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         alignment: Alignment.center,
         children: [
           GestureDetector(
-            onTap: () {
+            onTap: _togglePlay,
+            onLongPress: () {
               if (widget.showControls) {
                 setState(() => _showOverlay = !_showOverlay);
-              } else {
-                _togglePlay();
               }
             },
             child: VideoPlayer(_controller),
@@ -220,6 +231,23 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               return const SizedBox.shrink();
             },
           ),
+
+          // Play/Pause Indicator
+          if (_showPlayPauseIndicator)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Colors.black45,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+            ),
 
           if (_showOverlay && widget.showControls) _buildControlsOverlay(),
           if (widget.showControls)

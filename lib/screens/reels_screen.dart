@@ -1029,8 +1029,7 @@ class _ReelItemState extends State<_ReelItem>
         if (_isInitialized)
           GestureDetector(
             onDoubleTap: _handleDoubleTap,
-            onLongPress: _togglePlayPause,
-            onTap: _toggleMute,
+            onTap: _togglePlayPause,
             child: Center(
               child: AspectRatio(
                 aspectRatio: _videoController.value.aspectRatio,
