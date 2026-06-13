@@ -389,21 +389,18 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
           // Skip Backward Indicator
           if (_showSkipBackward)
             Positioned(
-              left: 50,
+              left: 60,
               top: 0,
               bottom: 0,
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.fast_rewind, color: Colors.white, size: 40),
-                    const SizedBox(height: 4),
-                    const Text('10s',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold)),
-                  ],
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Colors.black26,
+                    shape: BoxShape.circle,
+                  ),
+                  child:
+                      const Icon(Icons.replay_10, color: Colors.white, size: 44),
                 ),
               ),
             ),
@@ -411,22 +408,18 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
           // Skip Forward Indicator
           if (_showSkipForward)
             Positioned(
-              right: 50,
+              right: 60,
               top: 0,
               bottom: 0,
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.fast_forward,
-                        color: Colors.white, size: 40),
-                    const SizedBox(height: 4),
-                    const Text('10s',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold)),
-                  ],
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Colors.black26,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.forward_10,
+                      color: Colors.white, size: 44),
                 ),
               ),
             ),

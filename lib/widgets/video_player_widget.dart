@@ -311,17 +311,14 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               top: 0,
               bottom: 0,
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.fast_rewind, color: Colors.white, size: 30),
-                    const SizedBox(height: 2),
-                    const Text('10s',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold)),
-                  ],
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black26,
+                    shape: BoxShape.circle,
+                  ),
+                  child:
+                      const Icon(Icons.replay_10, color: Colors.white, size: 36),
                 ),
               ),
             ),
@@ -333,18 +330,14 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               top: 0,
               bottom: 0,
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.fast_forward,
-                        color: Colors.white, size: 30),
-                    const SizedBox(height: 2),
-                    const Text('10s',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold)),
-                  ],
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black26,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.forward_10,
+                      color: Colors.white, size: 36),
                 ),
               ),
             ),
