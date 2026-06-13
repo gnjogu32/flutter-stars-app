@@ -131,6 +131,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   bool _isMuted = false;
   bool _showMuteIndicator = false;
   bool _showPlayPauseIndicator = false;
+  bool _showSkipForward = false;
+  bool _showSkipBackward = false;
   bool _isVideoEnded = false;
   Timer? _indicatorTimer;
   String? _error;
@@ -267,11 +269,32 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       _controller.setVolume(_isMuted ? 0 : 1);
       _showMuteIndicator = true;
       _showPlayPauseIndicator = false;
+      _showSkipForward = false;
+      _showSkipBackward = false;
     });
 
     _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() => _showMuteIndicator = false);
+      }
+    });
+  }
+
+  void _showSkipIndicator({required bool forward}) {
+    _indicatorTimer?.cancel();
+    setState(() {
+      _showSkipForward = forward;
+      _showSkipBackward = !forward;
+      _showMuteIndicator = false;
+      _showPlayPauseIndicator = false;
+    });
+
+    _indicatorTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _showSkipForward = false;
+          _showSkipBackward = false;
+        });
       }
     });
   }
@@ -313,16 +336,18 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       },
       onDoubleTapDown: (details) {
         final screenWidth = MediaQuery.of(context).size.width;
-        if (details.globalPosition.dx < screenWidth / 2) {
+        if (details.globalPosition.dx < screenWidth * 0.35) {
           // Rewind
-          _controller.seekTo(
-            _controller.value.position - const Duration(seconds: 10),
-          );
-        } else {
+          final newPos =
+              _controller.value.position - const Duration(seconds: 10);
+          _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+          _showSkipIndicator(forward: false);
+        } else if (details.globalPosition.dx > screenWidth * 0.65) {
           // Forward
-          _controller.seekTo(
-            _controller.value.position + const Duration(seconds: 10),
-          );
+          final newPos =
+              _controller.value.position + const Duration(seconds: 10);
+          _controller.seekTo(newPos);
+          _showSkipIndicator(forward: true);
         }
       },
       child: Stack(
@@ -357,6 +382,51 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                   : Icons.play_arrow)),
                   color: Colors.white,
                   size: 40,
+                ),
+              ),
+            ),
+
+          // Skip Backward Indicator
+          if (_showSkipBackward)
+            Positioned(
+              left: 50,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.fast_rewind, color: Colors.white, size: 40),
+                    const SizedBox(height: 4),
+                    const Text('10s',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+
+          // Skip Forward Indicator
+          if (_showSkipForward)
+            Positioned(
+              right: 50,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.fast_forward,
+                        color: Colors.white, size: 40),
+                    const SizedBox(height: 4),
+                    const Text('10s',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
             ),

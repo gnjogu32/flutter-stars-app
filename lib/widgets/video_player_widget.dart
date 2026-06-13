@@ -43,6 +43,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   late bool _isMuted;
   bool _showOverlay = true;
   bool _showPlayPauseIndicator = false;
+  bool _showSkipForward = false;
+  bool _showSkipBackward = false;
   Timer? _indicatorTimer;
   bool _playEventDispatched = false;
   String? _error;
@@ -123,11 +125,31 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         ScreenAwakeController.acquire();
       }
       _showPlayPauseIndicator = true;
+      _showSkipForward = false;
+      _showSkipBackward = false;
     });
 
     _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() => _showPlayPauseIndicator = false);
+      }
+    });
+  }
+
+  void _showSkipIndicator({required bool forward}) {
+    _indicatorTimer?.cancel();
+    setState(() {
+      _showSkipForward = forward;
+      _showSkipBackward = !forward;
+      _showPlayPauseIndicator = false;
+    });
+
+    _indicatorTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _showSkipForward = false;
+          _showSkipBackward = false;
+        });
       }
     });
   }
@@ -227,9 +249,26 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               }
             },
             onLongPress: _togglePlay,
-            onDoubleTap: () {
-              if (widget.showControls) {
-                setState(() => _showOverlay = !_showOverlay);
+            onDoubleTapDown: (details) {
+              final width = context.size?.width ?? 0;
+              final tapX = details.localPosition.dx;
+              if (tapX < width * 0.35) {
+                // Rewind
+                final newPos =
+                    _controller.value.position - const Duration(seconds: 10);
+                _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+                _showSkipIndicator(forward: false);
+              } else if (tapX > width * 0.65) {
+                // Forward
+                final newPos =
+                    _controller.value.position + const Duration(seconds: 10);
+                _controller.seekTo(newPos);
+                _showSkipIndicator(forward: true);
+              } else {
+                // Center - Toggle Overlay
+                if (widget.showControls) {
+                  setState(() => _showOverlay = !_showOverlay);
+                }
               }
             },
             child: VideoPlayer(_controller),
@@ -261,6 +300,51 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                   _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
                   color: Colors.white,
                   size: 40,
+                ),
+              ),
+            ),
+
+          // Skip Backward Indicator
+          if (_showSkipBackward)
+            Positioned(
+              left: 30,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.fast_rewind, color: Colors.white, size: 30),
+                    const SizedBox(height: 2),
+                    const Text('10s',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+
+          // Skip Forward Indicator
+          if (_showSkipForward)
+            Positioned(
+              right: 30,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.fast_forward,
+                        color: Colors.white, size: 30),
+                    const SizedBox(height: 2),
+                    const Text('10s',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
             ),

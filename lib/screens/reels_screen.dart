@@ -268,6 +268,8 @@ class _ReelItemState extends State<_ReelItem>
   bool _isSaved = false;
   bool _showMuteIndicator = false;
   bool _showPlayPauseIndicator = false;
+  bool _showSkipForward = false;
+  bool _showSkipBackward = false;
   bool _isVideoEnded = false;
   Timer? _indicatorTimer;
   late AnimationController _heartAnimationController;
@@ -1008,13 +1010,50 @@ class _ReelItemState extends State<_ReelItem>
     }
   }
 
-  Future<void> _handleDoubleTap() async {
-    if (!_isLiked) {
-      await _toggleLike();
+  Future<void> _handleDoubleTapDown(TapDownDetails details) async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final tapX = details.globalPosition.dx;
+
+    if (tapX < screenWidth * 0.3) {
+      // Skip Backward
+      final newPos =
+          _videoController.value.position - const Duration(seconds: 10);
+      await _videoController.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+      _showSkipIndicator(forward: false);
+    } else if (tapX > screenWidth * 0.7) {
+      // Skip Forward
+      final newPos =
+          _videoController.value.position + const Duration(seconds: 10);
+      await _videoController.seekTo(newPos);
+      _showSkipIndicator(forward: true);
+    } else {
+      // Like (Center)
+      if (!_isLiked) {
+        await _toggleLike();
+      }
+      setState(() => _showLikeHeart = true);
+      _heartAnimationController.forward(from: 0).then((_) {
+        setState(() => _showLikeHeart = false);
+      });
     }
-    setState(() => _showLikeHeart = true);
-    _heartAnimationController.forward(from: 0).then((_) {
-      setState(() => _showLikeHeart = false);
+  }
+
+  void _showSkipIndicator({required bool forward}) {
+    _indicatorTimer?.cancel();
+    setState(() {
+      _showSkipForward = forward;
+      _showSkipBackward = !forward;
+      _showMuteIndicator = false;
+      _showPlayPauseIndicator = false;
+    });
+
+    _indicatorTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _showSkipForward = false;
+          _showSkipBackward = false;
+        });
+      }
     });
   }
 
@@ -1028,7 +1067,7 @@ class _ReelItemState extends State<_ReelItem>
       children: [
         if (_isInitialized)
           GestureDetector(
-            onDoubleTap: _handleDoubleTap,
+            onDoubleTapDown: _handleDoubleTapDown,
             onTap: _togglePlayPause,
             child: Center(
               child: AspectRatio(
@@ -1059,6 +1098,50 @@ class _ReelItemState extends State<_ReelItem>
                                 : Icons.play_arrow)),
                 color: Colors.white,
                 size: 40,
+              ),
+            ),
+          ),
+
+        // Skip Backward Indicator
+        if (_showSkipBackward)
+          Positioned(
+            left: 50,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.fast_rewind, color: Colors.white, size: 40),
+                  const SizedBox(height: 4),
+                  const Text('10s',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ),
+
+        // Skip Forward Indicator
+        if (_showSkipForward)
+          Positioned(
+            right: 50,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.fast_forward, color: Colors.white, size: 40),
+                  const SizedBox(height: 4),
+                  const Text('10s',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                ],
               ),
             ),
           ),

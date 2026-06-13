@@ -2,7 +2,10 @@ name: Automated Testing Suite
 
 permissions:
   contents: read
-  issues: write
+
+concurrency:
+  group: automated-testing-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   push:
@@ -21,6 +24,29 @@ env:
   FLUTTER_VERSION: '3.44.0'
 
 jobs:
+  changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      android-build: ${{ steps.filter.outputs.android-build }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect relevant file changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            android-build:
+              - 'android/**'
+              - 'lib/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'analysis_options.yaml'
+              - '.github/workflows/automated-testing.yml'
+
   unit-tests:
     name: Unit & Widget Tests
     runs-on: ubuntu-latest
@@ -121,12 +147,15 @@ jobs:
         with:
           name: analysis-report
           path: analysis-report.json
+          if-no-files-found: ignore
           retention-days: 7
 
   build-test:
     name: Build Test (Debug)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    needs: [changes]
+    if: needs.changes.outputs.android-build == 'true' || github.event_name == 'schedule'
     
     steps:
       - name: Checkout code
@@ -170,6 +199,7 @@ jobs:
         with:
           name: debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: ignore
           retention-days: 7
 
   test-report:
@@ -177,6 +207,9 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs: [unit-tests, code-analysis, build-test]
+    permissions:
+      contents: read
+      issues: write
     
     steps:
       - name: Checkout code
