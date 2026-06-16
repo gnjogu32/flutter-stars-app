@@ -12,6 +12,7 @@ class UserModel {
   final List<String> followers;
   final List<String> following;
   final List<String> savedPosts;
+  final List<String> blockedUsers;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? fcmToken;
@@ -27,6 +28,7 @@ class UserModel {
     this.followers = const [],
     this.following = const [],
     this.savedPosts = const [],
+    this.blockedUsers = const [],
     required this.createdAt,
     required this.updatedAt,
     this.fcmToken,
@@ -45,6 +47,7 @@ class UserModel {
       'followers': followers,
       'following': following,
       'savedPosts': savedPosts,
+      'blockedUsers': blockedUsers,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'fcmToken': fcmToken,
@@ -64,6 +67,7 @@ class UserModel {
       followers: List<String>.from(json['followers'] ?? []),
       following: List<String>.from(json['following'] ?? []),
       savedPosts: List<String>.from(json['savedPosts'] ?? []),
+      blockedUsers: List<String>.from(json['blockedUsers'] ?? []),
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -96,6 +100,7 @@ class UserModel {
       followers: List<String>.from(data['followers'] ?? []),
       following: List<String>.from(data['following'] ?? []),
       savedPosts: List<String>.from(data['savedPosts'] ?? []),
+      blockedUsers: List<String>.from(data['blockedUsers'] ?? []),
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -122,6 +127,7 @@ class UserModel {
     List<String>? followers,
     List<String>? following,
     List<String>? savedPosts,
+    List<String>? blockedUsers,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? fcmToken,
@@ -137,6 +143,7 @@ class UserModel {
       followers: followers ?? this.followers,
       following: following ?? this.following,
       savedPosts: savedPosts ?? this.savedPosts,
+      blockedUsers: blockedUsers ?? this.blockedUsers,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       fcmToken: fcmToken ?? this.fcmToken,

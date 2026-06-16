@@ -27,6 +27,17 @@ class ChatService {
     String? videoUrl,
   }) async {
     try {
+      // Outgoing Safety Check: Verify if the sender has blocked the recipient
+      // (Reading our own document is always allowed)
+      final userService = UserService();
+      final senderBlockedRecipient = await userService.isUserBlocked(
+        senderId,
+        recipientId,
+      );
+      if (senderBlockedRecipient) {
+        throw Exception('Unblock this user to send a message.');
+      }
+
       final conversationId = _getConversationId(senderId, recipientId);
       final messageId = _firestore.collection('messages').doc().id;
       final now = DateTime.now();
@@ -34,9 +45,10 @@ class ChatService {
           .collection('conversations')
           .doc(conversationId);
 
-      // Ensure conversation exists before writing message.
-      final existingConversation = await conversationRef.get();
-      if (!existingConversation.exists) {
+      // Ensure conversation exists
+      final convSnap = await conversationRef.get();
+
+      if (!convSnap.exists) {
         final sortedParticipants = ([senderId, recipientId]..sort());
         await conversationRef.set({
           'conversationId': conversationId,
@@ -49,6 +61,7 @@ class ChatService {
           'createdBy': senderId,
           'createdAt': now,
           'updatedAt': now,
+          'mutedBy': [],
         }, SetOptions(merge: true));
       }
 
@@ -82,16 +95,28 @@ class ChatService {
         'updatedAt': now,
       }, SetOptions(merge: true));
 
-      // Create message notification for recipient
-      final notificationService = NotificationService();
-      await notificationService.createNotification(
-        userId: recipientId,
-        triggeredBy: senderId,
-        triggeredByName: senderName,
-        triggeredByImageUrl: senderImageUrl,
-        type: 'message',
-        content: '$senderName sent you a message',
-      );
+      // Attempt Notification (Fail-safe)
+      // Note: We don't check the recipient's block list here to avoid permission errors.
+      // Firestore security rules should handle enforcement.
+      try {
+        final convData = (await conversationRef.get()).data();
+        final mutedBy = List<String>.from(convData?['mutedBy'] ?? []);
+
+        if (!mutedBy.contains(recipientId)) {
+          final notificationService = NotificationService();
+          await notificationService.createNotification(
+            userId: recipientId,
+            triggeredBy: senderId,
+            triggeredByName: senderName,
+            triggeredByImageUrl: senderImageUrl,
+            type: 'message',
+            postId: conversationId,
+            content: '$senderName sent you a message',
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) print('Notification delivery skipped: $e');
+      }
     } catch (e) {
       rethrow;
     }
@@ -477,5 +502,27 @@ class ChatService {
 
           return timeDiff < 3;
         });
+  }
+
+  // Mute a conversation
+  Future<void> muteConversation(String conversationId, String userId) async {
+    try {
+      await _firestore.collection('conversations').doc(conversationId).update({
+        'mutedBy': FieldValue.arrayUnion([userId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Unmute a conversation
+  Future<void> unmuteConversation(String conversationId, String userId) async {
+    try {
+      await _firestore.collection('conversations').doc(conversationId).update({
+        'mutedBy': FieldValue.arrayRemove([userId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
   }
 }

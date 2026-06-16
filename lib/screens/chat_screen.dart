@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
 import '../models/message_model.dart';
@@ -41,12 +42,14 @@ class _ChatScreenState extends State<ChatScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
-  late UserModel? _currentUser;
+  UserModel? _currentUser;
   bool _isSending = false;
   bool _isUserTyping = false;
   bool _showEmojiPanel = false;
   Timer? _typingTimer;
   bool _isMediaUploading = false;
+  bool _isMuted = false;
+  bool _isBlocked = false;
 
   static const List<String> _quickEmojis = [
     '😀',
@@ -82,9 +85,159 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _markMessagesAsRead(); // Fire-and-forget, don't block UI
       _loadCurrentUser(); // Load user data asynchronously in background
+      _checkMuteStatus();
+      _checkBlockStatus();
     });
 
     _messageController.addListener(_onTextChanged);
+  }
+
+  Future<void> _checkMuteStatus() async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return;
+
+      final convSnap = await FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(widget.conversationId)
+          .get();
+
+      if (convSnap.exists && mounted) {
+        final mutedBy = List<String>.from(convSnap.data()?['mutedBy'] ?? []);
+        setState(() => _isMuted = mutedBy.contains(userId));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _checkBlockStatus() async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return;
+      final blocked = await _userService.isUserBlocked(
+        userId,
+        widget.otherUserId,
+      );
+      if (mounted) setState(() => _isBlocked = blocked);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleMute() async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    try {
+      if (_isMuted) {
+        await _chatService.unmuteConversation(widget.conversationId, userId);
+      } else {
+        await _chatService.muteConversation(widget.conversationId, userId);
+      }
+      setState(() => _isMuted = !_isMuted);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isMuted ? 'Notifications muted' : 'Notifications unmuted',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _toggleBlock() async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_isBlocked ? 'Unblock User' : 'Block User'),
+        content: Text(
+          _isBlocked
+              ? 'Unblock ${widget.otherUserName}?'
+              : 'Block ${widget.otherUserName}? You will no longer receive their messages.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: _isBlocked ? Colors.blue : Colors.red,
+            ),
+            child: Text(_isBlocked ? 'Unblock' : 'Block'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      if (_isBlocked) {
+        await _userService.unblockUser(userId, widget.otherUserId);
+      } else {
+        await _userService.blockUser(userId, widget.otherUserId);
+      }
+      setState(() => _isBlocked = !_isBlocked);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  void _showChatOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: Icon(
+                _isMuted ? Icons.notifications_off : Icons.notifications_active,
+              ),
+              title: Text(
+                _isMuted ? 'Unmute Notifications' : 'Mute Notifications',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _toggleMute();
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                _isBlocked ? Icons.check_circle_outline : Icons.block,
+                color: Colors.red,
+              ),
+              title: Text(
+                _isBlocked ? 'Unblock User' : 'Block User',
+                style: const TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _toggleBlock();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _loadCurrentUser() async {
@@ -471,6 +624,12 @@ class _ChatScreenState extends State<ChatScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: _showChatOptions,
+          ),
+        ],
       ),
       body: Column(
         children: [

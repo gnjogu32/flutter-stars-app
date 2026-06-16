@@ -1,7 +1,9 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:async';
 import 'package:video_player/video_player.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:starpage/models/post_model.dart';
 import 'package:starpage/widgets/video_interactions_sidebar.dart';
 import 'package:starpage/widgets/expandable_text.dart';
@@ -9,6 +11,7 @@ import 'package:starpage/screens/profile_screen.dart';
 import 'package:starpage/screens/full_screen_comments_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../utils/screen_awake_controller.dart';
+import '../services/analytics_service.dart';
 
 class FullScreenVideoPlayer extends StatefulWidget {
   final String videoUrl;
@@ -18,6 +21,7 @@ class FullScreenVideoPlayer extends StatefulWidget {
   final String? currentUserId;
   final List<PostModel>? playlist;
   final int initialIndex;
+  final VideoPlayerController? manualController;
 
   const FullScreenVideoPlayer({
     super.key,
@@ -28,6 +32,7 @@ class FullScreenVideoPlayer extends StatefulWidget {
     this.currentUserId,
     this.playlist,
     this.initialIndex = 0,
+    this.manualController,
   });
 
   @override
@@ -38,6 +43,8 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   late PageController _pageController;
   late int _currentIndex;
   late List<PostModel> _videos;
+  final int _sessionSeed = Random().nextInt(1000000);
+  final Map<int, VideoPlayerController> _preloadedControllers = {};
 
   @override
   void initState() {
@@ -46,6 +53,11 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     _videos = widget.playlist ?? (widget.post != null ? [widget.post!] : []);
     _pageController = PageController(initialPage: _currentIndex);
 
+    // If we have a manual controller for the first item, cache it
+    if (widget.manualController != null && _videos.isNotEmpty) {
+      _preloadedControllers[_currentIndex] = widget.manualController!;
+    }
+
     // Enable immersive mode and landscape orientation
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
@@ -53,6 +65,69 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
       DeviceOrientation.landscapeRight,
       DeviceOrientation.portraitUp,
     ]);
+
+    // Load discovery playlist for seamless vertical shuffle if starting from a single post
+    if (widget.playlist == null && widget.post != null) {
+      _loadDiscoveryPlaylist();
+    } else {
+      _preloadAdjacent(_currentIndex);
+    }
+  }
+
+  void _preloadAdjacent(int index) {
+    // Preload next 2 videos
+    for (int i = index + 1; i <= index + 2; i++) {
+      if (i < _videos.length && !_preloadedControllers.containsKey(i)) {
+        final url = _videos[i].videoUrl;
+        if (url != null && url.isNotEmpty) {
+          final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+          _preloadedControllers[i] = controller;
+          controller.initialize().then((_) {
+            if (mounted) setState(() {});
+          });
+        }
+      }
+    }
+    // Cleanup distant ones
+    _preloadedControllers.removeWhere((i, controller) {
+      if ((i - index).abs() > 3) {
+        controller.dispose();
+        return true;
+      }
+      return false;
+    });
+  }
+
+  Future<void> _loadDiscoveryPlaylist() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .where('postType', isEqualTo: 'video')
+          .orderBy('createdAt', descending: true)
+          .limit(40)
+          .get();
+
+      final moreVideos = snapshot.docs
+          .map((doc) => PostModel.fromJson(doc.data()))
+          .where(
+            (p) =>
+                p.postId != widget.post!.postId &&
+                (p.videoUrl ?? '').isNotEmpty,
+          )
+          .toList();
+
+      // Shuffle based on a session seed for consistent discovery
+      moreVideos.shuffle(Random(_sessionSeed));
+
+      if (mounted) {
+        setState(() {
+          _videos.addAll(moreVideos);
+        });
+        _preloadAdjacent(_currentIndex);
+      }
+    } catch (e) {
+      debugPrint('Error loading discovery playlist: $e');
+    }
   }
 
   @override
@@ -61,6 +136,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _pageController.dispose();
+    _preloadedControllers.forEach((_, c) => c.dispose());
     super.dispose();
   }
 
@@ -88,6 +164,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           setState(() {
             _currentIndex = index;
           });
+          _preloadAdjacent(index);
         },
         itemBuilder: (context, index) {
           final post = _videos[index];
@@ -99,6 +176,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
                 ? widget.startPosition
                 : null,
             currentUserId: widget.currentUserId,
+            manualController: _preloadedControllers[index],
           );
         },
       ),
@@ -111,6 +189,7 @@ class _FullScreenVideoItem extends StatefulWidget {
   final bool autoPlay;
   final Duration? startPosition;
   final String? currentUserId;
+  final VideoPlayerController? manualController;
 
   const _FullScreenVideoItem({
     super.key,
@@ -118,6 +197,7 @@ class _FullScreenVideoItem extends StatefulWidget {
     required this.autoPlay,
     this.startPosition,
     this.currentUserId,
+    this.manualController,
   });
 
   @override
@@ -144,6 +224,26 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   }
 
   Future<void> _initializeController() async {
+    if (widget.manualController != null) {
+      _controller = widget.manualController!;
+      _isInitialized = _controller.value.isInitialized;
+      if (_isInitialized) {
+        _controller.addListener(_videoListener);
+        // Sync volume and playback for immersive experience
+        _isMuted = false;
+        _controller.setVolume(1.0);
+
+        setState(() {
+          if (widget.autoPlay) {
+            _controller.play();
+            _showControls = false;
+            ScreenAwakeController.acquire();
+          }
+        });
+      }
+      return;
+    }
+
     final url = widget.post.videoUrl;
     if (url == null || url.isEmpty) return;
 
@@ -168,6 +268,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
           _controller.play();
           _showControls = false;
           ScreenAwakeController.acquire();
+          _trackView();
         }
       });
     } catch (e) {
@@ -176,6 +277,14 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
           _error = 'Error loading video: $e';
         });
       }
+    }
+  }
+
+  void _trackView() {
+    final ownerId = (widget.post.originalAuthorId ?? widget.post.authorId)
+        .trim();
+    if (ownerId.isNotEmpty) {
+      AnalyticsService().trackView(widget.post.postId, ownerId);
     }
   }
 
@@ -209,6 +318,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         }
         _controller.play();
         ScreenAwakeController.acquire();
+        _trackView();
       }
     } else if (!widget.autoPlay && oldWidget.autoPlay) {
       if (_controller.value.isPlaying) {
@@ -287,13 +397,15 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       _showSkipBackward = !forward;
       _showMuteIndicator = false;
       _showPlayPauseIndicator = false;
+      _showControls = true;
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 600), () {
+    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
       if (mounted) {
         setState(() {
           _showSkipForward = false;
           _showSkipBackward = false;
+          _showControls = false;
         });
       }
     });
@@ -399,8 +511,11 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                     color: Colors.black26,
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.replay_10, color: Colors.white, size: 44),
+                  child: const Icon(
+                    Icons.replay_10,
+                    color: Colors.white,
+                    size: 44,
+                  ),
                 ),
               ),
             ),
@@ -418,8 +533,11 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                     color: Colors.black26,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.forward_10,
-                      color: Colors.white, size: 44),
+                  child: const Icon(
+                    Icons.forward_10,
+                    color: Colors.white,
+                    size: 44,
+                  ),
                 ),
               ),
             ),

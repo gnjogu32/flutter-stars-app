@@ -48,6 +48,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   Timer? _indicatorTimer;
   bool _playEventDispatched = false;
   String? _error;
+  bool _ignoreVisibilityPause =
+      false; // Flag to allow seamless portal transitions
 
   @override
   void initState() {
@@ -142,19 +144,24 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       _showSkipForward = forward;
       _showSkipBackward = !forward;
       _showPlayPauseIndicator = false;
+      _showOverlay = true;
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 600), () {
+    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
       if (mounted) {
         setState(() {
           _showSkipForward = false;
           _showSkipBackward = false;
+          _showOverlay = false;
         });
       }
     });
   }
 
   void pause() {
+    if (_ignoreVisibilityPause)
+      return; // Prevent autopause during portal handoff
+
     if (_isInitialized && _controller.value.isPlaying) {
       _controller.pause();
       if (mounted) {
@@ -230,20 +237,37 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         alignment: Alignment.center,
         children: [
           GestureDetector(
-            onTap: () {
+            onTap: () async {
               if (widget.post != null) {
+                // Instant Autostart: Trigger playback and un-mute before transition
+                // We set the flag immediately to block any VisibilityDetector autopause
+                _ignoreVisibilityPause = true;
+
                 final currentPosition = _controller.value.position;
-                _controller.pause();
-                Navigator.of(context).push(
+                _controller.setVolume(1.0);
+                _controller.play();
+                ScreenAwakeController.acquire();
+
+                // Build transition immediately
+                await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => FullScreenVideoPlayer(
                       videoUrl: widget.videoUrl,
                       startPosition: currentPosition,
                       post: widget.post,
                       currentUserId: widget.currentUserId,
+                      manualController: _controller,
                     ),
                   ),
                 );
+
+                // Restore state when returning to feed
+                _ignoreVisibilityPause = false;
+                if (mounted) {
+                  // Ensure audio returns to muted for feed browsing
+                  _controller.setVolume(0.0);
+                  setState(() {});
+                }
               } else {
                 _togglePlay();
               }
@@ -256,7 +280,9 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 // Rewind
                 final newPos =
                     _controller.value.position - const Duration(seconds: 10);
-                _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+                _controller.seekTo(
+                  newPos < Duration.zero ? Duration.zero : newPos,
+                );
                 _showSkipIndicator(forward: false);
               } else if (tapX > width * 0.65) {
                 // Forward
@@ -317,8 +343,11 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     color: Colors.black26,
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.replay_10, color: Colors.white, size: 36),
+                  child: const Icon(
+                    Icons.replay_10,
+                    color: Colors.white,
+                    size: 36,
+                  ),
                 ),
               ),
             ),
@@ -336,14 +365,17 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     color: Colors.black26,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.forward_10,
-                      color: Colors.white, size: 36),
+                  child: const Icon(
+                    Icons.forward_10,
+                    color: Colors.white,
+                    size: 36,
+                  ),
                 ),
               ),
             ),
 
           if (_showOverlay && widget.showControls) _buildControlsOverlay(),
-          if (widget.showControls)
+          if (widget.showControls && _showOverlay)
             Positioned(
               bottom: 0,
               left: 0,

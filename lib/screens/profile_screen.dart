@@ -39,6 +39,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
   bool _isFollowing = false;
   bool _isLoadingFollow = false;
+  bool _isBlocked = false;
+  bool _isLoadingBlock = false;
   _ProfileMediaFolder _selectedFolder = _ProfileMediaFolder.all;
   bool _isGridView = true;
 
@@ -67,8 +69,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (effectiveUserId.isNotEmpty) {
       _checkFollowStatus(effectiveUserId);
+      _checkBlockStatus(effectiveUserId);
       _loadSummaries(effectiveUserId);
     }
+  }
+
+  Future<void> _checkBlockStatus(String targetUserId) async {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null || targetUserId == currentUserId) return;
+
+    try {
+      final blocked = await _userService.isUserBlocked(
+        currentUserId,
+        targetUserId,
+      );
+      if (mounted) {
+        setState(() => _isBlocked = blocked);
+      }
+    } catch (_) {}
   }
 
   void _loadSummaries(String userId) {
@@ -128,11 +146,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _toggleBlock(UserModel user) async {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null || currentUserId == user.uid) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_isBlocked ? 'Unblock User' : 'Block User'),
+        content: Text(
+          _isBlocked
+              ? 'Are you sure you want to unblock ${user.displayName}?'
+              : 'Are you sure you want to block ${user.displayName}? They will no longer be able to message you or see your notifications.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: _isBlocked ? Colors.blue : Colors.red,
+            ),
+            child: Text(_isBlocked ? 'Unblock' : 'Block'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoadingBlock = true);
+
+    try {
+      if (_isBlocked) {
+        await _userService.unblockUser(currentUserId, user.uid);
+      } else {
+        await _userService.blockUser(currentUserId, user.uid);
+      }
+      if (mounted) {
+        setState(() {
+          _isBlocked = !_isBlocked;
+          if (_isBlocked) _isFollowing = false; // Blocking unfollows
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingBlock = false);
+    }
+  }
+
   Future<void> _navigateToChat(UserModel user) async {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null) return;
 
     if (user.uid.isEmpty || user.uid == currentUserId) return;
+
+    if (_isBlocked) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unblock user to message.')));
+      return;
+    }
 
     try {
       final conversationId = await _chatService.startConversation(
@@ -224,24 +305,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'),
         centerTitle: true,
         elevation: 0,
-        actions: isOwnProfile
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.bar_chart),
-                  tooltip: 'Analytics Dashboard',
-                  onPressed: _openAnalyticsDashboard,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.schedule_send),
-                  tooltip: 'Repost Queue',
-                  onPressed: _openRepostQueue,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: () => _showLogoutDialog(context),
-                ),
-              ]
-            : null,
+        actions: [
+          if (isOwnProfile) ...[
+            IconButton(
+              icon: const Icon(Icons.bar_chart),
+              tooltip: 'Analytics Dashboard',
+              onPressed: _openAnalyticsDashboard,
+            ),
+            IconButton(
+              icon: const Icon(Icons.schedule_send),
+              tooltip: 'Repost Queue',
+              onPressed: _openRepostQueue,
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () => _showLogoutDialog(context),
+            ),
+          ] else
+            StreamBuilder<DocumentSnapshot>(
+              stream: _firestore
+                  .collection('users')
+                  .doc(effectiveUserId)
+                  .snapshots(),
+              builder: (context, userSnap) {
+                if (!userSnap.hasData || !userSnap.data!.exists) {
+                  return const SizedBox.shrink();
+                }
+                final user = UserModel.fromFirestoreDoc(userSnap.data!);
+                return PopupMenuButton<String>(
+                  enabled: !_isLoadingBlock,
+                  onSelected: (val) {
+                    if (val == 'block') _toggleBlock(user);
+                  },
+                  itemBuilder: (ctx) => [
+                    PopupMenuItem(
+                      value: 'block',
+                      child: _isLoadingBlock
+                          ? const Center(
+                              child: SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              _isBlocked ? 'Unblock User' : 'Block User',
+                              style: TextStyle(
+                                color: _isBlocked ? Colors.blue : Colors.red,
+                              ),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
+        ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('users').doc(effectiveUserId).snapshots(),

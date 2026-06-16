@@ -26,6 +26,10 @@ class NotificationService {
     required String content,
   }) async {
     try {
+      // NOTE: Client-side block checks on the recipient's document are removed
+      // to prevent [permission-denied] errors. Enforcement should be handled
+      // via Firestore security rules or Cloud Functions.
+
       final notificationId = _firestore.collection('notifications').doc().id;
       final now = DateTime.now();
 

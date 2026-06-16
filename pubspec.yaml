@@ -28,7 +28,7 @@ dependencies:
   permission_handler: ^12.0.1
   
   # Push notifications
-  flutter_local_notifications: ^22.0.0-dev.3
+  flutter_local_notifications: ^22.0.1
   package_info_plus: ^10.1.0
 
   # Media players
@@ -39,7 +39,7 @@ dependencies:
 
   intl: ^0.20.2
   timeago: ^3.7.1
-  path_provider: ^2.1.5
+  path_provider: ^2.1.6
 #  share_plus: ^13.1.0
   gal: ^2.3.2
   firebase_storage: ^13.3.0

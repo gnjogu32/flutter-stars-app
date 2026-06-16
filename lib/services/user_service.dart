@@ -335,4 +335,47 @@ class UserService {
       return [];
     }
   }
+
+  // Block a user
+  Future<void> blockUser(String currentUserId, String targetUserId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(currentUserId).update({
+        'blockedUsers': FieldValue.arrayUnion([targetUserId]),
+      });
+      // Automatically unfollow if blocking
+      unfollowUser(currentUserId, targetUserId).ignore();
+      unfollowUser(targetUserId, currentUserId).ignore();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Unblock a user
+  Future<void> unblockUser(String currentUserId, String targetUserId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(currentUserId).update({
+        'blockedUsers': FieldValue.arrayRemove([targetUserId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Check if a user is blocked
+  Future<bool> isUserBlocked(String currentUserId, String targetUserId) async {
+    try {
+      final doc = await _firebaseFirestore
+          .collection('users')
+          .doc(currentUserId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        final blocked = List<String>.from(data['blockedUsers'] ?? []);
+        return blocked.contains(targetUserId);
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }
