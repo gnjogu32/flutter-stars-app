@@ -159,8 +159,9 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   void pause() {
-    if (_ignoreVisibilityPause)
+    if (_ignoreVisibilityPause) {
       return; // Prevent autopause during portal handoff
+    }
 
     if (_isInitialized && _controller.value.isPlaying) {
       _controller.pause();
@@ -423,20 +424,32 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                           ),
                         ),
                         const Spacer(),
-                        GestureDetector(
-                          onTap: () => setMuted(!_isMuted),
-                          child: Icon(
-                            _isMuted ? Icons.volume_off : Icons.volume_up,
-                            color: Colors.white70,
-                            size: 16,
-                          ),
-                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
+          // Standalone Mute Button for feed visibility
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => setMuted(!_isMuted),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Colors.black45,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isMuted ? Icons.volume_off : Icons.volume_up,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
