@@ -13,6 +13,7 @@ import 'screens/create_post_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/edit_post_screen.dart';
 import 'screens/trending_screen.dart';
+import 'screens/settings_screen.dart';
 import 'models/post_model.dart';
 import 'firebase_options.dart';
 import 'utils/time_utils.dart';
@@ -150,6 +151,7 @@ class MyApp extends StatelessWidget {
           '/change-password': (context) => const ChangePasswordScreen(),
           '/notifications': (context) => const MainApp(initialIndex: 4),
           '/messages': (context) => const MainApp(initialIndex: 3),
+          '/settings': (context) => const SettingsScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/edit-post') {

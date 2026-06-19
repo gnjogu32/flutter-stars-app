@@ -313,9 +313,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: _openAnalyticsDashboard,
             ),
             IconButton(
-              icon: const Icon(Icons.schedule_send),
-              tooltip: 'Repost Queue',
-              onPressed: _openRepostQueue,
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Settings',
+              onPressed: () => Navigator.of(context).pushNamed('/settings'),
             ),
             IconButton(
               icon: const Icon(Icons.logout),
