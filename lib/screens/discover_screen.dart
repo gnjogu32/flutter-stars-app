@@ -138,26 +138,57 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           );
         }
 
-        var users = snapshot.data!.docs
-            .map((doc) => UserModel.fromFirestoreDoc(doc))
-            .toList();
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-        // Apply search filter
-        if (_searchController.text.isNotEmpty) {
-          users = users
-              .where(
-                (user) => user.displayName.toLowerCase().contains(
-                  _searchController.text.toLowerCase(),
-                ),
-              )
-              .toList();
-        }
+        return StreamBuilder<DocumentSnapshot>(
+          stream: _firestore
+              .collection('users')
+              .doc(currentUserId.isEmpty ? 'guest' : currentUserId)
+              .snapshots(),
+          builder: (context, userSnapshot) {
+            List<String> blockedUsers = [];
+            List<String> mutedAuthors = [];
 
-        return ListView.builder(
-          itemCount: users.length,
-          itemBuilder: (context, index) {
-            final user = users[index];
-            return _buildUserCard(user);
+            if (userSnapshot.hasData && userSnapshot.data!.exists) {
+              final userData =
+                  userSnapshot.data!.data() as Map<String, dynamic>;
+              blockedUsers = List<String>.from(userData['blockedUsers'] ?? []);
+              mutedAuthors = List<String>.from(userData['mutedAuthors'] ?? []);
+            }
+
+            var users = snapshot.data!.docs
+                .map((doc) => UserModel.fromFirestoreDoc(doc))
+                .toList();
+
+            // Apply search filter
+            if (_searchController.text.isNotEmpty) {
+              users = users
+                  .where(
+                    (user) => user.displayName.toLowerCase().contains(
+                      _searchController.text.toLowerCase(),
+                    ),
+                  )
+                  .toList();
+            }
+
+            final filteredUsers = users.where((user) {
+              return !blockedUsers.contains(user.uid) &&
+                  !mutedAuthors.contains(user.uid);
+            }).toList();
+
+            if (filteredUsers.isEmpty) {
+              return const Center(
+                child: Text('No talented stars found in this category.'),
+              );
+            }
+
+            return ListView.builder(
+              itemCount: filteredUsers.length,
+              itemBuilder: (context, index) {
+                final user = filteredUsers[index];
+                return _buildUserCard(user);
+              },
+            );
           },
         );
       },

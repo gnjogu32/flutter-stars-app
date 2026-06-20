@@ -13,6 +13,8 @@ class UserModel {
   final List<String> following;
   final List<String> savedPosts;
   final List<String> blockedUsers;
+  final List<String> mutedAuthors;
+  final List<String> mutedPosts;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? fcmToken;
@@ -29,6 +31,8 @@ class UserModel {
     this.following = const [],
     this.savedPosts = const [],
     this.blockedUsers = const [],
+    this.mutedAuthors = const [],
+    this.mutedPosts = const [],
     required this.createdAt,
     required this.updatedAt,
     this.fcmToken,
@@ -48,6 +52,8 @@ class UserModel {
       'following': following,
       'savedPosts': savedPosts,
       'blockedUsers': blockedUsers,
+      'mutedAuthors': mutedAuthors,
+      'mutedPosts': mutedPosts,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'fcmToken': fcmToken,
@@ -68,6 +74,8 @@ class UserModel {
       following: List<String>.from(json['following'] ?? []),
       savedPosts: List<String>.from(json['savedPosts'] ?? []),
       blockedUsers: List<String>.from(json['blockedUsers'] ?? []),
+      mutedAuthors: List<String>.from(json['mutedAuthors'] ?? []),
+      mutedPosts: List<String>.from(json['mutedPosts'] ?? []),
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -101,6 +109,8 @@ class UserModel {
       following: List<String>.from(data['following'] ?? []),
       savedPosts: List<String>.from(data['savedPosts'] ?? []),
       blockedUsers: List<String>.from(data['blockedUsers'] ?? []),
+      mutedAuthors: List<String>.from(data['mutedAuthors'] ?? []),
+      mutedPosts: List<String>.from(data['mutedPosts'] ?? []),
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -128,6 +138,8 @@ class UserModel {
     List<String>? following,
     List<String>? savedPosts,
     List<String>? blockedUsers,
+    List<String>? mutedAuthors,
+    List<String>? mutedPosts,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? fcmToken,
@@ -144,6 +156,8 @@ class UserModel {
       following: following ?? this.following,
       savedPosts: savedPosts ?? this.savedPosts,
       blockedUsers: blockedUsers ?? this.blockedUsers,
+      mutedAuthors: mutedAuthors ?? this.mutedAuthors,
+      mutedPosts: mutedPosts ?? this.mutedPosts,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       fcmToken: fcmToken ?? this.fcmToken,

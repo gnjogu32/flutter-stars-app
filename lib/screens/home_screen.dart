@@ -133,21 +133,55 @@ class HomeScreenState extends State<HomeScreen> {
                       ),
                     )
                     .toList();
-                return ListView.builder(
-                  controller: _scrollController,
-                  itemCount: posts.length + 1, // +1 for trending section
-                  physics: const ClampingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return TrendingStreamSection(
-                        currentUserId: _auth.currentUser?.uid ?? '',
+
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: _firestore
+                      .collection('users')
+                      .doc(_auth.currentUser?.uid ?? 'guest')
+                      .snapshots(),
+                  builder: (context, userSnapshot) {
+                    List<String> mutedPosts = [];
+                    List<String> mutedAuthors = [];
+                    List<String> blockedUsers = [];
+
+                    if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                      final userData =
+                          userSnapshot.data!.data() as Map<String, dynamic>;
+                      mutedPosts = List<String>.from(
+                        userData['mutedPosts'] ?? [],
+                      );
+                      mutedAuthors = List<String>.from(
+                        userData['mutedAuthors'] ?? [],
+                      );
+                      blockedUsers = List<String>.from(
+                        userData['blockedUsers'] ?? [],
                       );
                     }
-                    final postIndex = index - 1;
-                    return PostWidget(
-                      key: ValueKey(posts[postIndex].postId),
-                      post: posts[postIndex],
-                      currentUserId: _auth.currentUser?.uid ?? '',
+
+                    final filteredPosts = posts.where((post) {
+                      return !mutedPosts.contains(post.postId) &&
+                          !mutedAuthors.contains(post.authorId) &&
+                          !blockedUsers.contains(post.authorId);
+                    }).toList();
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      itemCount:
+                          filteredPosts.length + 1, // +1 for trending section
+                      physics: const ClampingScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return TrendingStreamSection(
+                            currentUserId: _auth.currentUser?.uid ?? '',
+                          );
+                        }
+                        final postIndex = index - 1;
+                        return PostWidget(
+                          key: ValueKey(filteredPosts[postIndex].postId),
+                          post: filteredPosts[postIndex],
+                          currentUserId: _auth.currentUser?.uid ?? '',
+                        );
+                      },
                     );
                   },
                 );

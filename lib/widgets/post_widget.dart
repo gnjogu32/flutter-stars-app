@@ -47,6 +47,7 @@ class _PostWidgetState extends State<PostWidget>
   bool _isFollowing = false;
   bool _isFollowLoading = false;
   bool _isReposting = false;
+  bool _isMutedLocally = false;
 
   final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey =
       GlobalKey<VideoPlayerWidgetState>();
@@ -535,6 +536,100 @@ class _PostWidgetState extends State<PostWidget>
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error deleting post: $e')));
+        }
+      }
+    }
+  }
+
+  Future<void> _mutePost() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mute Post'),
+        content: const Text(
+          'Are you sure you want to hide this post from your feed?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            child: const Text('Mute'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isMutedLocally = true);
+      try {
+        await UserService().mutePost(widget.currentUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Post muted ✓')));
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isMutedLocally = false);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
+    }
+  }
+
+  Future<void> _muteAuthor() async {
+    if (widget.currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Mute $_ownerName'),
+        content: Text(
+          'Are you sure you want to hide all posts from $_ownerName?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            child: const Text('Mute'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isMutedLocally = true);
+      try {
+        await UserService().muteAuthor(widget.currentUserId, _ownerId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Posts from $_ownerName muted ✓')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isMutedLocally = false);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
       }
     }
@@ -1031,6 +1126,8 @@ class _PostWidgetState extends State<PostWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (_isMutedLocally) return const SizedBox.shrink();
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Padding(
@@ -1118,6 +1215,10 @@ class _PostWidgetState extends State<PostWidget>
                       _downloadVideo();
                     } else if (value == 'save') {
                       _toggleSave();
+                    } else if (value == 'mute_post') {
+                      _mutePost();
+                    } else if (value == 'mute_author') {
+                      _muteAuthor();
                     }
                   },
                   itemBuilder: (context) => [
@@ -1165,6 +1266,27 @@ class _PostWidgetState extends State<PostWidget>
                             Icon(Icons.delete, color: Colors.red),
                             SizedBox(width: 8),
                             Text('Delete', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      const PopupMenuItem(
+                        value: 'mute_post',
+                        child: Row(
+                          children: [
+                            Icon(Icons.visibility_off_outlined),
+                            SizedBox(width: 8),
+                            Text('Mute this post'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'mute_author',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person_off_outlined),
+                            const SizedBox(width: 8),
+                            Text('Mute $_ownerName'),
                           ],
                         ),
                       ),

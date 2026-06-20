@@ -378,4 +378,48 @@ class UserService {
       return false;
     }
   }
+
+  // Mute an author
+  Future<void> muteAuthor(String currentUserId, String targetAuthorId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(currentUserId).update({
+        'mutedAuthors': FieldValue.arrayUnion([targetAuthorId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Unmute an author
+  Future<void> unmuteAuthor(String currentUserId, String targetAuthorId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(currentUserId).update({
+        'mutedAuthors': FieldValue.arrayRemove([targetAuthorId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Mute a specific post
+  Future<void> mutePost(String currentUserId, String postId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(currentUserId).update({
+        'mutedPosts': FieldValue.arrayUnion([postId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Unmute a specific post
+  Future<void> unmutePost(String currentUserId, String postId) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(currentUserId).update({
+        'mutedPosts': FieldValue.arrayRemove([postId]),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

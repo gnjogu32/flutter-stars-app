@@ -9,10 +9,7 @@ class SettingsScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Settings'), centerTitle: true),
       body: ListView(
         children: [
           _buildSectionHeader(context, 'Account'),
@@ -37,7 +34,9 @@ class SettingsScreen extends StatelessWidget {
             onTap: () {
               // TODO: Implement dedicated blocked users screen or logic
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Manage blocked users in your profile.')),
+                const SnackBar(
+                  content: Text('Manage blocked users in your profile.'),
+                ),
               );
             },
           ),
@@ -105,7 +104,9 @@ class SettingsScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/login', (route) => false);
               AuthService().logout().ignore();
             },
             child: const Text('Logout', style: TextStyle(color: Colors.red)),

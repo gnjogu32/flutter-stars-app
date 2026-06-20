@@ -195,32 +195,71 @@ class ReelsScreenState extends State<ReelsScreen> {
 
           final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-          return PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            physics: const BouncingScrollPhysics(),
-            itemCount: _cachedReels.length,
-            onPageChanged: (index) {
-              setState(() => _activeIndex = index);
-              _preloadAdjacent(index);
-            },
-            itemBuilder: (context, index) {
-              final reel = _cachedReels[index];
-              return _ReelItem(
-                key: ValueKey(reel.postId),
-                post: reel,
-                isActive: _tabVisible && index == _activeIndex,
-                currentUserId: currentUserId,
-                onVideoEnd: _onReelEnd,
-                preloadedController: _preloadedControllers[index],
-                onOpenProfile: () {
-                  final userId = (reel.originalAuthorId ?? reel.authorId)
-                      .trim();
-                  if (userId.isEmpty) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ProfileScreen(userId: userId),
-                    ),
+          return StreamBuilder<DocumentSnapshot>(
+            stream: _firestore
+                .collection('users')
+                .doc(currentUserId.isEmpty ? 'guest' : currentUserId)
+                .snapshots(),
+            builder: (context, userSnapshot) {
+              List<String> mutedPosts = [];
+              List<String> mutedAuthors = [];
+              List<String> blockedUsers = [];
+
+              if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                final userData =
+                    userSnapshot.data!.data() as Map<String, dynamic>;
+                mutedPosts = List<String>.from(userData['mutedPosts'] ?? []);
+                mutedAuthors = List<String>.from(
+                  userData['mutedAuthors'] ?? [],
+                );
+                blockedUsers = List<String>.from(
+                  userData['blockedUsers'] ?? [],
+                );
+              }
+
+              final filteredReels = _cachedReels.where((reel) {
+                return !mutedPosts.contains(reel.postId) &&
+                    !mutedAuthors.contains(reel.authorId) &&
+                    !blockedUsers.contains(reel.authorId);
+              }).toList();
+
+              if (filteredReels.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No reels available',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                );
+              }
+
+              return PageView.builder(
+                controller: _pageController,
+                scrollDirection: Axis.vertical,
+                physics: const BouncingScrollPhysics(),
+                itemCount: filteredReels.length,
+                onPageChanged: (index) {
+                  setState(() => _activeIndex = index);
+                  _preloadAdjacent(index);
+                },
+                itemBuilder: (context, index) {
+                  final reel = filteredReels[index];
+                  return _ReelItem(
+                    key: ValueKey(reel.postId),
+                    post: reel,
+                    isActive: _tabVisible && index == _activeIndex,
+                    currentUserId: currentUserId,
+                    onVideoEnd: _onReelEnd,
+                    preloadedController: _preloadedControllers[index],
+                    onOpenProfile: () {
+                      final userId = (reel.originalAuthorId ?? reel.authorId)
+                          .trim();
+                      if (userId.isEmpty) return;
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProfileScreen(userId: userId),
+                        ),
+                      );
+                    },
                   );
                 },
               );
