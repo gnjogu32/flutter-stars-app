@@ -281,22 +281,41 @@ class _UserCardState extends State<_UserCard>
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundImage: widget.user.profileImageUrl != null
-              ? CachedNetworkImageProvider(widget.user.profileImageUrl!)
-              : null,
-          child: widget.user.profileImageUrl == null
-              ? const Icon(Icons.person)
-              : null,
+        leading: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(userId: widget.user.uid),
+              ),
+            );
+          },
+          child: CircleAvatar(
+            backgroundImage: widget.user.profileImageUrl != null
+                ? CachedNetworkImageProvider(widget.user.profileImageUrl!)
+                : null,
+            child: widget.user.profileImageUrl == null
+                ? const Icon(Icons.person)
+                : null,
+          ),
         ),
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Flexible(
-              child: Text(
-                widget.user.displayName,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ProfileScreen(userId: widget.user.uid),
+                    ),
+                  );
+                },
+                child: Text(
+                  widget.user.displayName,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
             if (!isOwnProfile) ...[
