@@ -435,6 +435,8 @@ class _ReelItemState extends State<_ReelItem>
         setState(() => _isInitialized = true);
         if (widget.isActive) {
           _videoController.play();
+          _showDetails = true; // Show details initially
+          _startHideTimer(); // Hide after 3s
           ScreenAwakeController.acquire();
           AnalyticsService().trackView(widget.post.postId, _ownerId);
         }
@@ -444,6 +446,21 @@ class _ReelItemState extends State<_ReelItem>
     } catch (e) {
       debugPrint('Error initializing reel video: $e');
     }
+  }
+
+  void _startHideTimer({int durationMs = 3000}) {
+    _indicatorTimer?.cancel();
+    _indicatorTimer = Timer(Duration(milliseconds: durationMs), () {
+      if (mounted) {
+        setState(() {
+          _showPlayPauseIndicator = false;
+          _showSkipForward = false;
+          _showSkipBackward = false;
+          _showMuteIndicator = false;
+          _showDetails = false;
+        });
+      }
+    });
   }
 
   @override
@@ -465,6 +482,8 @@ class _ReelItemState extends State<_ReelItem>
     if (widget.isActive && !oldWidget.isActive) {
       _endEventDispatched = false;
       _videoController.play();
+      setState(() => _showDetails = true);
+      _startHideTimer();
       ScreenAwakeController.acquire();
       AnalyticsService().trackView(widget.post.postId, _ownerId);
     } else if (!widget.isActive && oldWidget.isActive) {
@@ -1115,7 +1134,6 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _togglePlayPause() {
-    _indicatorTimer?.cancel();
     setState(() {
       if (_videoController.value.isPlaying) {
         _videoController.pause();
@@ -1134,14 +1152,7 @@ class _ReelItemState extends State<_ReelItem>
       _showDetails = true; // Show skip buttons and telemetry
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
-      if (mounted) {
-        setState(() {
-          _showPlayPauseIndicator = false;
-          _showDetails = false;
-        });
-      }
-    });
+    _startHideTimer();
   }
 
   void _videoListener() {
@@ -1254,7 +1265,6 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _showSkipIndicator({required bool forward}) {
-    _indicatorTimer?.cancel();
     setState(() {
       _showSkipForward = forward;
       _showSkipBackward = !forward;
@@ -1263,16 +1273,7 @@ class _ReelItemState extends State<_ReelItem>
       _showDetails = true;
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
-      if (mounted) {
-        setState(() {
-          _showSkipForward = false;
-          _showSkipBackward = false;
-          _showPlayPauseIndicator = false;
-          _showDetails = false;
-        });
-      }
-    });
+    _startHideTimer();
   }
 
   @override

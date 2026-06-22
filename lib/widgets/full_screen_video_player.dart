@@ -239,7 +239,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         setState(() {
           if (widget.autoPlay) {
             _controller.play();
-            _showControls = false;
+            _showControls = true; // Show initially
+            _startHideTimer();
             ScreenAwakeController.acquire();
           }
         });
@@ -269,7 +270,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         _isInitialized = true;
         if (widget.autoPlay) {
           _controller.play();
-          _showControls = false;
+          _showControls = true; // Show initially
+          _startHideTimer();
           ScreenAwakeController.acquire();
           _trackView();
         }
@@ -281,6 +283,21 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         });
       }
     }
+  }
+
+  void _startHideTimer({int durationMs = 3000}) {
+    _indicatorTimer?.cancel();
+    _indicatorTimer = Timer(Duration(milliseconds: durationMs), () {
+      if (mounted) {
+        setState(() {
+          _showPlayPauseIndicator = false;
+          _showSkipForward = false;
+          _showSkipBackward = false;
+          _showMuteIndicator = false;
+          _showControls = false;
+        });
+      }
+    });
   }
 
   void _trackView() {
@@ -320,6 +337,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
           _controller.seekTo(Duration.zero);
         }
         _controller.play();
+        setState(() => _showControls = true);
+        _startHideTimer();
         ScreenAwakeController.acquire();
         _trackView();
       }
@@ -349,7 +368,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   }
 
   void _togglePlay() {
-    _indicatorTimer?.cancel();
     setState(() {
       if (_controller.value.isPlaying) {
         _controller.pause();
@@ -361,21 +379,14 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
           _isVideoEnded = false;
         }
         _controller.play();
-        _showControls = false;
+        _showControls = true; // Keep visible for a few seconds
         ScreenAwakeController.acquire();
       }
       _showPlayPauseIndicator = true;
       _showMuteIndicator = false;
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
-      if (mounted) {
-        setState(() {
-          _showPlayPauseIndicator = false;
-          _showControls = false;
-        });
-      }
-    });
+    _startHideTimer();
   }
 
   void _toggleMute() {
@@ -397,7 +408,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   }
 
   void _showSkipIndicator({required bool forward}) {
-    _indicatorTimer?.cancel();
     setState(() {
       _showSkipForward = forward;
       _showSkipBackward = !forward;
@@ -406,16 +416,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       _showControls = true;
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
-      if (mounted) {
-        setState(() {
-          _showSkipForward = false;
-          _showSkipBackward = false;
-          _showPlayPauseIndicator = false;
-          _showControls = false;
-        });
-      }
-    });
+    _startHideTimer();
   }
 
   Future<void> _skipBackward() async {
