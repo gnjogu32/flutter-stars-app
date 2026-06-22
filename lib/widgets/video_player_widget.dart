@@ -43,8 +43,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   late bool _isMuted;
   bool _showOverlay = true;
   bool _showPlayPauseIndicator = false;
-  bool _showSkipForward = false;
-  bool _showSkipBackward = false;
   Timer? _indicatorTimer;
   bool _playEventDispatched = false;
   String? _error;
@@ -127,8 +125,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         ScreenAwakeController.acquire();
       }
       _showPlayPauseIndicator = true;
-      _showSkipForward = false;
-      _showSkipBackward = false;
     });
 
     _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
@@ -136,38 +132,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         setState(() => _showPlayPauseIndicator = false);
       }
     });
-  }
-
-  void _showSkipIndicator({required bool forward}) {
-    _indicatorTimer?.cancel();
-    setState(() {
-      _showSkipForward = forward;
-      _showSkipBackward = !forward;
-      _showPlayPauseIndicator = false;
-      _showOverlay = true;
-    });
-
-    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
-      if (mounted) {
-        setState(() {
-          _showSkipForward = false;
-          _showSkipBackward = false;
-          _showOverlay = false;
-        });
-      }
-    });
-  }
-
-  Future<void> _skipBackward() async {
-    final newPos = _controller.value.position - const Duration(seconds: 10);
-    await _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
-    _showSkipIndicator(forward: false);
-  }
-
-  Future<void> _skipForward() async {
-    final newPos = _controller.value.position + const Duration(seconds: 10);
-    await _controller.seekTo(newPos);
-    _showSkipIndicator(forward: true);
   }
 
   void pause() {
@@ -322,57 +286,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               ),
             ),
 
-          // Skip Backward Button / Indicator
-          if (_showSkipBackward || _showOverlay)
-            Positioned(
-              left: 30,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: _skipBackward,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.black26,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.replay_10,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Skip Forward Button / Indicator
-          if (_showSkipForward || _showOverlay)
-            Positioned(
-              right: 30,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: _skipForward,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.black26,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.forward_10,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          if (_showOverlay && widget.showControls) _buildControlsOverlay(),
           if (widget.showControls && _showOverlay)
             Positioned(
               bottom: 0,
@@ -448,43 +361,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildControlsOverlay() {
-    return Container(
-      color: Colors.black38,
-      child: Center(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.replay_10, color: Colors.white, size: 30),
-              onPressed: () {
-                _controller.seekTo(
-                  _controller.value.position - const Duration(seconds: 10),
-                );
-              },
-            ),
-            IconButton(
-              icon: Icon(
-                _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
-                size: 50,
-              ),
-              onPressed: _togglePlay,
-            ),
-            IconButton(
-              icon: const Icon(Icons.forward_10, color: Colors.white, size: 30),
-              onPressed: () {
-                _controller.seekTo(
-                  _controller.value.position + const Duration(seconds: 10),
-                );
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
