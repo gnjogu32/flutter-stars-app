@@ -231,9 +231,10 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       _isInitialized = _controller.value.isInitialized;
       if (_isInitialized) {
         _controller.addListener(_videoListener);
-        // Sync volume and playback for immersive experience
+        // Sync volume, playback and auto-replay for immersive experience
         _isMuted = false;
         _controller.setVolume(1.0);
+        _controller.setLooping(true);
 
         setState(() {
           if (widget.autoPlay) {
@@ -296,7 +297,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       final duration = _controller.value.duration;
 
       if (position >= duration && duration > Duration.zero) {
-        if (!_isVideoEnded) {
+        if (!_controller.value.isLooping && !_isVideoEnded) {
           setState(() {
             _isVideoEnded = true;
             _showControls = true; // Show controls to reveal replay button
@@ -481,6 +482,20 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
               ),
             ),
             const SizedBox(height: 20),
+            StatefulBuilder(
+              builder: (context, setSheetState) => SwitchListTile(
+                secondary: const Icon(Icons.replay_circle_filled_outlined),
+                title: const Text('Auto Replay'),
+                subtitle: const Text('Loop video automatically'),
+                value: _controller.value.isLooping,
+                onChanged: (val) async {
+                  await _controller.setLooping(val);
+                  setSheetState(() {});
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
               title: const Text('Mute this post'),

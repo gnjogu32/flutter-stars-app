@@ -952,6 +952,20 @@ class _ReelItemState extends State<_ReelItem>
               ),
             ),
             const SizedBox(height: 20),
+            StatefulBuilder(
+              builder: (context, setSheetState) => SwitchListTile(
+                secondary: const Icon(Icons.replay_circle_filled_outlined),
+                title: const Text('Auto Replay'),
+                subtitle: const Text('Loop video automatically'),
+                value: _videoController.value.isLooping,
+                onChanged: (val) async {
+                  await _videoController.setLooping(val);
+                  setSheetState(() {});
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
               title: const Text('Mute this post'),
@@ -1133,7 +1147,7 @@ class _ReelItemState extends State<_ReelItem>
 
       // Update ended state for replay button visibility/logic
       if (position >= duration && duration > Duration.zero) {
-        if (!_isVideoEnded) {
+        if (!_videoController.value.isLooping && !_isVideoEnded) {
           setState(() {
             _isVideoEnded = true;
             _showPlayPauseIndicator = true; // Show replay/play icon
