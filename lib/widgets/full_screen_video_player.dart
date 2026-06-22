@@ -368,9 +368,12 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       _showMuteIndicator = false;
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
       if (mounted) {
-        setState(() => _showPlayPauseIndicator = false);
+        setState(() {
+          _showPlayPauseIndicator = false;
+          _showControls = false;
+        });
       }
     });
   }
@@ -399,7 +402,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       _showSkipForward = forward;
       _showSkipBackward = !forward;
       _showMuteIndicator = false;
-      _showPlayPauseIndicator = false;
+      _showPlayPauseIndicator = true; // Show play/pause button too
       _showControls = true;
     });
 
@@ -408,6 +411,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         setState(() {
           _showSkipForward = false;
           _showSkipBackward = false;
+          _showPlayPauseIndicator = false;
           _showControls = false;
         });
       }

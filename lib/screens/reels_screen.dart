@@ -1131,11 +1131,15 @@ class _ReelItemState extends State<_ReelItem>
       }
       _showPlayPauseIndicator = true;
       _showMuteIndicator = false;
+      _showDetails = true; // Show skip buttons and telemetry
     });
 
-    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
+    _indicatorTimer = Timer(const Duration(milliseconds: 3000), () {
       if (mounted) {
-        setState(() => _showPlayPauseIndicator = false);
+        setState(() {
+          _showPlayPauseIndicator = false;
+          _showDetails = false;
+        });
       }
     });
   }
@@ -1255,7 +1259,7 @@ class _ReelItemState extends State<_ReelItem>
       _showSkipForward = forward;
       _showSkipBackward = !forward;
       _showMuteIndicator = false;
-      _showPlayPauseIndicator = false;
+      _showPlayPauseIndicator = true; // Show play/pause button too
       _showDetails = true;
     });
 
@@ -1264,6 +1268,7 @@ class _ReelItemState extends State<_ReelItem>
         setState(() {
           _showSkipForward = false;
           _showSkipBackward = false;
+          _showPlayPauseIndicator = false;
           _showDetails = false;
         });
       }
