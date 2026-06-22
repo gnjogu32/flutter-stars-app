@@ -1212,18 +1212,29 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   Future<void> _skipBackward() async {
+    final wasPlaying = _videoController.value.isPlaying;
     final newPos =
         _videoController.value.position - const Duration(seconds: 10);
     await _videoController.seekTo(
       newPos < Duration.zero ? Duration.zero : newPos,
     );
+    if (_isVideoEnded) {
+      setState(() => _isVideoEnded = false);
+    }
+    if (wasPlaying) {
+      _videoController.play();
+    }
     _showSkipIndicator(forward: false);
   }
 
   Future<void> _skipForward() async {
+    final wasPlaying = _videoController.value.isPlaying;
     final newPos =
         _videoController.value.position + const Duration(seconds: 10);
     await _videoController.seekTo(newPos);
+    if (wasPlaying) {
+      _videoController.play();
+    }
     _showSkipIndicator(forward: true);
   }
 
