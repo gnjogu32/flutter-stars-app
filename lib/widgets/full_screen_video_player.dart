@@ -422,7 +422,10 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   Future<void> _skipBackward() async {
     final wasPlaying = _controller.value.isPlaying;
     final newPos = _controller.value.position - const Duration(seconds: 10);
-    await _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+
+    // Continuous Flow: Seek without awaiting to keep UI/playback engine reactive
+    _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+
     if (_isVideoEnded) {
       setState(() => _isVideoEnded = false);
     }
@@ -435,7 +438,10 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   Future<void> _skipForward() async {
     final wasPlaying = _controller.value.isPlaying;
     final newPos = _controller.value.position + const Duration(seconds: 10);
-    await _controller.seekTo(newPos);
+
+    // Continuous Flow: Seek without awaiting to keep UI/playback engine reactive
+    _controller.seekTo(newPos);
+
     if (wasPlaying) {
       _controller.play();
     }

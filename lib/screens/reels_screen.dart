@@ -1230,9 +1230,12 @@ class _ReelItemState extends State<_ReelItem>
     final wasPlaying = _videoController.value.isPlaying;
     final newPos =
         _videoController.value.position - const Duration(seconds: 10);
-    await _videoController.seekTo(
+
+    // Continuous Flow: Seek without awaiting to keep UI/playback engine reactive
+    _videoController.seekTo(
       newPos < Duration.zero ? Duration.zero : newPos,
     );
+
     if (_isVideoEnded) {
       setState(() => _isVideoEnded = false);
     }
@@ -1246,7 +1249,10 @@ class _ReelItemState extends State<_ReelItem>
     final wasPlaying = _videoController.value.isPlaying;
     final newPos =
         _videoController.value.position + const Duration(seconds: 10);
-    await _videoController.seekTo(newPos);
+
+    // Continuous Flow: Seek without awaiting to keep UI/playback engine reactive
+    _videoController.seekTo(newPos);
+
     if (wasPlaying) {
       _videoController.play();
     }
