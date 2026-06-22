@@ -21,7 +21,7 @@ plugins {
     id("dev.flutter.flutter-plugin-loader")
     id("com.android.application") version "9.2.1" apply false
     id("com.android.library") version "9.2.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.10" apply false
+    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
