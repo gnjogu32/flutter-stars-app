@@ -478,8 +478,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       return;
     }
 
-    final ownerId =
-        (widget.post.originalAuthorId ?? widget.post.authorId).trim();
+    final ownerId = (widget.post.originalAuthorId ?? widget.post.authorId)
+        .trim();
     final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
         .trim();
 
@@ -537,15 +537,19 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        style:
-                            TextButton.styleFrom(foregroundColor: Colors.orange),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
                         child: const Text('Mute'),
                       ),
                     ],
                   ),
                 );
                 if (confirmed == true) {
-                  await UserService().mutePost(currentUserId, widget.post.postId);
+                  await UserService().mutePost(
+                    currentUserId,
+                    widget.post.postId,
+                  );
                   if (mounted) {
                     ScaffoldMessenger.of(this.context).showSnackBar(
                       const SnackBar(content: Text('Post muted ✓')),
@@ -573,8 +577,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        style:
-                            TextButton.styleFrom(foregroundColor: Colors.orange),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
                         child: const Text('Mute'),
                       ),
                     ],
@@ -612,7 +617,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
                         child: const Text('Block'),
                       ),
                     ],

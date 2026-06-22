@@ -177,8 +177,9 @@ class ReelsScreenState extends State<ReelsScreen> {
           _cachedReels.removeWhere((p) => !newIds.contains(p.postId));
 
           // 2. Identify and append new items
-          final addedReels =
-              newReels.where((p) => !oldIds.contains(p.postId)).toList();
+          final addedReels = newReels
+              .where((p) => !oldIds.contains(p.postId))
+              .toList();
 
           if (_cachedReels.isEmpty) {
             _cachedReels = newReels;
@@ -1019,15 +1020,19 @@ class _ReelItemState extends State<_ReelItem>
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        style:
-                            TextButton.styleFrom(foregroundColor: Colors.orange),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
                         child: const Text('Mute'),
                       ),
                     ],
                   ),
                 );
                 if (confirmed == true) {
-                  await UserService().mutePost(_activeUserId, widget.post.postId);
+                  await UserService().mutePost(
+                    _activeUserId,
+                    widget.post.postId,
+                  );
                   if (mounted) {
                     ScaffoldMessenger.of(this.context).showSnackBar(
                       const SnackBar(content: Text('Post muted ✓')),
@@ -1055,8 +1060,9 @@ class _ReelItemState extends State<_ReelItem>
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        style:
-                            TextButton.styleFrom(foregroundColor: Colors.orange),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
                         child: const Text('Mute'),
                       ),
                     ],
@@ -1094,7 +1100,9 @@ class _ReelItemState extends State<_ReelItem>
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
                         child: const Text('Block'),
                       ),
                     ],
@@ -1247,9 +1255,7 @@ class _ReelItemState extends State<_ReelItem>
         _videoController.value.position - const Duration(seconds: 10);
 
     // Continuous Flow: Seek without awaiting to keep UI/playback engine reactive
-    _videoController.seekTo(
-      newPos < Duration.zero ? Duration.zero : newPos,
-    );
+    _videoController.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
 
     if (_isVideoEnded) {
       setState(() => _isVideoEnded = false);
