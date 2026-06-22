@@ -69,11 +69,19 @@ class ReelsScreenState extends State<ReelsScreen> {
     _preloadedControllers.clear();
   }
 
-  void _preloadAdjacent(int index) {
-    // Preload next 2 videos for prompt loading
-    for (int i = index + 1; i <= index + 2; i++) {
-      if (i < _cachedReels.length && !_preloadedControllers.containsKey(i)) {
-        final url = _cachedReels[i].videoUrl;
+  void _preloadAdjacent(int index, List<PostModel> items) {
+    if (items.isEmpty) return;
+
+    // Preload next 2 and previous 1 for seamless navigation in both directions
+    final indicesToPreload = [index + 1, index + 2, index - 1];
+
+    for (int i in indicesToPreload) {
+      // Don't preload negative indices unless we start at a large initialPage
+      if (i < 0) continue;
+
+      if (!_preloadedControllers.containsKey(i)) {
+        final actualIdx = i % items.length;
+        final url = items[actualIdx].videoUrl;
         if (url != null && url.isNotEmpty) {
           final controller = VideoPlayerController.networkUrl(Uri.parse(url));
           _preloadedControllers[i] = controller;
@@ -83,7 +91,8 @@ class ReelsScreenState extends State<ReelsScreen> {
         }
       }
     }
-    // Clean up distant controllers
+
+    // Clean up distant controllers to manage memory effectively
     _preloadedControllers.removeWhere((i, controller) {
       if ((i - index).abs() > 3) {
         controller.dispose();
@@ -160,27 +169,33 @@ class ReelsScreenState extends State<ReelsScreen> {
               .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
               .toList();
 
-          // Optimization: Only update the order if the document IDs have changed.
-          // This prevents re-shuffling while ensuring metadata (likes/views) updates are reflected.
-          final newIds = newReels.map((p) => p.postId).toList();
-          final oldIds = _cachedReels.map((p) => p.postId).toList();
+          // Optimization: Stabilize the shuffle order while allowing new items to flow in.
+          final newIds = newReels.map((p) => p.postId).toSet();
+          final oldIds = _cachedReels.map((p) => p.postId).toSet();
 
-          final bool listStructureChanged =
-              _cachedReels.isEmpty ||
-              newIds.length != oldIds.length ||
-              !newIds.every((id) => oldIds.contains(id));
+          // 1. Remove deleted items
+          _cachedReels.removeWhere((p) => !newIds.contains(p.postId));
 
-          if (listStructureChanged) {
+          // 2. Identify and append new items
+          final addedReels =
+              newReels.where((p) => !oldIds.contains(p.postId)).toList();
+
+          if (_cachedReels.isEmpty) {
             _cachedReels = newReels;
             _cachedReels.shuffle(Random(_refreshSeed));
-          } else {
-            // Update the existing cached objects in place to preserve order but refresh data
-            for (int i = 0; i < _cachedReels.length; i++) {
-              final String currentId = _cachedReels[i].postId;
-              final PostModel updatedData = newReels.firstWhere(
-                (p) => p.postId == currentId,
-              );
-              _cachedReels[i] = updatedData;
+          } else if (addedReels.isNotEmpty) {
+            // Append new items and shuffle them separately to maintain "continuous shuffle"
+            // without disrupting the current stack order.
+            addedReels.shuffle(Random(_refreshSeed + _cachedReels.length));
+            _cachedReels.addAll(addedReels);
+          }
+
+          // 3. Always update metadata for all cached items to reflect latest likes/views
+          for (int i = 0; i < _cachedReels.length; i++) {
+            final String currentId = _cachedReels[i].postId;
+            final match = newReels.where((p) => p.postId == currentId);
+            if (match.isNotEmpty) {
+              _cachedReels[i] = match.first;
             }
           }
 
@@ -236,15 +251,15 @@ class ReelsScreenState extends State<ReelsScreen> {
                 controller: _pageController,
                 scrollDirection: Axis.vertical,
                 physics: const BouncingScrollPhysics(),
-                itemCount: filteredReels.length,
+                // Enable truly continuous scrolling by looping through the shuffled list
                 onPageChanged: (index) {
                   setState(() => _activeIndex = index);
-                  _preloadAdjacent(index);
+                  _preloadAdjacent(index, filteredReels);
                 },
                 itemBuilder: (context, index) {
-                  final reel = filteredReels[index];
+                  final reel = filteredReels[index % filteredReels.length];
                   return _ReelItem(
-                    key: ValueKey(reel.postId),
+                    key: ValueKey('${reel.postId}_$index'),
                     post: reel,
                     isActive: _tabVisible && index == _activeIndex,
                     currentUserId: currentUserId,
