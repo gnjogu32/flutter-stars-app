@@ -158,6 +158,18 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     });
   }
 
+  Future<void> _skipBackward() async {
+    final newPos = _controller.value.position - const Duration(seconds: 10);
+    await _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+    _showSkipIndicator(forward: false);
+  }
+
+  Future<void> _skipForward() async {
+    final newPos = _controller.value.position + const Duration(seconds: 10);
+    await _controller.seekTo(newPos);
+    _showSkipIndicator(forward: true);
+  }
+
   void pause() {
     if (_ignoreVisibilityPause) {
       return; // Prevent autopause during portal handoff
@@ -275,28 +287,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             },
             onLongPress: _togglePlay,
             onDoubleTapDown: (details) {
-              final width = context.size?.width ?? 0;
-              final tapX = details.localPosition.dx;
-              if (tapX < width * 0.35) {
-                // Rewind
-                final newPos =
-                    _controller.value.position - const Duration(seconds: 10);
-                _controller.seekTo(
-                  newPos < Duration.zero ? Duration.zero : newPos,
-                );
-                _showSkipIndicator(forward: false);
-              } else if (tapX > width * 0.65) {
-                // Forward
-                final newPos =
-                    _controller.value.position + const Duration(seconds: 10);
-                _controller.seekTo(newPos);
-                _showSkipIndicator(forward: true);
-              } else {
-                // Center - Toggle Overlay
-                if (widget.showControls) {
-                  setState(() => _showOverlay = !_showOverlay);
-                }
-              }
+              // Center area double tap for potential Like logic (if handled by parent)
             },
             child: VideoPlayer(_controller),
           ),
@@ -331,45 +322,51 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               ),
             ),
 
-          // Skip Backward Indicator
-          if (_showSkipBackward)
+          // Skip Backward Button / Indicator
+          if (_showSkipBackward || _showOverlay)
             Positioned(
               left: 30,
               top: 0,
               bottom: 0,
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.black26,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.replay_10,
-                    color: Colors.white,
-                    size: 36,
+                child: GestureDetector(
+                  onTap: _skipBackward,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.replay_10,
+                      color: Colors.white,
+                      size: 36,
+                    ),
                   ),
                 ),
               ),
             ),
 
-          // Skip Forward Indicator
-          if (_showSkipForward)
+          // Skip Forward Button / Indicator
+          if (_showSkipForward || _showOverlay)
             Positioned(
               right: 30,
               top: 0,
               bottom: 0,
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.black26,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.forward_10,
-                    color: Colors.white,
-                    size: 36,
+                child: GestureDetector(
+                  onTap: _skipForward,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.forward_10,
+                      color: Colors.white,
+                      size: 36,
+                    ),
                   ),
                 ),
               ),

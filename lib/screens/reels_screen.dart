@@ -922,6 +922,153 @@ class _ReelItemState extends State<_ReelItem>
     }
   }
 
+  void _showMoreOptions() {
+    if (_activeUserId.isEmpty) {
+      AuthGuard.show(context);
+      return;
+    }
+
+    final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
+        .trim();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.visibility_off_outlined),
+              title: const Text('Mute this post'),
+              onTap: () async {
+                Navigator.pop(context);
+                final confirmed = await showDialog<bool>(
+                  context: this.context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Mute Post'),
+                    content: const Text(
+                      'Are you sure you want to hide this post from your feed?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.orange),
+                        child: const Text('Mute'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await UserService().mutePost(_activeUserId, widget.post.postId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text('Post muted ✓')),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_off_outlined),
+              title: Text('Mute $ownerName'),
+              onTap: () async {
+                Navigator.pop(context);
+                final confirmed = await showDialog<bool>(
+                  context: this.context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text('Mute $ownerName'),
+                    content: Text(
+                      'Are you sure you want to hide all posts from $ownerName?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.orange),
+                        child: const Text('Mute'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await UserService().muteAuthor(_activeUserId, _ownerId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('Posts from $ownerName muted ✓')),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block_outlined, color: Colors.red),
+              title: Text(
+                'Block $ownerName',
+                style: const TextStyle(color: Colors.red),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                final confirmed = await showDialog<bool>(
+                  context: this.context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text('Block $ownerName'),
+                    content: Text(
+                      'Block $ownerName? They will no longer be able to message you or see your notifications.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text('Block'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await UserService().blockUser(_activeUserId, _ownerId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('$ownerName blocked ✓')),
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _indicatorTimer?.cancel();
@@ -1050,34 +1197,31 @@ class _ReelItemState extends State<_ReelItem>
     }
   }
 
-  Future<void> _handleDoubleTapDown(TapDownDetails details) async {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final tapX = details.globalPosition.dx;
+  Future<void> _skipBackward() async {
+    final newPos =
+        _videoController.value.position - const Duration(seconds: 10);
+    await _videoController.seekTo(
+      newPos < Duration.zero ? Duration.zero : newPos,
+    );
+    _showSkipIndicator(forward: false);
+  }
 
-    if (tapX < screenWidth * 0.3) {
-      // Skip Backward
-      final newPos =
-          _videoController.value.position - const Duration(seconds: 10);
-      await _videoController.seekTo(
-        newPos < Duration.zero ? Duration.zero : newPos,
-      );
-      _showSkipIndicator(forward: false);
-    } else if (tapX > screenWidth * 0.7) {
-      // Skip Forward
-      final newPos =
-          _videoController.value.position + const Duration(seconds: 10);
-      await _videoController.seekTo(newPos);
-      _showSkipIndicator(forward: true);
-    } else {
-      // Like (Center)
-      if (!_isLiked) {
-        await _toggleLike();
-      }
-      setState(() => _showLikeHeart = true);
-      _heartAnimationController.forward(from: 0).then((_) {
-        setState(() => _showLikeHeart = false);
-      });
+  Future<void> _skipForward() async {
+    final newPos =
+        _videoController.value.position + const Duration(seconds: 10);
+    await _videoController.seekTo(newPos);
+    _showSkipIndicator(forward: true);
+  }
+
+  Future<void> _handleDoubleTapDown(TapDownDetails details) async {
+    // Center area double tap for Like remains
+    if (!_isLiked) {
+      await _toggleLike();
     }
+    setState(() => _showLikeHeart = true);
+    _heartAnimationController.forward(from: 0).then((_) {
+      setState(() => _showLikeHeart = false);
+    });
   }
 
   void _showSkipIndicator({required bool forward}) {
@@ -1146,45 +1290,51 @@ class _ReelItemState extends State<_ReelItem>
             ),
           ),
 
-        // Skip Backward Indicator
-        if (_showSkipBackward)
+        // Skip Backward Button / Indicator
+        if (_showSkipBackward || _showDetails)
           Positioned(
             left: 60,
             top: 0,
             bottom: 0,
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Colors.black26,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.replay_10,
-                  color: Colors.white,
-                  size: 44,
+              child: GestureDetector(
+                onTap: _skipBackward,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Colors.black26,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.replay_10,
+                    color: Colors.white,
+                    size: 44,
+                  ),
                 ),
               ),
             ),
           ),
 
-        // Skip Forward Indicator
-        if (_showSkipForward)
+        // Skip Forward Button / Indicator
+        if (_showSkipForward || _showDetails)
           Positioned(
-            right: 60,
+            right: 80, // Offset more to avoid sidebar conflict
             top: 0,
             bottom: 0,
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Colors.black26,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.forward_10,
-                  color: Colors.white,
-                  size: 44,
+              child: GestureDetector(
+                onTap: _skipForward,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Colors.black26,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.forward_10,
+                    color: Colors.white,
+                    size: 44,
+                  ),
                 ),
               ),
             ),
@@ -1262,6 +1412,12 @@ class _ReelItemState extends State<_ReelItem>
                         icon: Icons.share_outlined,
                         label: 'Share',
                         onTap: _sharePost,
+                      ),
+                      const SizedBox(height: 14),
+                      _InteractionButton(
+                        icon: Icons.more_horiz_outlined,
+                        label: 'More',
+                        onTap: _showMoreOptions,
                       ),
                       const SizedBox(height: 14),
                       _InteractionButton(

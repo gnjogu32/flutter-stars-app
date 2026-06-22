@@ -18,6 +18,7 @@ class VideoInteractionsSidebar extends StatefulWidget {
   final bool isMuted;
   final VoidCallback onToggleMute;
   final VoidCallback? onCommentTap;
+  final VoidCallback? onMoreTap;
 
   const VideoInteractionsSidebar({
     super.key,
@@ -26,6 +27,7 @@ class VideoInteractionsSidebar extends StatefulWidget {
     required this.isMuted,
     required this.onToggleMute,
     this.onCommentTap,
+    this.onMoreTap,
   });
 
   @override
@@ -265,6 +267,14 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
             icon: Icons.download_outlined,
             label: 'Download',
             onTap: _download,
+          ),
+        ],
+        if (widget.onMoreTap != null) ...[
+          const SizedBox(height: 14),
+          _InteractionButton(
+            icon: Icons.more_horiz_outlined,
+            label: 'More',
+            onTap: widget.onMoreTap!,
           ),
         ],
       ],
