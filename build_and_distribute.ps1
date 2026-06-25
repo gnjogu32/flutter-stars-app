@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 $APP_ID = "1:246255479274:android:177b790682bb5b59862a93"  # <-- Update as needed
 $TESTER_GROUP = "alpha,beta"  # <-- Update as needed
 $APK_PATH = "build/app/outputs/flutter-apk/app-release.apk"
-$RELEASE_NOTES = "Release 1.1.2 (6)"
+$RELEASE_NOTES = "Release 1.1.5 (9)"
 
 $KEY_PROPS_PATH = "android/key.properties"
 if (Test-Path $KEY_PROPS_PATH) {
