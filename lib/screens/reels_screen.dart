@@ -272,7 +272,6 @@ class ReelsScreenState extends State<ReelsScreen> {
                       isActive: _tabVisible && index == _activeIndex,
                       currentUserId: currentUserId,
                       onVideoEnd: _onReelEnd,
-                      onShuffle: refreshReels,
                       preloadedController: _preloadedControllers[index],
                       onOpenProfile: () {
                         final userId = (reel.originalAuthorId ?? reel.authorId)
@@ -303,7 +302,6 @@ class _ReelItem extends StatefulWidget {
   final String currentUserId;
   final VoidCallback? onVideoEnd;
   final VideoPlayerController? preloadedController;
-  final VoidCallback? onShuffle;
 
   const _ReelItem({
     super.key,
@@ -313,7 +311,6 @@ class _ReelItem extends StatefulWidget {
     required this.currentUserId,
     this.onVideoEnd,
     this.preloadedController,
-    this.onShuffle,
   });
 
   @override
@@ -1469,16 +1466,6 @@ class _ReelItemState extends State<_ReelItem>
                         icon: Icons.more_horiz_outlined,
                         label: 'More',
                         onTap: _showMoreOptions,
-                      ),
-                      const SizedBox(height: 14),
-                      _InteractionButton(
-                        icon: Icons.shuffle,
-                        label: 'Shuffle',
-                        onTap: () {
-                          if (widget.onShuffle != null) {
-                            widget.onShuffle!();
-                          }
-                        },
                       ),
                       const SizedBox(height: 14),
                       _InteractionButton(

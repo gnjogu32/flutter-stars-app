@@ -20,7 +20,6 @@ class VideoInteractionsSidebar extends StatefulWidget {
   final VoidCallback? onCommentTap;
   final VoidCallback? onMoreTap;
   final VoidCallback? onRepostTap;
-  final VoidCallback? onShuffleTap;
   final VoidCallback? onShareTap;
 
   const VideoInteractionsSidebar({
@@ -32,7 +31,6 @@ class VideoInteractionsSidebar extends StatefulWidget {
     this.onCommentTap,
     this.onMoreTap,
     this.onRepostTap,
-    this.onShuffleTap,
     this.onShareTap,
   });
 
@@ -278,18 +276,6 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           icon: Icons.share_outlined,
           label: 'Share',
           onTap: _share,
-        ),
-        const SizedBox(height: 14),
-        _InteractionButton(
-          icon: Icons.shuffle,
-          label: 'Shuffle',
-          onTap: () {
-            if (widget.onShuffleTap != null) {
-              widget.onShuffleTap!();
-            } else {
-              _openDetails();
-            }
-          },
         ),
         const SizedBox(height: 14),
         _InteractionButton(

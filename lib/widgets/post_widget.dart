@@ -1135,7 +1135,7 @@ class _PostWidgetState extends State<PostWidget>
     if (_isMutedLocally) return const SizedBox.shrink();
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(

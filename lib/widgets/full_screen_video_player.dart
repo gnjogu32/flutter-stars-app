@@ -93,10 +93,17 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   }
 
   void _preloadAdjacent(int index) {
-    // Preload next 2 videos
-    for (int i = index + 1; i <= index + 2; i++) {
-      if (i < _videos.length && !_preloadedControllers.containsKey(i)) {
-        final url = _videos[i].videoUrl;
+    if (_videos.isEmpty) return;
+
+    // Preload next 2 and previous 1 for seamless navigation
+    final indicesToPreload = [index + 1, index + 2, index - 1];
+
+    for (int i in indicesToPreload) {
+      if (i < 0) continue;
+
+      if (!_preloadedControllers.containsKey(i)) {
+        final actualIdx = i % _videos.length;
+        final url = _videos[actualIdx].videoUrl;
         if (url != null && url.isNotEmpty) {
           final controller = VideoPlayerController.networkUrl(Uri.parse(url));
           _preloadedControllers[i] = controller;
@@ -185,25 +192,24 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
-          itemCount: _videos.length,
           onPageChanged: (index) {
             setState(() {
-              _currentIndex = index;
+              _currentIndex = index % _videos.length;
             });
             _preloadAdjacent(index);
           },
           itemBuilder: (context, index) {
-            final post = _videos[index];
+            final actualIndex = index % _videos.length;
+            final post = _videos[actualIndex];
             return _FullScreenVideoItem(
               key: ValueKey('fs_${post.postId}_$index'),
               post: post,
-              autoPlay: index == _currentIndex,
+              autoPlay: actualIndex == _currentIndex,
               startPosition: index == widget.initialIndex
                   ? widget.startPosition
                   : null,
               currentUserId: widget.currentUserId,
               manualController: _preloadedControllers[index],
-              onShuffle: _reshuffle,
             );
           },
         ),
@@ -218,7 +224,6 @@ class _FullScreenVideoItem extends StatefulWidget {
   final Duration? startPosition;
   final String? currentUserId;
   final VideoPlayerController? manualController;
-  final VoidCallback? onShuffle;
 
   const _FullScreenVideoItem({
     super.key,
@@ -227,7 +232,6 @@ class _FullScreenVideoItem extends StatefulWidget {
     this.startPosition,
     this.currentUserId,
     this.manualController,
-    this.onShuffle,
   });
 
   @override
@@ -1220,7 +1224,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                 onToggleMute: _toggleMute,
                 onCommentTap: _openComments,
                 onRepostTap: _confirmRepost,
-                onShuffleTap: widget.onShuffle,
                 onMoreTap: _showMoreOptions,
                 onShareTap: _sharePost,
               ),
