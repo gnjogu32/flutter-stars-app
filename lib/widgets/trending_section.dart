@@ -29,7 +29,9 @@ class _TrendingSectionState extends State<TrendingSection>
   @override
   void initState() {
     super.initState();
-    _trendingPostsFuture = _trendingService.getTrendingPosts(limit: 5);
+    _trendingPostsFuture = _trendingService
+        .getTrendingPosts(limit: 5)
+        .then((result) => result.posts);
   }
 
   @override

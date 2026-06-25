@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/post_widget.dart';
-import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
 
@@ -21,13 +20,74 @@ class HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
-  Stream<QuerySnapshot>? _postsStream;
+
+  final List<PostModel> _posts = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  DocumentSnapshot? _lastDocument;
   bool _showSearch = false;
 
   @override
   void initState() {
     super.initState();
-    _postsStream = _buildPostsStream();
+    _loadPosts();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 600) {
+      _loadPosts();
+    }
+  }
+
+  Future<void> _loadPosts() async {
+    if (_isLoading || !_hasMore) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      Query query = _firestore
+          .collection('posts')
+          .orderBy('createdAt', descending: true)
+          .limit(15);
+
+      if (_lastDocument != null) {
+        query = query.startAfterDocument(_lastDocument!);
+      }
+
+      final snapshot = await query.get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final newPosts = snapshot.docs
+            .map((doc) => PostModel.fromFirestoreDoc(doc))
+            .toList();
+
+        if (mounted) {
+          setState(() {
+            _posts.addAll(newPosts);
+            _lastDocument = snapshot.docs.last;
+            _hasMore = snapshot.docs.length >= 15;
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _hasMore = false;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -46,20 +106,13 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Stream<QuerySnapshot> _buildPostsStream() {
-    return _firestore
-        .collection('posts')
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .snapshots();
-  }
-
   Future<void> _refresh() async {
     setState(() {
-      _postsStream = _buildPostsStream();
+      _posts.clear();
+      _lastDocument = null;
+      _hasMore = true;
     });
-    // Give the stream a moment to emit its first event
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await _loadPosts();
   }
 
   @override
@@ -102,19 +155,40 @@ class HomeScreenState extends State<HomeScreen> {
           RefreshIndicator(
             key: _refreshKey,
             onRefresh: _refresh,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _postsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const PostFeedSkeleton();
+            child: _posts.isEmpty && _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : StreamBuilder<DocumentSnapshot>(
+              stream: _firestore
+                  .collection('users')
+                  .doc(_auth.currentUser?.uid ?? 'guest')
+                  .snapshots(),
+              builder: (context, userSnapshot) {
+                List<String> mutedPosts = [];
+                List<String> mutedAuthors = [];
+                List<String> blockedUsers = [];
+
+                if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                  final userData =
+                      userSnapshot.data!.data() as Map<String, dynamic>;
+                  mutedPosts = List<String>.from(userData['mutedPosts'] ?? []);
+                  mutedAuthors = List<String>.from(
+                    userData['mutedAuthors'] ?? [],
+                  );
+                  blockedUsers = List<String>.from(
+                    userData['blockedUsers'] ?? [],
+                  );
                 }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+
+                final filteredPosts = _posts.where((post) {
+                  return !mutedPosts.contains(post.postId) &&
+                      !mutedAuthors.contains(post.authorId) &&
+                      !blockedUsers.contains(post.authorId);
+                }).toList();
+
+                if (filteredPosts.isEmpty && !_isLoading) {
                   return LayoutBuilder(
                     builder: (context, constraints) => SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
+                      physics: const AlwaysScrollableScrollPhysics(),
                       child: SizedBox(
                         height: constraints.maxHeight,
                         child: const Center(
@@ -126,62 +200,38 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 }
-                final posts = snapshot.data!.docs
-                    .map(
-                      (doc) => PostModel.fromJson(
-                        doc.data() as Map<String, dynamic>,
-                      ),
-                    )
-                    .toList();
 
-                return StreamBuilder<DocumentSnapshot>(
-                  stream: _firestore
-                      .collection('users')
-                      .doc(_auth.currentUser?.uid ?? 'guest')
-                      .snapshots(),
-                  builder: (context, userSnapshot) {
-                    List<String> mutedPosts = [];
-                    List<String> mutedAuthors = [];
-                    List<String> blockedUsers = [];
-
-                    if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                      final userData =
-                          userSnapshot.data!.data() as Map<String, dynamic>;
-                      mutedPosts = List<String>.from(
-                        userData['mutedPosts'] ?? [],
-                      );
-                      mutedAuthors = List<String>.from(
-                        userData['mutedAuthors'] ?? [],
-                      );
-                      blockedUsers = List<String>.from(
-                        userData['blockedUsers'] ?? [],
+                return ListView.builder(
+                  controller: _scrollController,
+                  // ignore: deprecated_member_use
+                  cacheExtent: 2000.0, // Aggressive caching to remove blank screens
+                  itemCount:
+                      filteredPosts.length + 1 + (_hasMore ? 1 : 0),
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  addAutomaticKeepAlives: true,
+                  addRepaintBoundaries: true,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return TrendingStreamSection(
+                        currentUserId: _auth.currentUser?.uid ?? '',
                       );
                     }
 
-                    final filteredPosts = posts.where((post) {
-                      return !mutedPosts.contains(post.postId) &&
-                          !mutedAuthors.contains(post.authorId) &&
-                          !blockedUsers.contains(post.authorId);
-                    }).toList();
+                    final postIndex = index - 1;
 
-                    return ListView.builder(
-                      controller: _scrollController,
-                      itemCount:
-                          filteredPosts.length + 1, // +1 for trending section
-                      physics: const ClampingScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return TrendingStreamSection(
-                            currentUserId: _auth.currentUser?.uid ?? '',
-                          );
-                        }
-                        final postIndex = index - 1;
-                        return PostWidget(
-                          key: ValueKey(filteredPosts[postIndex].postId),
-                          post: filteredPosts[postIndex],
-                          currentUserId: _auth.currentUser?.uid ?? '',
-                        );
-                      },
+                    if (postIndex == filteredPosts.length) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    return PostWidget(
+                      key: ValueKey(filteredPosts[postIndex].postId),
+                      post: filteredPosts[postIndex],
+                      currentUserId: _auth.currentUser?.uid ?? '',
                     );
                   },
                 );

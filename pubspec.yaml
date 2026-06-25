@@ -2,7 +2,7 @@ name: starpage
 description: "Starpage - A creativity-based social media networking platform for talented stars to showcase their creativity and interact with other talented stars."
 publish_to: 'none'
 
-version: 1.0.0+3
+version: 1.1.1+5
 
 environment:
   sdk: ^3.10.4

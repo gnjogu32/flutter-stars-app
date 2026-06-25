@@ -106,6 +106,46 @@ class PostModel {
     );
   }
 
+  // Create PostModel from Firestore document with doc.id fallback
+  factory PostModel.fromFirestoreDoc(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? <String, dynamic>{};
+    final String docId = doc.id;
+
+    return PostModel(
+      postId: (data['postId'] as String?)?.isNotEmpty == true
+          ? data['postId'] as String
+          : docId,
+      authorId: data['authorId'] ?? '',
+      authorName: data['authorName'] ?? '',
+      authorImageUrl: data['authorImageUrl'],
+      originalAuthorId: data['originalAuthorId'],
+      originalAuthorName: data['originalAuthorName'],
+      originalAuthorImageUrl: data['originalAuthorImageUrl'],
+      content: data['content'] ?? '',
+      repostCaption: data['repostCaption'],
+      imageUrls: List<String>.from(data['imageUrls'] ?? []),
+      audioUrl: data['audioUrl'],
+      videoUrl: data['videoUrl'],
+      talent: data['talent'],
+      postType: data['postType'] ??
+          (data['videoUrl'] != null ? 'video' : 'text'),
+      likes: List<String>.from(data['likes'] ?? []),
+      commentCount: data['commentCount'] ?? 0,
+      repostCount: data['repostCount'] ?? 0,
+      videoViewCount: data['videoViewCount'] ?? 0,
+      createdAt: data['createdAt'] is Timestamp
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.parse(
+              data['createdAt'] ?? DateTime.now().toIso8601String(),
+            ),
+      updatedAt: data['updatedAt'] is Timestamp
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.parse(
+              data['updatedAt'] ?? DateTime.now().toIso8601String(),
+            ),
+    );
+  }
+
   // Create a copy with updated fields
   PostModel copyWith({
     String? postId,

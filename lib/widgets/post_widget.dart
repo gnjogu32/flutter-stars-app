@@ -43,6 +43,7 @@ class _PostWidgetState extends State<PostWidget>
     with AutomaticKeepAliveClientMixin {
   late bool _isLiked;
   late int _likeCount;
+  late int _viewCount;
   bool _isLikeUpdating = false;
   bool _isFollowing = false;
   bool _isFollowLoading = false;
@@ -122,6 +123,7 @@ class _PostWidgetState extends State<PostWidget>
     super.initState();
     _isLiked = widget.post.isLikedBy(widget.currentUserId);
     _likeCount = widget.post.likeCount;
+    _viewCount = widget.post.videoViewCount;
     // _videoViewCount removed for AGP 9+ compatibility
     if (_ownerId != widget.currentUserId) {
       _checkFollowState();
@@ -134,6 +136,10 @@ class _PostWidgetState extends State<PostWidget>
     if (!_isLikeUpdating) {
       _isLiked = widget.post.isLikedBy(widget.currentUserId);
       _likeCount = widget.post.likeCount;
+    }
+    // Only update view count from widget if it's strictly greater to avoid race conditions with local increments
+    if (widget.post.videoViewCount > _viewCount) {
+      _viewCount = widget.post.videoViewCount;
     }
     // _videoViewCount removed for AGP 9+ compatibility
   }
@@ -1411,6 +1417,11 @@ class _PostWidgetState extends State<PostWidget>
                         widget.post.postId,
                         widget.post.authorId,
                       );
+                      if (mounted) {
+                        setState(() {
+                          _viewCount++;
+                        });
+                      }
                     },
                   ),
                 ),
@@ -1426,7 +1437,7 @@ class _PostWidgetState extends State<PostWidget>
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${widget.post.videoViewCount} views',
+                      '$_viewCount views',
                       style: Theme.of(
                         context,
                       ).textTheme.bodySmall?.copyWith(color: Colors.grey),

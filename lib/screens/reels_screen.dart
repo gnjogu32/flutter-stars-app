@@ -248,36 +248,45 @@ class ReelsScreenState extends State<ReelsScreen> {
                 );
               }
 
-              return PageView.builder(
-                controller: _pageController,
-                scrollDirection: Axis.vertical,
-                physics: const BouncingScrollPhysics(),
-                // Enable truly continuous scrolling by looping through the shuffled list
-                onPageChanged: (index) {
-                  setState(() => _activeIndex = index);
-                  _preloadAdjacent(index, filteredReels);
+              return RefreshIndicator(
+                onRefresh: () async {
+                  refreshReels();
+                  await Future.delayed(const Duration(milliseconds: 400));
                 },
-                itemBuilder: (context, index) {
-                  final reel = filteredReels[index % filteredReels.length];
-                  return _ReelItem(
-                    key: ValueKey('${reel.postId}_$index'),
-                    post: reel,
-                    isActive: _tabVisible && index == _activeIndex,
-                    currentUserId: currentUserId,
-                    onVideoEnd: _onReelEnd,
-                    preloadedController: _preloadedControllers[index],
-                    onOpenProfile: () {
-                      final userId = (reel.originalAuthorId ?? reel.authorId)
-                          .trim();
-                      if (userId.isEmpty) return;
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ProfileScreen(userId: userId),
-                        ),
-                      );
-                    },
-                  );
-                },
+                child: PageView.builder(
+                  controller: _pageController,
+                  scrollDirection: Axis.vertical,
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  // Enable truly continuous scrolling by looping through the shuffled list
+                  onPageChanged: (index) {
+                    setState(() => _activeIndex = index);
+                    _preloadAdjacent(index, filteredReels);
+                  },
+                  itemBuilder: (context, index) {
+                    final reel = filteredReels[index % filteredReels.length];
+                    return _ReelItem(
+                      key: ValueKey('${reel.postId}_$index'),
+                      post: reel,
+                      isActive: _tabVisible && index == _activeIndex,
+                      currentUserId: currentUserId,
+                      onVideoEnd: _onReelEnd,
+                      onShuffle: refreshReels,
+                      preloadedController: _preloadedControllers[index],
+                      onOpenProfile: () {
+                        final userId = (reel.originalAuthorId ?? reel.authorId)
+                            .trim();
+                        if (userId.isEmpty) return;
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ProfileScreen(userId: userId),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               );
             },
           );
@@ -294,6 +303,7 @@ class _ReelItem extends StatefulWidget {
   final String currentUserId;
   final VoidCallback? onVideoEnd;
   final VideoPlayerController? preloadedController;
+  final VoidCallback? onShuffle;
 
   const _ReelItem({
     super.key,
@@ -303,6 +313,7 @@ class _ReelItem extends StatefulWidget {
     required this.currentUserId,
     this.onVideoEnd,
     this.preloadedController,
+    this.onShuffle,
   });
 
   @override
@@ -315,6 +326,7 @@ class _ReelItemState extends State<_ReelItem>
   bool _isInitialized = false;
   late bool _isLiked;
   late int _likeCount;
+  late int _viewCount;
   bool _isLikeUpdating = false;
   bool _isReposting = false;
   bool _isMuted = false;
@@ -375,6 +387,7 @@ class _ReelItemState extends State<_ReelItem>
     super.initState();
     _isLiked = widget.post.isLikedBy(_activeUserId);
     _likeCount = widget.post.likeCount;
+    _viewCount = widget.post.videoViewCount;
     _heartAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -455,6 +468,9 @@ class _ReelItemState extends State<_ReelItem>
           _startHideTimer(); // Hide after 3s
           ScreenAwakeController.acquire();
           AnalyticsService().trackView(widget.post.postId, _ownerId);
+          setState(() {
+            _viewCount++;
+          });
         }
 
         _videoController.addListener(_videoListener);
@@ -487,6 +503,10 @@ class _ReelItemState extends State<_ReelItem>
       _likeCount = widget.post.likeCount;
     }
 
+    if (widget.post.videoViewCount > _viewCount) {
+      _viewCount = widget.post.videoViewCount;
+    }
+
     if (widget.preloadedController != null &&
         _videoController != widget.preloadedController) {
       _videoController.removeListener(_videoListener);
@@ -502,6 +522,9 @@ class _ReelItemState extends State<_ReelItem>
       _startHideTimer();
       ScreenAwakeController.acquire();
       AnalyticsService().trackView(widget.post.postId, _ownerId);
+      setState(() {
+        _viewCount++;
+      });
     } else if (!widget.isActive && oldWidget.isActive) {
       _videoController.pause();
       ScreenAwakeController.release();
@@ -913,36 +936,6 @@ class _ReelItemState extends State<_ReelItem>
           postAuthorId: _ownerId,
           currentUserId: _activeUserId,
           postContent: widget.post.content,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openInteractionsSheet() async {
-    if (!mounted) return;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.42,
-        minChildSize: 0.3,
-        maxChildSize: 0.85,
-        snap: true,
-        snapSizes: const [0.42, 0.85],
-        builder: (context, scrollController) => _ReelInteractionsSheet(
-          post: widget.post,
-          isLiked: _isLiked,
-          likeCount: _likeCount,
-          isReposting: _isReposting,
-          isSaved: _isSaved,
-          onLike: _toggleLike,
-          onComments: _openComments,
-          onRepost: _confirmRepost,
-          onSave: _toggleSave,
-          onShare: _sharePost,
-          scrollController: scrollController,
         ),
       ),
     );
@@ -1455,7 +1448,7 @@ class _ReelItemState extends State<_ReelItem>
                       _InteractionButton(
                         icon: Icons.comment_outlined,
                         label: '${widget.post.commentCount}',
-                        onTap: _openInteractionsSheet,
+                        onTap: _openComments,
                       ),
                       const SizedBox(height: 14),
                       _InteractionButton(
@@ -1476,6 +1469,16 @@ class _ReelItemState extends State<_ReelItem>
                         icon: Icons.more_horiz_outlined,
                         label: 'More',
                         onTap: _showMoreOptions,
+                      ),
+                      const SizedBox(height: 14),
+                      _InteractionButton(
+                        icon: Icons.shuffle,
+                        label: 'Shuffle',
+                        onTap: () {
+                          if (widget.onShuffle != null) {
+                            widget.onShuffle!();
+                          }
+                        },
                       ),
                       const SizedBox(height: 14),
                       _InteractionButton(
@@ -1568,7 +1571,7 @@ class _ReelItemState extends State<_ReelItem>
                                   ),
                                 ),
                                 Text(
-                                  '${widget.post.videoViewCount} views',
+                                  '$_viewCount views',
                                   style: const TextStyle(color: Colors.white70),
                                 ),
                               ],

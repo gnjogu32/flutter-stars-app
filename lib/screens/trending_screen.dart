@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/post_model.dart';
 import '../services/trending_service.dart';
 import '../utils/animation_utils.dart';
@@ -16,13 +17,8 @@ class TrendingScreen extends StatefulWidget {
 
 class _TrendingScreenState extends State<TrendingScreen>
     with SingleTickerProviderStateMixin {
-  final TrendingService _trendingService = TrendingService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   late TabController _tabController;
   String _selectedCategory = 'All';
-  late Future<List<PostModel>> _todayFuture;
-  late Future<List<PostModel>> _weekFuture;
-  late Future<List<PostModel>> _topLikedFuture;
 
   final List<String> talents = [
     'All',
@@ -43,26 +39,12 @@ class _TrendingScreenState extends State<TrendingScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _selectedCategory = widget.talentFilter ?? 'All';
-    _todayFuture = _loadTodayTrending(_selectedCategory);
-    _weekFuture = _trendingService.getTrendingPosts(limit: 50);
-    _topLikedFuture = _trendingService.getTopPostsByLikes(limit: 50);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  Future<List<PostModel>> _loadTodayTrending(String category) {
-    if (category == 'All') {
-      return _trendingService.getTrendingPosts(limit: 50);
-    }
-
-    return _trendingService.getTrendingPostsByTalent(
-      talent: category,
-      limit: 50,
-    );
   }
 
   void _onCategorySelected(String talent) {
@@ -72,7 +54,6 @@ class _TrendingScreenState extends State<TrendingScreen>
 
     setState(() {
       _selectedCategory = talent;
-      _todayFuture = _loadTodayTrending(talent);
     });
   }
 
@@ -135,14 +116,21 @@ class _TrendingScreenState extends State<TrendingScreen>
               controller: _tabController,
               children: [
                 // Today's Trending
-                _buildTrendingList(
-                  future: _todayFuture,
-                  listStorageKey: 'trending_today_$_selectedCategory',
+                _TrendingListView(
+                  key: PageStorageKey('trending_today_$_selectedCategory'),
+                  type: _TrendingType.today,
+                  talent: _selectedCategory,
                 ),
                 // This Week's Trending
-                _buildTrendingListByTalent(listStorageKey: 'trending_week'),
+                _TrendingListView(
+                  key: const PageStorageKey('trending_week'),
+                  type: _TrendingType.week,
+                ),
                 // Top Liked
-                _buildTopLikedList(listStorageKey: 'trending_top_liked'),
+                _TrendingListView(
+                  key: const PageStorageKey('trending_top_liked'),
+                  type: _TrendingType.topLiked,
+                ),
               ],
             ),
           ),
@@ -150,120 +138,183 @@ class _TrendingScreenState extends State<TrendingScreen>
       ),
     );
   }
+}
 
-  Widget _buildTrendingList({
-    required Future<List<PostModel>> future,
-    required String listStorageKey,
-  }) {
-    return FutureBuilder<List<PostModel>>(
-      future: future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+enum _TrendingType { today, week, topLiked }
 
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
+class _TrendingListView extends StatefulWidget {
+  final _TrendingType type;
+  final String? talent;
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No trending posts found'));
-        }
+  const _TrendingListView({super.key, required this.type, this.talent});
 
-        return _buildPostList(
-          posts: snapshot.data!,
-          listStorageKey: listStorageKey,
-        );
-      },
-    );
+  @override
+  State<_TrendingListView> createState() => _TrendingListViewState();
+}
+
+class _TrendingListViewState extends State<_TrendingListView>
+    with AutomaticKeepAliveClientMixin {
+  final TrendingService _trendingService = TrendingService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ScrollController _scrollController = ScrollController();
+
+  final List<PostModel> _posts = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  DocumentSnapshot? _lastDocument;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMore();
+    _scrollController.addListener(_onScroll);
   }
 
-  Widget _buildTrendingListByTalent({required String listStorageKey}) {
-    return FutureBuilder<List<PostModel>>(
-      future: _weekFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No trending posts this week'));
-        }
-
-        return _buildPostList(
-          posts: snapshot.data!,
-          listStorageKey: listStorageKey,
-        );
-      },
-    );
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
-  Widget _buildTopLikedList({required String listStorageKey}) {
-    return FutureBuilder<List<PostModel>>(
-      future: _topLikedFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 400) {
+      _loadMore();
+    }
+  }
 
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore) return;
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No posts found'));
-        }
+    setState(() {
+      _isLoading = true;
+    });
 
-        final posts = snapshot.data!;
+    try {
+      List<PostModel> fetchedPosts = [];
+      DocumentSnapshot? newLastDoc;
+      const int limit = 15;
 
-        return ListView.builder(
-          // ignore: deprecated_member_use
-          cacheExtent: 600.0,
-          key: PageStorageKey<String>(listStorageKey),
-          itemCount: posts.length,
-          physics: const BouncingScrollPhysics(),
-          itemBuilder: (context, index) {
-            return KeyedSubtree(
-              key: ValueKey(posts[index].postId),
-              child: AnimationUtils.slideUpAnimation(
-                duration: const Duration(milliseconds: 400),
-                delayMilliseconds: index * 50,
-                child: _buildRankedPostWidget(index: index, post: posts[index]),
-              ),
+      switch (widget.type) {
+        case _TrendingType.today:
+          if (widget.talent == null || widget.talent == 'All') {
+            final result = await _trendingService.getTrendingPosts(
+              limit: limit,
+              lastDocument: _lastDocument,
             );
-          },
-        );
-      },
-    );
+            fetchedPosts = result.posts;
+            newLastDoc = result.lastDoc;
+          } else {
+            final result = await _trendingService.getTrendingPostsByTalent(
+              talent: widget.talent!,
+              limit: limit,
+              lastDocument: _lastDocument,
+            );
+            fetchedPosts = result.posts;
+            newLastDoc = result.lastDoc;
+          }
+          break;
+        case _TrendingType.week:
+          final result = await _trendingService.getTrendingPosts(
+            limit: limit,
+            lastDocument: _lastDocument,
+          );
+          fetchedPosts = result.posts;
+          newLastDoc = result.lastDoc;
+          break;
+        case _TrendingType.topLiked:
+          final result = await _trendingService.getTopPostsByLikes(
+            limit: limit,
+            lastDocument: _lastDocument,
+          );
+          fetchedPosts = result.posts;
+          newLastDoc = result.lastDoc;
+          break;
+      }
+
+      if (mounted) {
+        setState(() {
+          _posts.addAll(fetchedPosts);
+          _lastDocument = newLastDoc;
+          _isLoading = false;
+          _hasMore = fetchedPosts.length >= limit;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  Widget _buildPostList({
-    required List<PostModel> posts,
-    required String listStorageKey,
-  }) {
-    return ListView.builder(
-      // ignore: deprecated_member_use
-      cacheExtent: 600.0,
-      key: PageStorageKey<String>(listStorageKey),
-      itemCount: posts.length,
-      physics: const BouncingScrollPhysics(),
-      itemBuilder: (context, index) {
-        return KeyedSubtree(
-          key: ValueKey(posts[index].postId),
-          child: AnimationUtils.slideUpAnimation(
-            duration: const Duration(milliseconds: 400),
-            delayMilliseconds: index * 50,
-            child: PostWidget(
-              post: posts[index],
-              currentUserId: _auth.currentUser?.uid ?? '',
-            ),
-          ),
-        );
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    if (_posts.isEmpty && _isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_posts.isEmpty) {
+      return const Center(child: Text('No trending posts found'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {
+          _posts.clear();
+          _hasMore = true;
+          _lastDocument = null;
+        });
+        await _loadMore();
       },
+      child: ListView.builder(
+        controller: _scrollController,
+        // ignore: deprecated_member_use
+        cacheExtent: 1500.0, // Increased to remove blank screen while scrolling
+        itemCount: _posts.length + (_hasMore ? 1 : 0),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        addAutomaticKeepAlives: true,
+        addRepaintBoundaries: true,
+        itemBuilder: (context, index) {
+          if (index == _posts.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final post = _posts[index];
+
+          Widget child;
+          if (widget.type == _TrendingType.topLiked) {
+            child = _buildRankedPostWidget(index: index, post: post);
+          } else {
+            child = PostWidget(
+              post: post,
+              currentUserId: _auth.currentUser?.uid ?? '',
+            );
+          }
+
+          return KeyedSubtree(
+            key: ValueKey(post.postId),
+            child: index < 15 // Only animate the first visible batch
+                ? AnimationUtils.slideUpAnimation(
+                    duration: const Duration(milliseconds: 300),
+                    delayMilliseconds: index < 10 ? index * 30 : 0,
+                    child: child,
+                  )
+                : child,
+          );
+        },
+      ),
     );
   }
 
@@ -285,7 +336,7 @@ class _TrendingScreenState extends State<TrendingScreen>
             top: 12,
             right: 12,
             child: ScaleTransition(
-              scale: AlwaysStoppedAnimation(1.2),
+              scale: const AlwaysStoppedAnimation(1.2),
               child: Text(medalEmoji!, style: const TextStyle(fontSize: 24)),
             ),
           )

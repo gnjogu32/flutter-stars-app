@@ -5,7 +5,7 @@ This document outlines the technical specifics of the modernized build toolchain
 ## Current Toolchain State
 
 - **AGP:** 9.2.1 (Experimental)
-- **Kotlin:** 2.1.10
+- **Kotlin:** 2.2.20
 - **Gradle:** 9.4.1
 - **Target/Compile SDK:** 36
 - **JDK/JVM Target:** 17 (Strictly enforced)

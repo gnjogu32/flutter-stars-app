@@ -7,7 +7,7 @@ A new Flutter project.
 This project has been upgraded to use the latest Android build tools and SDKs. See [MAINTENANCE_WORKFLOW.md](./MAINTENANCE_WORKFLOW.md) for detailed technical maintenance instructions.
 
 - **Android Gradle Plugin (AGP):** 9.2.1
-- **Kotlin:** 2.1.10
+- **Kotlin:** 2.2.20
 - **Gradle:** 9.4.1
 - **Target/Compile SDK:** 36
 - **JVM Target:** 17 (Forced)

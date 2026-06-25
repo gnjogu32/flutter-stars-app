@@ -38,10 +38,19 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("release-keystore.jks")
-            storePassword = "@starpageflutterstarsapplication2026#!?"
-            keyAlias = "release"
-            keyPassword = "@starpageflutterstarsapplication2026#!?"
+            val keystoreProperties = Properties()
+            val keystorePropertiesFile = File(project.projectDir.parentFile, "key.properties")
+            if (keystorePropertiesFile.exists()) {
+                keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+            }
+
+            keyAlias = project.findProperty("keyAlias") as String? ?: keystoreProperties.getProperty("keyAlias")
+            keyPassword = project.findProperty("keyPassword") as String? ?: keystoreProperties.getProperty("keyPassword")
+            storePassword = project.findProperty("storePassword") as String? ?: keystoreProperties.getProperty("storePassword")
+            val storeFilePath = project.findProperty("storeFile") as String? ?: keystoreProperties.getProperty("storeFile")
+            if (!storeFilePath.isNullOrBlank()) {
+                storeFile = if (File(storeFilePath).isAbsolute) File(storeFilePath) else File(project.projectDir.parentFile, storeFilePath)
+            }
         }
     }
 
@@ -55,7 +64,8 @@ android {
             // Using configure to avoid import issues with the firebaseAppDistribution extension
             extensions.configure<com.google.firebase.appdistribution.gradle.AppDistributionExtension>("firebaseAppDistribution") {
                 appId = "1:246255479274:android:177b790682bb5b59862a93"
-                groups = "testers"
+                artifactPath = "${rootProject.projectDir.path}/app/build/outputs/apk/release/app-release.apk"
+                groups = "alpha"
             }
         }
     }

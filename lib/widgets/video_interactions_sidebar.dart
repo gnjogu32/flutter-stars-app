@@ -19,6 +19,9 @@ class VideoInteractionsSidebar extends StatefulWidget {
   final VoidCallback onToggleMute;
   final VoidCallback? onCommentTap;
   final VoidCallback? onMoreTap;
+  final VoidCallback? onRepostTap;
+  final VoidCallback? onShuffleTap;
+  final VoidCallback? onShareTap;
 
   const VideoInteractionsSidebar({
     super.key,
@@ -28,6 +31,9 @@ class VideoInteractionsSidebar extends StatefulWidget {
     required this.onToggleMute,
     this.onCommentTap,
     this.onMoreTap,
+    this.onRepostTap,
+    this.onShuffleTap,
+    this.onShareTap,
   });
 
   @override
@@ -175,8 +181,28 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
     );
   }
 
+  void _openComments() {
+    if (widget.onCommentTap != null) {
+      widget.onCommentTap!();
+    } else {
+      _openDetails();
+    }
+  }
+
+  void _openRepost() {
+    if (widget.onRepostTap != null) {
+      widget.onRepostTap!();
+    } else {
+      _openDetails();
+    }
+  }
+
   void _share() {
-    ShareService.sharePost(widget.post);
+    if (widget.onShareTap != null) {
+      widget.onShareTap!();
+    } else {
+      ShareService.sharePost(widget.post);
+    }
   }
 
   Future<void> _download() async {
@@ -239,19 +265,31 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
         _InteractionButton(
           icon: Icons.comment_outlined,
           label: '${widget.post.commentCount}',
-          onTap: _openDetails,
+          onTap: _openComments,
         ),
         const SizedBox(height: 14),
         _InteractionButton(
           icon: Icons.repeat,
           label: '${widget.post.repostCount}',
-          onTap: _openDetails, // Reuse details for repost/comment actions
+          onTap: _openRepost, // Reuse details for repost/comment actions
         ),
         const SizedBox(height: 14),
         _InteractionButton(
           icon: Icons.share_outlined,
           label: 'Share',
           onTap: _share,
+        ),
+        const SizedBox(height: 14),
+        _InteractionButton(
+          icon: Icons.shuffle,
+          label: 'Shuffle',
+          onTap: () {
+            if (widget.onShuffleTap != null) {
+              widget.onShuffleTap!();
+            } else {
+              _openDetails();
+            }
+          },
         ),
         const SizedBox(height: 14),
         _InteractionButton(

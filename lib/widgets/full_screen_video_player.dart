@@ -10,9 +10,13 @@ import 'package:starpage/widgets/expandable_text.dart';
 import 'package:starpage/screens/profile_screen.dart';
 import 'package:starpage/screens/full_screen_comments_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:starpage/services/repost_queue_service.dart';
+import 'package:starpage/services/notification_service.dart';
+import 'package:starpage/widgets/keyboard_prompt_banner.dart';
 import '../utils/screen_awake_controller.dart';
 import '../services/analytics_service.dart';
 import '../services/user_service.dart';
+import '../services/share_service.dart';
 import '../utils/auth_guard.dart';
 
 class FullScreenVideoPlayer extends StatefulWidget {
@@ -74,6 +78,18 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     } else {
       _preloadAdjacent(_currentIndex);
     }
+  }
+
+  void _reshuffle() {
+    if (_videos.length <= 1) return;
+    setState(() {
+      _videos.shuffle(Random());
+      _currentIndex = 0;
+    });
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+    _preloadAdjacent(0);
   }
 
   void _preloadAdjacent(int index) {
@@ -158,29 +174,39 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: PageView.builder(
-        controller: _pageController,
-        scrollDirection: Axis.vertical,
-        itemCount: _videos.length,
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          _preloadAdjacent(index);
+      body: RefreshIndicator(
+        onRefresh: () async {
+          _reshuffle();
+          await Future.delayed(const Duration(milliseconds: 400));
         },
-        itemBuilder: (context, index) {
-          final post = _videos[index];
-          return _FullScreenVideoItem(
-            key: ValueKey('fs_${post.postId}_$index'),
-            post: post,
-            autoPlay: index == _currentIndex,
-            startPosition: index == widget.initialIndex
-                ? widget.startPosition
-                : null,
-            currentUserId: widget.currentUserId,
-            manualController: _preloadedControllers[index],
-          );
-        },
+        child: PageView.builder(
+          controller: _pageController,
+          scrollDirection: Axis.vertical,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          itemCount: _videos.length,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+            _preloadAdjacent(index);
+          },
+          itemBuilder: (context, index) {
+            final post = _videos[index];
+            return _FullScreenVideoItem(
+              key: ValueKey('fs_${post.postId}_$index'),
+              post: post,
+              autoPlay: index == _currentIndex,
+              startPosition: index == widget.initialIndex
+                  ? widget.startPosition
+                  : null,
+              currentUserId: widget.currentUserId,
+              manualController: _preloadedControllers[index],
+              onShuffle: _reshuffle,
+            );
+          },
+        ),
       ),
     );
   }
@@ -192,6 +218,7 @@ class _FullScreenVideoItem extends StatefulWidget {
   final Duration? startPosition;
   final String? currentUserId;
   final VideoPlayerController? manualController;
+  final VoidCallback? onShuffle;
 
   const _FullScreenVideoItem({
     super.key,
@@ -200,6 +227,7 @@ class _FullScreenVideoItem extends StatefulWidget {
     this.startPosition,
     this.currentUserId,
     this.manualController,
+    this.onShuffle,
   });
 
   @override
@@ -216,12 +244,19 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   bool _showSkipForward = false;
   bool _showSkipBackward = false;
   bool _isVideoEnded = false;
+  bool _isReposting = false;
+  late int _viewCount;
   Timer? _indicatorTimer;
   String? _error;
+
+  static const List<String> _quickEmojis = [
+    '😀', '😁', '😂', '🤣', '😊', '😍', '🥳', '😎', '🤔', '👏', '🔥', '💯', '✨', '🙌', '👍', '🙏', '❤️', '💙', '💚', '🎉', '😢', '😡', '🤝', '💫',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _viewCount = widget.post.videoViewCount;
     _initializeController();
   }
 
@@ -305,6 +340,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         .trim();
     if (ownerId.isNotEmpty) {
       AnalyticsService().trackView(widget.post.postId, ownerId);
+      setState(() {
+        _viewCount++;
+      });
     }
   }
 
@@ -330,6 +368,10 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   void didUpdateWidget(_FullScreenVideoItem oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_isInitialized) return;
+
+    if (widget.post.videoViewCount > _viewCount) {
+      _viewCount = widget.post.videoViewCount;
+    }
 
     if (widget.autoPlay && !oldWidget.autoPlay) {
       if (!_controller.value.isPlaying) {
@@ -448,6 +490,17 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
     _showSkipIndicator(forward: true);
   }
 
+  void _sharePost() {
+    ShareService.sharePost(widget.post);
+    // Track share in analytics
+    final currentUserId = widget.currentUserId ?? '';
+    if (currentUserId.isNotEmpty) {
+      final ownerId =
+          (widget.post.originalAuthorId ?? widget.post.authorId).trim();
+      AnalyticsService().trackShare(widget.post.postId, ownerId, currentUserId);
+    }
+  }
+
   void _onOpenProfile() {
     final userId = (widget.post.originalAuthorId ?? widget.post.authorId)
         .trim();
@@ -469,6 +522,231 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         ),
       ),
     );
+  }
+
+  Future<void> _repostToFeed({String caption = '', DateTime? scheduleTime}) async {
+    final currentUserId = widget.currentUserId ?? '';
+    if (_isReposting) return;
+    if (currentUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    setState(() => _isReposting = true);
+
+    try {
+      final userService = UserService();
+      final queueService = RepostQueueService();
+      final analyticsService = AnalyticsService();
+      final notificationService = NotificationService();
+
+      final currentUser = await userService.getUser(currentUserId);
+      if (currentUser == null) {
+        throw Exception('Could not load your profile for reposting.');
+      }
+
+      final actorName = currentUser.displayName.trim().isEmpty
+          ? 'Someone'
+          : currentUser.displayName.trim();
+
+      await queueService.queueRepost(
+        userId: currentUserId,
+        postId: widget.post.postId,
+        originalAuthorId: widget.post.authorId,
+        userName: actorName,
+        userImageUrl: currentUser.profileImageUrl,
+        post: widget.post,
+        caption: caption,
+        scheduleTime: scheduleTime,
+      );
+
+      final ownerId = (widget.post.originalAuthorId ?? widget.post.authorId).trim();
+      await analyticsService.trackRepost(widget.post.postId, ownerId, currentUserId);
+
+      if (currentUserId != widget.post.authorId &&
+          (scheduleTime == null || scheduleTime.isBefore(DateTime.now().add(const Duration(seconds: 1))))) {
+        try {
+          await notificationService.createNotification(
+            userId: widget.post.authorId,
+            triggeredBy: currentUserId,
+            triggeredByName: actorName,
+            triggeredByImageUrl: currentUser.profileImageUrl,
+            type: 'repost_post',
+            postId: widget.post.postId,
+            content: '$actorName reposted your content',
+          );
+        } catch (e) {
+          debugPrint('Repost notification skipped: $e');
+        }
+      }
+
+      if (!mounted) return;
+      if (scheduleTime != null && scheduleTime.isAfter(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Repost scheduled ✓')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reposted to your feed ✓')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to repost: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isReposting = false);
+      }
+    }
+  }
+
+  Future<void> _confirmRepost() async {
+    if (_isReposting) return;
+    final textController = TextEditingController();
+    final focusNode = FocusNode();
+    final hasFocus = ValueNotifier(false);
+    var showEmojiPanel = false;
+    DateTime? scheduleTime;
+
+    focusNode.addListener(() => hasFocus.value = focusNode.hasFocus);
+
+    final result = await showDialog<String?>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Repost'),
+          content: ValueListenableBuilder<bool>(
+            valueListenable: hasFocus,
+            builder: (context, value, child) {
+              final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+              final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
+              return AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(bottom: composerBottomInset),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      KeyboardPromptBanner(
+                        visible: keyboardInset > 0 && !showEmojiPanel,
+                        text: 'Add a repost caption.',
+                        icon: Icons.repeat_outlined,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Add an optional caption:', style: TextStyle(fontSize: 14)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              setDialogState(() => showEmojiPanel = !showEmojiPanel);
+                              if (showEmojiPanel) {
+                                focusNode.unfocus();
+                                SystemChannels.textInput.invokeMethod('TextInput.hide');
+                              } else {
+                                FocusScope.of(context).requestFocus(focusNode);
+                              }
+                            },
+                            icon: Icon(showEmojiPanel ? Icons.keyboard_outlined : Icons.emoji_emotions_outlined),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: textController,
+                              focusNode: focusNode,
+                              onTap: () { if (showEmojiPanel) setDialogState(() => showEmojiPanel = false); },
+                              decoration: InputDecoration(
+                                hintText: 'Write something...',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              maxLines: 3,
+                              maxLength: 280,
+                            ),
+                          ),
+                        ],
+                      ),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        height: showEmojiPanel ? 180 : 0,
+                        child: showEmojiPanel ? GridView.builder(
+                          padding: const EdgeInsets.only(top: 8),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 8,
+                            childAspectRatio: 1.2,
+                          ),
+                          itemCount: _quickEmojis.length,
+                          itemBuilder: (context, index) {
+                            final emoji = _quickEmojis[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                final currentText = textController.text;
+                                final currentSelection = textController.selection;
+                                final start = currentSelection.start >= 0 ? currentSelection.start : currentText.length;
+                                final end = currentSelection.end >= 0 ? currentSelection.end : currentText.length;
+                                final newText = currentText.replaceRange(start, end, emoji);
+                                textController.value = TextEditingValue(
+                                  text: newText,
+                                  selection: TextSelection.collapsed(offset: start + emoji.length),
+                                );
+                              },
+                              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                            );
+                          },
+                        ) : const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const Text('Schedule (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now().add(const Duration(days: 1)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (date != null && context.mounted) {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: const TimeOfDay(hour: 9, minute: 0),
+                            );
+                            if (time != null) {
+                              setDialogState(() => scheduleTime = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.schedule),
+                        label: Text(scheduleTime == null ? 'Post now' : 'Scheduled: ${scheduleTime!.year}-${scheduleTime!.month}-${scheduleTime!.day}'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, textController.text),
+              style: TextButton.styleFrom(foregroundColor: Colors.blue),
+              child: const Text('Repost'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _repostToFeed(caption: result.trim(), scheduleTime: scheduleTime);
+    }
+    hasFocus.dispose();
+    focusNode.dispose();
+    textController.dispose();
   }
 
   void _showMoreOptions() {
@@ -853,7 +1131,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                     ),
                                   ),
                                   Text(
-                                    '${widget.post.videoViewCount} views',
+                                    '$_viewCount views',
                                     style: const TextStyle(
                                       color: Colors.white70,
                                     ),
@@ -931,7 +1209,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
               ),
             ),
 
-          // Interactions Sidebar
           if (_showControls && widget.currentUserId != null)
             Positioned(
               right: 16,
@@ -941,7 +1218,11 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                 currentUserId: widget.currentUserId!,
                 isMuted: _isMuted,
                 onToggleMute: _toggleMute,
+                onCommentTap: _openComments,
+                onRepostTap: _confirmRepost,
+                onShuffleTap: widget.onShuffle,
                 onMoreTap: _showMoreOptions,
+                onShareTap: _sharePost,
               ),
             ),
         ],

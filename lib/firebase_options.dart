@@ -53,7 +53,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDIylfRJaAtpXSuMtoeKUzJbYEScdAGGhY',
-    appId: '1:246255479274:android:4716e34e32af514b862a93',
+    appId: '1:246255479274:android:177b790682bb5b59862a93',
     messagingSenderId: '246255479274',
     projectId: 'starpage-ed409',
     databaseURL: 'https://starpage-ed409-default-rtdb.firebaseio.com',

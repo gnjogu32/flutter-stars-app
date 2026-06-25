@@ -54,8 +54,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildSummaryCards() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _analyticsService.getAuthorSummary(_currentUserId),
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: _analyticsService.getAuthorSummaryStream(_currentUserId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(

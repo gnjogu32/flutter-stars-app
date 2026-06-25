@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gal/gal.dart';
+import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../models/post_model.dart';
 import '../services/auth_service.dart';
@@ -44,8 +45,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   _ProfileMediaFolder _selectedFolder = _ProfileMediaFolder.all;
   bool _isGridView = true;
 
-  // Cached futures to prevent jumpy UI during rebuilds
-  Future<Map<String, dynamic>>? _analyticsFuture;
+  // Cached futures/streams to prevent jumpy UI during rebuilds
+  Stream<Map<String, dynamic>>? _analyticsStream;
   Future<Map<String, int>>? _repostStatsFuture;
 
   @override
@@ -90,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _loadSummaries(String userId) {
-    _analyticsFuture = _analyticsService.getAuthorSummary(userId);
+    _analyticsStream = _analyticsService.getAuthorSummaryStream(userId);
     _repostStatsFuture = _repostQueueService.getRepostStats(userId);
   }
 
@@ -557,6 +558,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
+          // Joining Date
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  'Joined ${DateFormat('MMMM yyyy').format(user.createdAt)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           // Stats row
           StreamBuilder<QuerySnapshot>(
@@ -777,8 +795,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildQuickSummaryCards(String userId) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _analyticsFuture,
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: _analyticsStream,
       builder: (context, analyticsSnapshot) {
         return FutureBuilder<Map<String, int>>(
           future: _repostStatsFuture,

@@ -5,25 +5,32 @@ class TrendingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Get trending posts based on likes and engagement (24 hours)
-  Future<List<PostModel>> getTrendingPosts({int limit = 10}) async {
+  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})> getTrendingPosts({
+    int limit = 10,
+    DocumentSnapshot? lastDocument,
+  }) async {
     try {
       final now = DateTime.now();
       final twentyFourHoursAgo = now.subtract(const Duration(hours: 24));
 
-      final query = await _firestore
+      Query query = _firestore
           .collection('posts')
           .where(
             'createdAt',
             isGreaterThanOrEqualTo: twentyFourHoursAgo,
             isLessThanOrEqualTo: now,
           )
-          .orderBy('createdAt', descending: true)
-          .limit(100) // Get more to sort by engagement
-          .get();
+          .orderBy('createdAt', descending: true);
+
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+
+      final querySnapshot = await query.limit(limit * 2).get();
 
       // Convert to PostModel and sort by engagement score
-      final posts = query.docs
-          .map((doc) => PostModel.fromJson(doc.data()))
+      final posts = querySnapshot.docs
+          .map((doc) => PostModel.fromFirestoreDoc(doc))
           .toList();
 
       // Sort by engagement score (likes + comments + views weighted)
@@ -35,22 +42,23 @@ class TrendingService {
         return scoreB.compareTo(scoreA);
       });
 
-      return posts.take(limit).toList();
+      return (
+        posts: posts.take(limit).toList(),
+        lastDoc: querySnapshot.docs.isNotEmpty ? querySnapshot.docs.last : null,
+      );
     } catch (e) {
       rethrow;
     }
   }
 
   // Get trending posts by category/talent
-  Future<List<PostModel>> getTrendingPostsByTalent({
-    required String talent,
-    int limit = 10,
-  }) async {
+  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})>
+  getTrendingPostsByTalent({required String talent, int limit = 10, DocumentSnapshot? lastDocument}) async {
     try {
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
 
-      final query = await _firestore
+      Query query = _firestore
           .collection('posts')
           .where('talent', isEqualTo: talent)
           .where(
@@ -58,12 +66,16 @@ class TrendingService {
             isGreaterThanOrEqualTo: sevenDaysAgo,
             isLessThanOrEqualTo: now,
           )
-          .orderBy('createdAt', descending: true)
-          .limit(100)
-          .get();
+          .orderBy('createdAt', descending: true);
 
-      final posts = query.docs
-          .map((doc) => PostModel.fromJson(doc.data()))
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+
+      final querySnapshot = await query.limit(limit * 2).get();
+
+      final posts = querySnapshot.docs
+          .map((doc) => PostModel.fromFirestoreDoc(doc))
           .toList();
 
       // Sort by engagement score (likes + comments + views weighted)
@@ -75,7 +87,10 @@ class TrendingService {
         return scoreB.compareTo(scoreA);
       });
 
-      return posts.take(limit).toList();
+      return (
+        posts: posts.take(limit).toList(),
+        lastDoc: querySnapshot.docs.isNotEmpty ? querySnapshot.docs.last : null,
+      );
     } catch (e) {
       rethrow;
     }
@@ -98,7 +113,7 @@ class TrendingService {
         .snapshots()
         .map((snapshot) {
           final posts = snapshot.docs
-              .map((doc) => PostModel.fromJson(doc.data()))
+              .map((doc) => PostModel.fromFirestoreDoc(doc))
               .toList();
 
           // Sort by engagement score (likes + comments + views weighted)
@@ -115,30 +130,40 @@ class TrendingService {
   }
 
   // Get top posts by likes
-  Future<List<PostModel>> getTopPostsByLikes({int limit = 10}) async {
+  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})> getTopPostsByLikes({
+    int limit = 10,
+    DocumentSnapshot? lastDocument,
+  }) async {
     try {
       final now = DateTime.now();
       final thirtyDaysAgo = now.subtract(const Duration(days: 30));
 
-      final query = await _firestore
+      Query query = _firestore
           .collection('posts')
           .where(
             'createdAt',
             isGreaterThanOrEqualTo: thirtyDaysAgo,
             isLessThanOrEqualTo: now,
           )
-          .orderBy('createdAt', descending: true)
-          .limit(200)
-          .get();
+          .orderBy('createdAt', descending: true);
 
-      final posts = query.docs
-          .map((doc) => PostModel.fromJson(doc.data()))
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+
+      final querySnapshot = await query.limit(limit * 2).get();
+
+      final posts = querySnapshot.docs
+          .map((doc) => PostModel.fromFirestoreDoc(doc))
           .toList();
 
       // Sort by likes count
       posts.sort((a, b) => b.likes.length.compareTo(a.likes.length));
 
-      return posts.take(limit).toList();
+      return (
+        posts: posts.take(limit).toList(),
+        lastDoc: querySnapshot.docs.isNotEmpty ? querySnapshot.docs.last : null,
+      );
     } catch (e) {
       rethrow;
     }

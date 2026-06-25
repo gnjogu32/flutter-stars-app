@@ -199,14 +199,13 @@ class AnalyticsService {
         );
   }
 
-  // Get analytics summary for author
-  Future<Map<String, dynamic>> getAuthorSummary(String authorId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('post_analytics')
-          .where('authorId', isEqualTo: authorId)
-          .get();
-
+  // Get analytics summary for author (stream for real-time)
+  Stream<Map<String, dynamic>> getAuthorSummaryStream(String authorId) {
+    return _firestore
+        .collection('post_analytics')
+        .where('authorId', isEqualTo: authorId)
+        .snapshots()
+        .map((snapshot) {
       int totalViews = 0;
       int totalLikes = 0;
       int totalComments = 0;
@@ -222,9 +221,7 @@ class AnalyticsService {
         totalReposts += (data['repostCount'] as int?) ?? 0;
       }
 
-      final avgEngagementRate = totalViews > 0
-          ? (totalLikes / totalViews)
-          : 0.0;
+      final avgEngagementRate = totalViews > 0 ? (totalLikes / totalViews) : 0.0;
 
       return {
         'totalPosts': snapshot.docs.length,
@@ -236,24 +233,10 @@ class AnalyticsService {
         'totalEngagements':
             totalLikes + totalComments + totalShares + totalReposts,
         'avgEngagementRate': avgEngagementRate,
-        'avgViewsPerPost': snapshot.docs.isNotEmpty
-            ? totalViews ~/ snapshot.docs.length
-            : 0,
+        'avgViewsPerPost':
+            snapshot.docs.isNotEmpty ? totalViews ~/ snapshot.docs.length : 0,
       };
-    } catch (e) {
-      _debugLog('Error getting author summary: $e');
-      return {
-        'totalPosts': 0,
-        'totalViews': 0,
-        'totalLikes': 0,
-        'totalComments': 0,
-        'totalShares': 0,
-        'totalReposts': 0,
-        'totalEngagements': 0,
-        'avgEngagementRate': 0.0,
-        'avgViewsPerPost': 0,
-      };
-    }
+    });
   }
 
   // Get time-series data for a specific metric (for charts)
