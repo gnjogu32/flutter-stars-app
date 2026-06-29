@@ -18,6 +18,7 @@ class UserModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? fcmToken;
+  final bool notificationsEnabled;
 
   UserModel({
     required this.uid,
@@ -36,6 +37,7 @@ class UserModel {
     required this.createdAt,
     required this.updatedAt,
     this.fcmToken,
+    this.notificationsEnabled = true,
   });
 
   // Convert UserModel to JSON for Firestore
@@ -57,6 +59,7 @@ class UserModel {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'fcmToken': fcmToken,
+      'notificationsEnabled': notificationsEnabled,
     };
   }
 
@@ -87,6 +90,7 @@ class UserModel {
               json['updatedAt'] ?? DateTime.now().toIso8601String(),
             ),
       fcmToken: json['fcmToken'],
+      notificationsEnabled: json['notificationsEnabled'] ?? true,
     );
   }
 
@@ -122,6 +126,7 @@ class UserModel {
               data['updatedAt'] ?? DateTime.now().toIso8601String(),
             ),
       fcmToken: data['fcmToken'],
+      notificationsEnabled: data['notificationsEnabled'] ?? true,
     );
   }
 
@@ -143,6 +148,7 @@ class UserModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? fcmToken,
+    bool? notificationsEnabled,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -161,6 +167,7 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       fcmToken: fcmToken ?? this.fcmToken,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
 

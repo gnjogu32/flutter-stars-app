@@ -64,7 +64,7 @@ android {
             // Using configure to avoid import issues with the firebaseAppDistribution extension
             extensions.configure<com.google.firebase.appdistribution.gradle.AppDistributionExtension>("firebaseAppDistribution") {
                 appId = "1:246255479274:android:177b790682bb5b59862a93"
-                artifactPath = "${rootProject.projectDir.path}/app/build/outputs/apk/release/app-release.apk"
+                artifactPath = "${rootProject.projectDir.parentFile.path}/build/app/outputs/apk/release/app-release.apk"
                 groups = "alpha"
             }
         }

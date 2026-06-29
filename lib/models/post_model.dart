@@ -195,4 +195,16 @@ class PostModel {
 
   // Check if post is liked by a specific user
   bool isLikedBy(String userId) => likes.contains(userId);
+
+  // Helper for empty placeholder
+  factory PostModel.empty() {
+    return PostModel(
+      postId: '',
+      authorId: '',
+      authorName: 'Unknown',
+      content: '',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+  }
 }

@@ -322,7 +322,7 @@ class _InteractionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black45,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -332,7 +332,18 @@ class _InteractionButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: iconColor ?? Colors.white, size: 22),
+              Icon(
+                icon,
+                color: iconColor ?? Colors.white,
+                size: 22,
+                shadows: const [
+                  Shadow(
+                    blurRadius: 4.0,
+                    color: Colors.black54,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 label,
@@ -340,6 +351,13 @@ class _InteractionButton extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 4.0,
+                      color: Colors.black54,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
               ),
             ],

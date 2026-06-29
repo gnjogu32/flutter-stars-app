@@ -422,4 +422,16 @@ class UserService {
       rethrow;
     }
   }
+
+  // Update notification settings
+  Future<void> updateNotificationSettings(String userId, bool enabled) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(userId).update({
+        'notificationsEnabled': enabled,
+        'updatedAt': DateTime.now(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

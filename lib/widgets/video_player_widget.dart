@@ -57,7 +57,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   Future<void> _initializeController() async {
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+    _controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.videoUrl),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
     try {
       await _controller.initialize();
       if (mounted) {
@@ -214,6 +217,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         alignment: Alignment.center,
         children: [
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () async {
               if (widget.post != null) {
                 // Instant Autostart: Trigger playback and un-mute before transition
@@ -225,16 +229,22 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 _controller.play();
                 ScreenAwakeController.acquire();
 
-                // Build transition immediately
+                // Use a faster transition for "Instantaneous" feel
+                if (!mounted) return;
                 await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => FullScreenVideoPlayer(
-                      videoUrl: widget.videoUrl,
-                      startPosition: currentPosition,
-                      post: widget.post,
-                      currentUserId: widget.currentUserId,
-                      manualController: _controller,
-                    ),
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                      FullScreenVideoPlayer(
+                        videoUrl: widget.videoUrl,
+                        startPosition: currentPosition,
+                        post: widget.post,
+                        currentUserId: widget.currentUserId,
+                        manualController: _controller,
+                      ),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    transitionDuration: const Duration(milliseconds: 250),
                   ),
                 );
 
@@ -250,9 +260,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               }
             },
             onLongPress: _togglePlay,
-            onDoubleTapDown: (details) {
-              // Center area double tap for potential Like logic (if handled by parent)
-            },
             child: VideoPlayer(_controller),
           ),
 

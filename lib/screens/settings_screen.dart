@@ -1,78 +1,118 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
+import '../models/user_model.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final UserService _userService = UserService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final userId = _auth.currentUser?.uid;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), centerTitle: true),
-      body: ListView(
-        children: [
-          _buildSectionHeader(context, 'Account'),
-          ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: const Text('Edit Profile'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock_outline),
-            title: const Text('Change Password'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).pushNamed('/change-password'),
-          ),
+      body: userId == null
+          ? const Center(child: Text('Please log in to view settings.'))
+          : FutureBuilder<UserModel?>(
+              future: _userService.getUser(userId),
+              builder: (context, snapshot) {
+                final user = snapshot.data;
+                final notificationsEnabled = user?.notificationsEnabled ?? true;
 
-          _buildSectionHeader(context, 'Privacy & Safety'),
-          ListTile(
-            leading: const Icon(Icons.block_flipped),
-            title: const Text('Blocked Users'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Implement dedicated blocked users screen or logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Manage blocked users in your profile.'),
-                ),
-              );
-            },
-          ),
+                return ListView(
+                  children: [
+                    _buildSectionHeader(context, 'Account'),
+                    ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: const Text('Edit Profile'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed('/edit-profile'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.lock_outline),
+                      title: const Text('Change Password'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed('/change-password'),
+                    ),
 
-          _buildSectionHeader(context, 'Preferences'),
-          SwitchListTile(
-            secondary: const Icon(Icons.dark_mode_outlined),
-            title: const Text('Dark Mode'),
-            subtitle: const Text('Use system theme settings'),
-            value: theme.brightness == Brightness.dark,
-            onChanged: null, // Managed by system in this basic version
-          ),
+                    _buildSectionHeader(context, 'Notifications'),
+                    SwitchListTile(
+                      secondary: const Icon(Icons.notifications_active_outlined),
+                      title: const Text('Enable Notifications'),
+                      subtitle: const Text('Receive alerts for likes, follows, etc.'),
+                      value: notificationsEnabled,
+                      onChanged: (bool value) async {
+                        await _userService.updateNotificationSettings(
+                          userId,
+                          value,
+                        );
+                        setState(() {});
+                      },
+                    ),
 
-          _buildSectionHeader(context, 'About'),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Starpage Version'),
-            trailing: Text('1.0.0+3', style: TextStyle(color: Colors.grey)),
-          ),
+                    _buildSectionHeader(context, 'Privacy & Safety'),
+                    ListTile(
+                      leading: const Icon(Icons.block_flipped),
+                      title: const Text('Blocked Users'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Manage blocked users in your profile.'),
+                          ),
+                        );
+                      },
+                    ),
 
-          const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton(
-              onPressed: () => _showLogoutDialog(context),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: const Text('Logout'),
+                    _buildSectionHeader(context, 'Preferences'),
+                    SwitchListTile(
+                      secondary: const Icon(Icons.dark_mode_outlined),
+                      title: const Text('Dark Mode'),
+                      subtitle: const Text('Use system theme settings'),
+                      value: theme.brightness == Brightness.dark,
+                      onChanged: null,
+                    ),
+
+                    _buildSectionHeader(context, 'About'),
+                    ListTile(
+                      leading: const Icon(Icons.info_outline),
+                      title: const Text('Starpage Version'),
+                      trailing:
+                          Text('1.1.8+12', style: const TextStyle(color: Colors.grey)),
+                    ),
+
+                    const SizedBox(height: 32),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: OutlinedButton(
+                        onPressed: () => _showLogoutDialog(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('Logout'),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                );
+              },
             ),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
     );
   }
 

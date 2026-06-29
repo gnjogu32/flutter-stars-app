@@ -395,6 +395,8 @@ class _ConversationItemState extends State<_ConversationItem>
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                         PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          splashRadius: 24,
                           icon: widget.isDeleting
                               ? const SizedBox(
                                   width: 16,
@@ -403,36 +405,30 @@ class _ConversationItemState extends State<_ConversationItem>
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(Icons.more_vert, size: 18),
+                              : const Icon(Icons.more_vert, size: 22),
                           onSelected: (value) {
                             if (value == 'delete') {
                               widget.onDelete();
                             }
                           },
-                          itemBuilder: (context) {
-                            // Show delete option only if current user is the creator
-                            if (!widget.canDelete) {
-                              return []; // No menu options for non-creators
-                            }
-                            return const [
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete_outline,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Delete chat',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ],
-                                ),
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Delete chat',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ],
                               ),
-                            ];
-                          },
+                            ),
+                          ],
                         ),
                       ],
                     ),

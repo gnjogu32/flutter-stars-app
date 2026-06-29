@@ -52,6 +52,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               await _notificationService.markAllAsRead(userId);
             },
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'settings') {
+                Navigator.of(context).pushNamed('/settings');
+              } else if (value == 'delete_all') {
+                _showDeleteAllDialog(context, userId);
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined),
+                    SizedBox(width: 8),
+                    Text('Settings'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete_all',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_sweep_outlined, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete all', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: StreamBuilder<List<NotificationModel>>(
@@ -122,6 +154,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       key: ValueKey(notification.notificationId),
       notification: notification,
       currentUserId: currentUserId,
+    );
+  }
+
+  void _showDeleteAllDialog(BuildContext context, String userId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete All Notifications'),
+        content: const Text(
+          'Are you sure you want to delete all your notifications? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(ctx);
+              await _notificationService.deleteAllNotifications(userId);
+              if (!mounted) return;
+              messenger.showSnackBar(
+                const SnackBar(content: Text('All notifications deleted')),
+              );
+            },
+            child: const Text('Delete All', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -199,16 +261,67 @@ class _NotificationItemState extends State<_NotificationItem>
           _formatTime(notification.createdAt),
           style: Theme.of(context).textTheme.labelSmall,
         ),
-        trailing: notification.isRead
-            ? null
-            : Container(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!notification.isRead)
+              Container(
                 width: 8,
                 height: 8,
+                margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
               ),
+            PopupMenuButton<String>(
+              padding: EdgeInsets.zero,
+              splashRadius: 24,
+              icon: const Icon(Icons.more_vert, size: 22),
+              onSelected: (value) async {
+                final messenger = ScaffoldMessenger.of(context);
+                if (value == 'delete') {
+                  await _notificationService.deleteNotification(
+                    currentUserId,
+                    notification.notificationId,
+                  );
+                  if (!mounted) return;
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Notification deleted')),
+                  );
+                } else if (value == 'mark_read') {
+                  await _notificationService.markAsRead(
+                    currentUserId,
+                    notification.notificationId,
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                if (!notification.isRead)
+                  const PopupMenuItem(
+                    value: 'mark_read',
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle_outline),
+                        SizedBox(width: 8),
+                        Text('Mark as read'),
+                      ],
+                    ),
+                  ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         onTap: () async {
           // Mark as read
           if (!notification.isRead) {
@@ -219,17 +332,18 @@ class _NotificationItemState extends State<_NotificationItem>
           }
 
           if (!context.mounted) return;
+          final navigator = Navigator.of(context);
 
           // Navigate based on notification type
           if (notification.type == 'follow') {
-            Navigator.of(context).push(
+            navigator.push(
               MaterialPageRoute(
                 builder: (context) =>
                     ProfileScreen(userId: notification.triggeredBy),
               ),
             );
           } else if (notification.type == 'message') {
-            Navigator.of(context).push(
+            navigator.push(
               MaterialPageRoute(
                 builder: (context) => ChatScreen(
                   conversationId: _getConversationId(
@@ -246,8 +360,8 @@ class _NotificationItemState extends State<_NotificationItem>
               notification.type == 'mention_followers' ||
               notification.type == 'mention_user' ||
               notification.type == 'like_comment') {
-            if (notification.postId != null) {
-              _openPostDetails(context, notification.postId!, currentUserId);
+            if (notification.postId != null && context.mounted) {
+              await _openPostDetails(context, notification.postId!, currentUserId);
             }
           }
         },
@@ -268,29 +382,29 @@ class _NotificationItemState extends State<_NotificationItem>
     String postId,
     String currentUserId,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       // Show loading indicator
+      if (!context.mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (ctx) => const Center(child: CircularProgressIndicator()),
       );
 
       final post = await PostService().getPost(postId);
 
       if (!context.mounted) return;
-      Navigator.pop(context); // Dismiss loading indicator
+      Navigator.of(context).pop(); // Dismiss loading indicator
 
       if (post != null) {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          builder: (context) => DraggableScrollableSheet(
+          builder: (sheetContext) => DraggableScrollableSheet(
             expand: false,
             minChildSize: 0.3,
             maxChildSize: 0.85,
-            builder: (context, scrollController) => PostDetailsSheet(
+            builder: (sheetContext, scrollController) => PostDetailsSheet(
               post: post,
               currentUserId: currentUserId,
               scrollController: scrollController,
@@ -298,14 +412,16 @@ class _NotificationItemState extends State<_NotificationItem>
           ),
         );
       } else {
-        messenger.showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('This post is no longer available.')),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context); // Dismiss loading if error
-        messenger.showSnackBar(
+        // Only try to pop if we might still be showing the dialog
+        // This is tricky without a more robust state management,
+        // but adding context.mounted check helps.
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading post: $e')),
         );
       }
@@ -319,7 +435,7 @@ class _NotificationItemState extends State<_NotificationItem>
   ) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
+      builder: (ctx) => Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -328,13 +444,14 @@ class _NotificationItemState extends State<_NotificationItem>
               leading: const Icon(Icons.delete),
               title: const Text('Delete'),
               onTap: () async {
-                Navigator.pop(context);
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(ctx);
                 await _notificationService.deleteNotification(
                   currentUserId,
                   notification.notificationId,
                 );
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                if (!mounted) return;
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Notification deleted')),
                 );
               },

@@ -46,20 +46,32 @@ class FullScreenVideoPlayer extends StatefulWidget {
 }
 
 class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
+  // Use a large initial offset for seamless infinite vertical scrolling in both directions
+  static const int _infiniteLoopOffset = 10000;
   late PageController _pageController;
   late int _currentIndex;
   late List<PostModel> _videos;
   final int _sessionSeed = Random().nextInt(1000000);
   final Map<int, VideoPlayerController> _preloadedControllers = {};
+  // Cache for shuffled blocks to ensure smooth scrolling
+  final Map<int, List<PostModel>> _shuffledBlocksCache = {};
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    // If opened from a single post, initialize with a list of 1 to keep mapping stable initially.
     _videos = widget.playlist ?? (widget.post != null ? [widget.post!] : []);
+
+    if (widget.playlist != null) {
+      _currentIndex = _infiniteLoopOffset + widget.initialIndex;
+    } else {
+      // If single post, start at exactly _infiniteLoopOffset so index % 1 is always 0.
+      _currentIndex = _infiniteLoopOffset;
+    }
+
     _pageController = PageController(initialPage: _currentIndex);
 
-    // If we have a manual controller for the first item, cache it
+    // If we have a manual controller for the first item, cache it at its global index
     if (widget.manualController != null && _videos.isNotEmpty) {
       _preloadedControllers[_currentIndex] = widget.manualController!;
     }
@@ -82,30 +94,35 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
 
   void _reshuffle() {
     if (_videos.length <= 1) return;
+    _shuffledBlocksCache.clear();
     setState(() {
       _videos.shuffle(Random());
-      _currentIndex = 0;
+      // Reset to start of current loop segment
+      _currentIndex = _infiniteLoopOffset;
     });
     if (_pageController.hasClients) {
-      _pageController.jumpToPage(0);
+      _pageController.jumpToPage(_infiniteLoopOffset);
     }
-    _preloadAdjacent(0);
+    _preloadAdjacent(_infiniteLoopOffset);
   }
 
   void _preloadAdjacent(int index) {
     if (_videos.isEmpty) return;
 
-    // Preload next 2 and previous 1 for seamless navigation
-    final indicesToPreload = [index + 1, index + 2, index - 1];
+    // Preload next 3 and previous 1 for seamless navigation
+    final indicesToPreload = [index + 1, index + 2, index + 3, index - 1];
 
     for (int i in indicesToPreload) {
       if (i < 0) continue;
 
       if (!_preloadedControllers.containsKey(i)) {
-        final actualIdx = i % _videos.length;
-        final url = _videos[actualIdx].videoUrl;
+        final reel = _getVideoAtGlobalIndex(i, _videos);
+        final url = reel.videoUrl;
         if (url != null && url.isNotEmpty) {
-          final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+          final controller = VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
           _preloadedControllers[i] = controller;
           controller.initialize().then((_) {
             if (mounted) setState(() {});
@@ -115,7 +132,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     }
     // Cleanup distant ones
     _preloadedControllers.removeWhere((i, controller) {
-      if ((i - index).abs() > 3) {
+      if ((i - index).abs() > 5) {
         controller.dispose();
         return true;
       }
@@ -129,24 +146,21 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           .collection('posts')
           .where('postType', isEqualTo: 'video')
           .orderBy('createdAt', descending: true)
-          .limit(40)
+          .limit(41) // Load 41 to have a nice set
           .get();
 
-      final moreVideos = snapshot.docs
+      final discovery = snapshot.docs
           .map((doc) => PostModel.fromJson(doc.data()))
-          .where(
-            (p) =>
-                p.postId != widget.post!.postId &&
-                (p.videoUrl ?? '').isNotEmpty,
-          )
+          .where((v) => (v.videoUrl ?? '').isNotEmpty)
           .toList();
-
-      // Shuffle based on a session seed for consistent discovery
-      moreVideos.shuffle(Random(_sessionSeed));
 
       if (mounted) {
         setState(() {
-          _videos.addAll(moreVideos);
+          // Replace entire list with discovery set.
+          // The Pinned Position Optimization in _getVideoAtGlobalIndex will handle
+          // keeping the current video visible at its current global index,
+          // eliminating the need for a jump and removing the black screen flicker.
+          _videos = discovery;
         });
         _preloadAdjacent(_currentIndex);
       }
@@ -165,6 +179,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     super.dispose();
   }
 
+  @override
   @override
   Widget build(BuildContext context) {
     if (_videos.isEmpty) {
@@ -194,18 +209,17 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           ),
           onPageChanged: (index) {
             setState(() {
-              _currentIndex = index % _videos.length;
+              _currentIndex = index;
             });
             _preloadAdjacent(index);
           },
           itemBuilder: (context, index) {
-            final actualIndex = index % _videos.length;
-            final post = _videos[actualIndex];
+            final post = _getVideoAtGlobalIndex(index, _videos);
             return _FullScreenVideoItem(
               key: ValueKey('fs_${post.postId}_$index'),
               post: post,
-              autoPlay: actualIndex == _currentIndex,
-              startPosition: index == widget.initialIndex
+              autoPlay: index == _currentIndex,
+              startPosition: index == widget.initialIndex + _infiniteLoopOffset
                   ? widget.startPosition
                   : null,
               currentUserId: widget.currentUserId,
@@ -215,6 +229,47 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         ),
       ),
     );
+  }
+
+  /// Map global index to a specific video with block-based shuffling for seamless discovery.
+  PostModel _getVideoAtGlobalIndex(int index, List<PostModel> source) {
+    if (source.isEmpty) return PostModel.empty();
+    final int length = source.length;
+    final int blockIndex = index ~/ length;
+    final int localIndex = index % length;
+
+    // Stable block-shuffle logic
+    final int blockSeed = _sessionSeed ^ blockIndex;
+
+    if (!_shuffledBlocksCache.containsKey(blockIndex) ||
+        _shuffledBlocksCache[blockIndex]!.length != length) {
+      final blockList = List<PostModel>.from(source);
+
+      // Pinned Position Optimization: If this is the current block on screen during a
+      // list-update (e.g. discovery load), ensure the current post stays at its global
+      // index to prevent black screen flickers and mapping shifts.
+      if (index == _currentIndex && widget.playlist == null && widget.post != null) {
+         final currentPostId = widget.post!.postId;
+         blockList.shuffle(Random(blockSeed));
+
+         final currentPos = blockList.indexWhere((p) => p.postId == currentPostId);
+         if (currentPos != -1 && currentPos != localIndex) {
+            final temp = blockList[localIndex];
+            blockList[localIndex] = blockList[currentPos];
+            blockList[currentPos] = temp;
+         }
+      } else {
+         blockList.shuffle(Random(blockSeed));
+      }
+
+      _shuffledBlocksCache[blockIndex] = blockList;
+
+      if (_shuffledBlocksCache.length > 5) {
+        _shuffledBlocksCache.remove(_shuffledBlocksCache.keys.first);
+      }
+    }
+
+    return _shuffledBlocksCache[blockIndex]![localIndex];
   }
 }
 
@@ -261,13 +316,20 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   void initState() {
     super.initState();
     _viewCount = widget.post.videoViewCount;
+
+    // Sync-init to prevent black frame when manualController is provided
+    if (widget.manualController != null) {
+      _controller = widget.manualController!;
+      _isInitialized = _controller.value.isInitialized;
+    }
+
     _initializeController();
   }
 
   Future<void> _initializeController() async {
     if (widget.manualController != null) {
-      _controller = widget.manualController!;
-      _isInitialized = _controller.value.isInitialized;
+      // Logic already handled in initState sync-path for speed,
+      // but we still need to ensure listeners and playback state.
       if (_isInitialized) {
         _controller.addListener(_videoListener);
         // Sync volume, playback and auto-replay for immersive experience
@@ -275,14 +337,17 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
         _controller.setVolume(1.0);
         _controller.setLooping(true);
 
-        setState(() {
-          if (widget.autoPlay) {
-            _controller.play();
-            _showControls = true; // Show initially
-            _startHideTimer();
-            ScreenAwakeController.acquire();
-          }
-        });
+        if (widget.autoPlay && !_controller.value.isPlaying) {
+          _controller.play();
+          ScreenAwakeController.acquire();
+        }
+
+        if (mounted) {
+          setState(() {
+            _showControls = true;
+          });
+          _startHideTimer();
+        }
       }
       return;
     }
@@ -290,7 +355,10 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
     final url = widget.post.videoUrl;
     if (url == null || url.isEmpty) return;
 
-    _controller = VideoPlayerController.networkUrl(Uri.parse(url));
+    _controller = VideoPlayerController.networkUrl(
+      Uri.parse(url),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
     try {
       await _controller.initialize();
       if (!mounted) {
@@ -299,6 +367,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       }
 
       await _controller.setLooping(true);
+      await _controller.setVolume(1.0); // Ensure audible
       _controller.addListener(_videoListener);
 
       if (widget.startPosition != null) {
@@ -333,7 +402,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
           _showSkipForward = false;
           _showSkipBackward = false;
           _showMuteIndicator = false;
-          _showControls = false;
+          _showControls = false; // This will hide progress controls only
         });
       }
     });
@@ -432,7 +501,11 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
       _showMuteIndicator = false;
     });
 
-    _startHideTimer();
+    if (_controller.value.isPlaying) {
+      _startHideTimer();
+    } else {
+      _indicatorTimer?.cancel();
+    }
   }
 
   void _toggleMute() {
@@ -959,7 +1032,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
-                  color: Colors.black45,
+                  color: Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -988,7 +1061,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: const BoxDecoration(
-                      color: Colors.black26,
+                      color: Colors.transparent,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1013,7 +1086,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: const BoxDecoration(
-                      color: Colors.black26,
+                      color: Colors.transparent,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1073,7 +1146,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
             ),
 
           // Bottom Details & Progress bar
-          if (_showControls && _isInitialized)
+          if (_isInitialized)
             Positioned(
               left: 0,
               right: 0,
@@ -1081,11 +1154,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black87],
-                  ),
+                  color: Colors.transparent,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1126,31 +1195,61 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      ownerName.isEmpty ? 'Unknown' : ownerName,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Text(
-                                    '$_viewCount views',
+                                    ownerName.isEmpty ? 'Unknown' : ownerName,
                                     style: const TextStyle(
-                                      color: Colors.white70,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      shadows: [
+                                        Shadow(
+                                          blurRadius: 4.0,
+                                          color: Colors.black54,
+                                          offset: Offset(0, 1),
+                                        ),
+                                      ],
                                     ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                ),
+                                Text(
+                                  '$_viewCount views',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    shadows: [
+                                      Shadow(
+                                        blurRadius: 4.0,
+                                        color: Colors.black54,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 ],
                               ),
                               if (widget.post.content.trim().isNotEmpty) ...[
                                 const SizedBox(height: 10),
                                 ExpandableText(
                                   widget.post.content,
-                                  style: const TextStyle(color: Colors.white),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    shadows: [
+                                      Shadow(
+                                        blurRadius: 4.0,
+                                        color: Colors.black54,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
                                   trimLines: 3,
                                   actionStyle: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
+                                    shadows: [
+                                      Shadow(
+                                        blurRadius: 4.0,
+                                        color: Colors.black54,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
                                   ),
                                   onTap: _openComments,
                                 ),
@@ -1161,59 +1260,70 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                         const SizedBox(width: 60), // Space for sidebar
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    VideoProgressIndicator(
-                      _controller,
-                      allowScrubbing: true,
-                      colors: const VideoProgressColors(
-                        playedColor: Colors.red,
-                        bufferedColor: Colors.white30,
-                        backgroundColor: Colors.white12,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        ValueListenableBuilder(
-                          valueListenable: _controller,
-                          builder: (context, VideoPlayerValue value, child) {
-                            return Text(
-                              _formatDuration(value.position),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
+                    AnimatedOpacity(
+                      opacity: _showControls ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: IgnorePointer(
+                        ignoring: !_showControls,
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            VideoProgressIndicator(
+                              _controller,
+                              allowScrubbing: true,
+                              colors: const VideoProgressColors(
+                                playedColor: Colors.red,
+                                bufferedColor: Colors.white30,
+                                backgroundColor: Colors.white12,
                               ),
-                            );
-                          },
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                ValueListenableBuilder(
+                                  valueListenable: _controller,
+                                  builder: (context, VideoPlayerValue value, child) {
+                                    return Text(
+                                      _formatDuration(value.position),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const Text(
+                                  ' / ',
+                                  style: TextStyle(color: Colors.white30, fontSize: 12),
+                                ),
+                                Text(
+                                  _formatDuration(_controller.value.duration),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: _toggleMute,
+                                  child: Icon(
+                                    _isMuted ? Icons.volume_off : Icons.volume_up,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        const Text(
-                          ' / ',
-                          style: TextStyle(color: Colors.white30, fontSize: 12),
-                        ),
-                        Text(
-                          _formatDuration(_controller.value.duration),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: _toggleMute,
-                          child: Icon(
-                            _isMuted ? Icons.volume_off : Icons.volume_up,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
 
-          if (_showControls && widget.currentUserId != null)
+          if (widget.currentUserId != null)
             Positioned(
               right: 16,
               bottom: 100,

@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -22,7 +22,6 @@ import '../services/share_service.dart';
 import '../services/user_service.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/keyboard_prompt_banner.dart';
-import '../widgets/author_profile_avatar.dart';
 import 'profile_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
@@ -41,82 +40,80 @@ class ReelsScreen extends StatefulWidget {
 
 class ReelsScreenState extends State<ReelsScreen> {
   late final FirebaseFirestore _firestore;
-  final PageController _pageController = PageController();
-  int _activeIndex = 0;
+  static const int _infiniteLoopOffset = 10000;
+  int _refreshSeed = Random().nextInt(1000000);
+  late final PageController _pageController;
+  int _activeIndex = _infiniteLoopOffset;
   // Tracks whether this tab is the currently visible one.
   bool _tabVisible = false;
-  int _refreshSeed = Random().nextInt(1000000);
-  List<PostModel> _cachedReels = [];
+
   final Map<int, VideoPlayerController> _preloadedControllers = {};
-
-  @visibleForTesting
-  int get refreshSeed => _refreshSeed;
-
-  void refreshReels() {
-    _disposeAllPreloaded();
-    setState(() {
-      _refreshSeed = Random().nextInt(1000000);
-      _cachedReels = []; // Clear cache to force reshuffle of new data
-      _activeIndex = 0;
-    });
-    if (_pageController.hasClients) {
-      _pageController.jumpToPage(0);
-    }
-  }
-
-  void _disposeAllPreloaded() {
-    _preloadedControllers.forEach((_, controller) => controller.dispose());
-    _preloadedControllers.clear();
-  }
-
-  void _preloadAdjacent(int index, List<PostModel> items) {
-    if (items.isEmpty) return;
-
-    // Preload next 2 and previous 1 for seamless navigation in both directions
-    final indicesToPreload = [index + 1, index + 2, index - 1];
-
-    for (int i in indicesToPreload) {
-      // Don't preload negative indices unless we start at a large initialPage
-      if (i < 0) continue;
-
-      if (!_preloadedControllers.containsKey(i)) {
-        final actualIdx = i % items.length;
-        final url = items[actualIdx].videoUrl;
-        if (url != null && url.isNotEmpty) {
-          final controller = VideoPlayerController.networkUrl(Uri.parse(url));
-          _preloadedControllers[i] = controller;
-          controller.initialize().then((_) {
-            if (mounted) setState(() {});
-          });
-        }
-      }
-    }
-
-    // Clean up distant controllers to manage memory effectively
-    _preloadedControllers.removeWhere((i, controller) {
-      if ((i - index).abs() > 3) {
-        controller.dispose();
-        return true;
-      }
-      return false;
-    });
-  }
-
-  void _onReelEnd() {
-    if (_pageController.hasClients) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutQuad,
-      );
-    }
-  }
+  // Cache for shuffled blocks to ensure smooth scrolling
+  final Map<int, List<PostModel>> _shuffledBlocksCache = {};
+  List<PostModel>? _cachedReels;
 
   @override
   void initState() {
     super.initState();
     _firestore = widget.firestore ?? FirebaseFirestore.instance;
     _tabVisible = widget.tabActiveNotifier.value;
+    _pageController = PageController(initialPage: _infiniteLoopOffset);
     widget.tabActiveNotifier.addListener(_onTabVisibilityChanged);
+  }
+
+  @visibleForTesting
+  int get refreshSeed => _refreshSeed;
+
+  void refreshReels() {
+    _disposeAllPreloaded();
+    _shuffledBlocksCache.clear();
+    setState(() {
+      _refreshSeed = Random().nextInt(1000000);
+      _cachedReels = null;
+      _activeIndex = _infiniteLoopOffset;
+    });
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(_infiniteLoopOffset);
+    }
+  }
+
+  void _disposeAllPreloaded() {
+    for (final controller in _preloadedControllers.values) {
+      controller.dispose();
+    }
+    _preloadedControllers.clear();
+  }
+
+  void _preloadAdjacent(int index, List<PostModel> reels) {
+    if (reels.isEmpty) return;
+
+    // We preload the current, next and previous to ensure zero-lag swipes
+    final indicesToPreload = [index, index + 1, index - 1];
+
+    // Clean up controllers far away from current index
+    _preloadedControllers.removeWhere((idx, controller) {
+      if (!indicesToPreload.contains(idx)) {
+        controller.dispose();
+        return true;
+      }
+      return false;
+    });
+
+    for (final idx in indicesToPreload) {
+      if (!_preloadedControllers.containsKey(idx)) {
+        final post = _getReelAtGlobalIndex(idx, reels);
+        if (post.videoUrl != null && post.videoUrl!.isNotEmpty) {
+          final controller = VideoPlayerController.networkUrl(
+            Uri.parse(post.videoUrl!),
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
+          _preloadedControllers[idx] = controller;
+          controller.initialize().then((_) {
+            if (mounted) setState(() {});
+          });
+        }
+      }
+    }
   }
 
   void _onTabVisibilityChanged() {
@@ -128,7 +125,6 @@ class ReelsScreenState extends State<ReelsScreen> {
   void dispose() {
     widget.tabActiveNotifier.removeListener(_onTabVisibilityChanged);
     _pageController.dispose();
-    _disposeAllPreloaded();
     super.dispose();
   }
 
@@ -137,7 +133,6 @@ class ReelsScreenState extends State<ReelsScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: StreamBuilder<QuerySnapshot>(
-        key: ValueKey('reels_stream_$_refreshSeed'),
         stream: _firestore
             .collection('posts')
             .where('postType', isEqualTo: 'video')
@@ -145,13 +140,13 @@ class ReelsScreenState extends State<ReelsScreen> {
             .limit(50)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting && _cachedReels == null) {
             return const Center(
               child: CircularProgressIndicator(color: Colors.white),
             );
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError && _cachedReels == null) {
             return Center(
               child: Text(
                 'Error loading reels: ${snapshot.error}',
@@ -161,46 +156,31 @@ class ReelsScreenState extends State<ReelsScreen> {
             );
           }
 
-          final currentDocs = snapshot.data?.docs ?? [];
-          final newReels = currentDocs
-              .map(
-                (doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>),
-              )
-              .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
-              .toList();
+          if (snapshot.hasData) {
+            final latestReels = (snapshot.data?.docs ?? [])
+                .map(
+                  (doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>),
+                )
+                .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
+                .toList();
 
-          // Optimization: Stabilize the shuffle order while allowing new items to flow in.
-          final newIds = newReels.map((p) => p.postId).toSet();
-          final oldIds = _cachedReels.map((p) => p.postId).toSet();
-
-          // 1. Remove deleted items
-          _cachedReels.removeWhere((p) => !newIds.contains(p.postId));
-
-          // 2. Identify and append new items
-          final addedReels = newReels
-              .where((p) => !oldIds.contains(p.postId))
-              .toList();
-
-          if (_cachedReels.isEmpty) {
-            _cachedReels = newReels;
-            _cachedReels.shuffle(Random(_refreshSeed));
-          } else if (addedReels.isNotEmpty) {
-            // Append new items and shuffle them separately to maintain "continuous shuffle"
-            // without disrupting the current stack order.
-            addedReels.shuffle(Random(_refreshSeed + _cachedReels.length));
-            _cachedReels.addAll(addedReels);
-          }
-
-          // 3. Always update metadata for all cached items to reflect latest likes/views
-          for (int i = 0; i < _cachedReels.length; i++) {
-            final String currentId = _cachedReels[i].postId;
-            final match = newReels.where((p) => p.postId == currentId);
-            if (match.isNotEmpty) {
-              _cachedReels[i] = match.first;
+            // Initial load or refresh
+            if (_cachedReels == null || _cachedReels!.isEmpty) {
+              _cachedReels = latestReels;
+            } else {
+              // Background update: only add truly new items to avoid jumping
+              final existingIds = _cachedReels!.map((r) => r.postId).toSet();
+              final newItems = latestReels.where((r) => !existingIds.contains(r.postId)).toList();
+              if (newItems.isNotEmpty) {
+                // Add new items but don't re-shuffle current block yet to prevent jumping
+                _cachedReels!.addAll(newItems);
+              }
             }
           }
 
-          if (_cachedReels.isEmpty) {
+          final reels = _cachedReels ?? [];
+
+          if (reels.isEmpty) {
             return const Center(
               child: Text(
                 'No reels yet',
@@ -211,87 +191,68 @@ class ReelsScreenState extends State<ReelsScreen> {
 
           final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-          return StreamBuilder<DocumentSnapshot>(
-            stream: _firestore
-                .collection('users')
-                .doc(currentUserId.isEmpty ? 'guest' : currentUserId)
-                .snapshots(),
-            builder: (context, userSnapshot) {
-              List<String> mutedPosts = [];
-              List<String> mutedAuthors = [];
-              List<String> blockedUsers = [];
-
-              if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                final userData =
-                    userSnapshot.data!.data() as Map<String, dynamic>;
-                mutedPosts = List<String>.from(userData['mutedPosts'] ?? []);
-                mutedAuthors = List<String>.from(
-                  userData['mutedAuthors'] ?? [],
-                );
-                blockedUsers = List<String>.from(
-                  userData['blockedUsers'] ?? [],
-                );
-              }
-
-              final filteredReels = _cachedReels.where((reel) {
-                return !mutedPosts.contains(reel.postId) &&
-                    !mutedAuthors.contains(reel.authorId) &&
-                    !blockedUsers.contains(reel.authorId);
-              }).toList();
-
-              if (filteredReels.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No reels available',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                );
-              }
-
-              return RefreshIndicator(
-                onRefresh: () async {
-                  refreshReels();
-                  await Future.delayed(const Duration(milliseconds: 400));
+          return PageView.builder(
+            controller: _pageController,
+            scrollDirection: Axis.vertical,
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            onPageChanged: (index) {
+              setState(() => _activeIndex = index);
+              _preloadAdjacent(index, reels);
+            },
+            itemBuilder: (context, index) {
+              final reel = _getReelAtGlobalIndex(index, reels);
+              return _ReelItem(
+                key: ValueKey('reel_${reel.postId}_$index'),
+                post: reel,
+                isActive: _tabVisible && index == _activeIndex,
+                currentUserId: currentUserId,
+                preloadedController: _preloadedControllers[index],
+                onOpenProfile: () {
+                  final userId = (reel.originalAuthorId ?? reel.authorId)
+                      .trim();
+                  if (userId.isEmpty) return;
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(userId: userId),
+                    ),
+                  );
                 },
-                child: PageView.builder(
-                  controller: _pageController,
-                  scrollDirection: Axis.vertical,
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  // Enable truly continuous scrolling by looping through the shuffled list
-                  onPageChanged: (index) {
-                    setState(() => _activeIndex = index);
-                    _preloadAdjacent(index, filteredReels);
-                  },
-                  itemBuilder: (context, index) {
-                    final reel = filteredReels[index % filteredReels.length];
-                    return _ReelItem(
-                      key: ValueKey('${reel.postId}_$index'),
-                      post: reel,
-                      isActive: _tabVisible && index == _activeIndex,
-                      currentUserId: currentUserId,
-                      onVideoEnd: _onReelEnd,
-                      preloadedController: _preloadedControllers[index],
-                      onOpenProfile: () {
-                        final userId = (reel.originalAuthorId ?? reel.authorId)
-                            .trim();
-                        if (userId.isEmpty) return;
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ProfileScreen(userId: userId),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
               );
             },
           );
         },
       ),
     );
+  }
+
+  PostModel _getReelAtGlobalIndex(int index, List<PostModel> source) {
+    if (source.isEmpty) return PostModel.empty();
+
+    final int length = source.length;
+    final int localIndex = ((index % length) + length) % length;
+
+    // Use floor division so negative indexes map to stable shuffle blocks too.
+    final int blockIndex = index >= 0
+        ? (index ~/ length)
+        : -(((-index - 1) ~/ length) + 1);
+    final int blockSeed = _refreshSeed ^ blockIndex;
+
+    // Use cached block list if available to avoid expensive shuffling on every build frame.
+    if (!_shuffledBlocksCache.containsKey(blockIndex) ||
+        _shuffledBlocksCache[blockIndex]!.length != source.length) {
+      final blockList = List<PostModel>.from(source);
+      blockList.shuffle(Random(blockSeed));
+      _shuffledBlocksCache[blockIndex] = blockList;
+
+      // Keep cache size manageable
+      if (_shuffledBlocksCache.length > 5) {
+        _shuffledBlocksCache.remove(_shuffledBlocksCache.keys.first);
+      }
+    }
+
+    return _shuffledBlocksCache[blockIndex]![localIndex];
   }
 }
 
@@ -300,7 +261,6 @@ class _ReelItem extends StatefulWidget {
   final bool isActive;
   final VoidCallback onOpenProfile;
   final String currentUserId;
-  final VoidCallback? onVideoEnd;
   final VideoPlayerController? preloadedController;
 
   const _ReelItem({
@@ -309,7 +269,6 @@ class _ReelItem extends StatefulWidget {
     required this.isActive,
     required this.onOpenProfile,
     required this.currentUserId,
-    this.onVideoEnd,
     this.preloadedController,
   });
 
@@ -323,21 +282,23 @@ class _ReelItemState extends State<_ReelItem>
   bool _isInitialized = false;
   late bool _isLiked;
   late int _likeCount;
-  late int _viewCount;
   bool _isLikeUpdating = false;
   bool _isReposting = false;
   bool _isMuted = false;
   bool _showLikeHeart = false;
-  bool _endEventDispatched = false;
-  bool _isSaved = false;
-  bool _showMuteIndicator = false;
-  bool _showPlayPauseIndicator = false;
-  bool _showSkipForward = false;
-  bool _showSkipBackward = false;
-  bool _showDetails = true;
-  bool _isVideoEnded = false;
-  Timer? _indicatorTimer;
+  final bool _showDetails = true; // Sidebar/Details stay persistent
+  bool _showProgress = true;
   late AnimationController _heartAnimationController;
+  Timer? _progressTimer;
+
+  void _startProgressTimer() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _showProgress = false);
+      }
+    });
+  }
 
   static const List<String> _quickEmojis = [
     '😀',
@@ -384,62 +345,11 @@ class _ReelItemState extends State<_ReelItem>
     super.initState();
     _isLiked = widget.post.isLikedBy(_activeUserId);
     _likeCount = widget.post.likeCount;
-    _viewCount = widget.post.videoViewCount;
     _heartAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
     _initializeVideo();
-    _checkSavedStatus();
-  }
-
-  Future<void> _checkSavedStatus() async {
-    if (_activeUserId.isEmpty) return;
-    try {
-      final userService = UserService();
-      final savedIds = await userService.getSavedPostIds(_activeUserId);
-      if (mounted) {
-        setState(() {
-          _isSaved = savedIds.contains(widget.post.postId);
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _toggleSave() async {
-    if (_activeUserId.isEmpty) {
-      await AuthGuard.show(context);
-      return;
-    }
-
-    final wasSaved = _isSaved;
-    setState(() => _isSaved = !wasSaved);
-
-    try {
-      final userService = UserService();
-      if (wasSaved) {
-        await userService.unsavePost(_activeUserId, widget.post.postId);
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Removed from Saved ✓')));
-        }
-      } else {
-        await userService.savePost(_activeUserId, widget.post.postId);
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Added to Saved ✓')));
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isSaved = wasSaved);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
   }
 
   Future<void> _initializeVideo() async {
@@ -449,6 +359,7 @@ class _ReelItemState extends State<_ReelItem>
     } else {
       _videoController = VideoPlayerController.networkUrl(
         Uri.parse(widget.post.videoUrl!),
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
     }
 
@@ -456,18 +367,17 @@ class _ReelItemState extends State<_ReelItem>
       if (!_isInitialized) {
         await _videoController.initialize();
       }
-      await _videoController.setLooping(true);
+      await _videoController.setLooping(true); // Loop Vistas indefinitely
+      await _videoController.setVolume(1.0);
+
       if (mounted) {
-        setState(() => _isInitialized = true);
+        setState(() {
+          _isInitialized = true;
+        });
         if (widget.isActive) {
           _videoController.play();
-          _showDetails = true; // Show details initially
-          _startHideTimer(); // Hide after 3s
           ScreenAwakeController.acquire();
           AnalyticsService().trackView(widget.post.postId, _ownerId);
-          setState(() {
-            _viewCount++;
-          });
         }
 
         _videoController.addListener(_videoListener);
@@ -477,19 +387,8 @@ class _ReelItemState extends State<_ReelItem>
     }
   }
 
-  void _startHideTimer({int durationMs = 3000}) {
-    _indicatorTimer?.cancel();
-    _indicatorTimer = Timer(Duration(milliseconds: durationMs), () {
-      if (mounted) {
-        setState(() {
-          _showPlayPauseIndicator = false;
-          _showSkipForward = false;
-          _showSkipBackward = false;
-          _showMuteIndicator = false;
-          _showDetails = false;
-        });
-      }
-    });
+  void _videoListener() {
+    // Basic listener for future extensions
   }
 
   @override
@@ -498,10 +397,6 @@ class _ReelItemState extends State<_ReelItem>
     if (!_isLikeUpdating) {
       _isLiked = widget.post.isLikedBy(_activeUserId);
       _likeCount = widget.post.likeCount;
-    }
-
-    if (widget.post.videoViewCount > _viewCount) {
-      _viewCount = widget.post.videoViewCount;
     }
 
     if (widget.preloadedController != null &&
@@ -513,23 +408,24 @@ class _ReelItemState extends State<_ReelItem>
     }
 
     if (widget.isActive && !oldWidget.isActive) {
-      _endEventDispatched = false;
-      _videoController.play();
-      setState(() => _showDetails = true);
-      _startHideTimer();
-      ScreenAwakeController.acquire();
-      AnalyticsService().trackView(widget.post.postId, _ownerId);
-      setState(() {
-        _viewCount++;
-      });
+      if (_isInitialized) {
+        _videoController.play();
+        ScreenAwakeController.acquire();
+        AnalyticsService().trackView(widget.post.postId, _ownerId);
+        setState(() => _showProgress = true);
+        _startProgressTimer();
+      }
     } else if (!widget.isActive && oldWidget.isActive) {
-      _videoController.pause();
-      ScreenAwakeController.release();
+      if (_isInitialized) {
+        _videoController.pause();
+        ScreenAwakeController.release();
+      }
     }
   }
 
   Future<void> _toggleLike() async {
     if (_isLikeUpdating) return;
+    if (!mounted) return;
     if (!await AuthGuard.check(context, _activeUserId)) return;
 
     final notificationService = NotificationService();
@@ -938,6 +834,34 @@ class _ReelItemState extends State<_ReelItem>
     );
   }
 
+  Future<void> _openInteractionsSheet() async {
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.42,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        snap: true,
+        snapSizes: const [0.42, 0.85],
+        builder: (context, scrollController) => _ReelInteractionsSheet(
+          post: widget.post,
+          isLiked: _isLiked,
+          likeCount: _likeCount,
+          isReposting: _isReposting,
+          onLike: _toggleLike,
+          onComments: _openComments,
+          onRepost: _confirmRepost,
+          onShare: _sharePost,
+          scrollController: scrollController,
+        ),
+      ),
+    );
+  }
+
   void _sharePost() {
     ShareService.sharePost(widget.post);
     // Track share in analytics
@@ -947,177 +871,9 @@ class _ReelItemState extends State<_ReelItem>
     }
   }
 
-  void _showMoreOptions() {
-    if (_activeUserId.isEmpty) {
-      AuthGuard.show(context);
-      return;
-    }
-
-    final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
-        .trim();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            StatefulBuilder(
-              builder: (context, setSheetState) => SwitchListTile(
-                secondary: const Icon(Icons.replay_circle_filled_outlined),
-                title: const Text('Auto Replay'),
-                subtitle: const Text('Loop video automatically'),
-                value: _videoController.value.isLooping,
-                onChanged: (val) async {
-                  await _videoController.setLooping(val);
-                  setSheetState(() {});
-                  if (mounted) setState(() {});
-                },
-              ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.visibility_off_outlined),
-              title: const Text('Mute this post'),
-              onTap: () async {
-                Navigator.pop(context);
-                final confirmed = await showDialog<bool>(
-                  context: this.context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Mute Post'),
-                    content: const Text(
-                      'Are you sure you want to hide this post from your feed?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.orange,
-                        ),
-                        child: const Text('Mute'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirmed == true) {
-                  await UserService().mutePost(
-                    _activeUserId,
-                    widget.post.postId,
-                  );
-                  if (mounted) {
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      const SnackBar(content: Text('Post muted ✓')),
-                    );
-                  }
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_off_outlined),
-              title: Text('Mute $ownerName'),
-              onTap: () async {
-                Navigator.pop(context);
-                final confirmed = await showDialog<bool>(
-                  context: this.context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text('Mute $ownerName'),
-                    content: Text(
-                      'Are you sure you want to hide all posts from $ownerName?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.orange,
-                        ),
-                        child: const Text('Mute'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirmed == true) {
-                  await UserService().muteAuthor(_activeUserId, _ownerId);
-                  if (mounted) {
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(content: Text('Posts from $ownerName muted ✓')),
-                    );
-                  }
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.block_outlined, color: Colors.red),
-              title: Text(
-                'Block $ownerName',
-                style: const TextStyle(color: Colors.red),
-              ),
-              onTap: () async {
-                Navigator.pop(context);
-                final confirmed = await showDialog<bool>(
-                  context: this.context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text('Block $ownerName'),
-                    content: Text(
-                      'Block $ownerName? They will no longer be able to message you or see your notifications.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                        child: const Text('Block'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirmed == true) {
-                  await UserService().blockUser(_activeUserId, _ownerId);
-                  if (mounted) {
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(content: Text('$ownerName blocked ✓')),
-                    );
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
-    _indicatorTimer?.cancel();
+    _progressTimer?.cancel();
     if (_isInitialized && _videoController.value.isPlaying) {
       ScreenAwakeController.release();
     }
@@ -1131,65 +887,10 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _toggleMute() {
-    _indicatorTimer?.cancel();
     setState(() {
       _isMuted = !_isMuted;
       _videoController.setVolume(_isMuted ? 0 : 1);
-      _showMuteIndicator = true;
-      _showPlayPauseIndicator = false;
     });
-
-    _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        setState(() => _showMuteIndicator = false);
-      }
-    });
-  }
-
-  void _togglePlayPause() {
-    setState(() {
-      if (_videoController.value.isPlaying) {
-        _videoController.pause();
-        ScreenAwakeController.release();
-      } else {
-        if (_isVideoEnded) {
-          _videoController.seekTo(Duration.zero);
-          _isVideoEnded = false;
-          _endEventDispatched = false;
-        }
-        _videoController.play();
-        ScreenAwakeController.acquire();
-      }
-      _showPlayPauseIndicator = true;
-      _showMuteIndicator = false;
-      _showDetails = true; // Show skip buttons and telemetry
-    });
-
-    _startHideTimer();
-  }
-
-  void _videoListener() {
-    if (_isInitialized) {
-      final position = _videoController.value.position;
-      final duration = _videoController.value.duration;
-
-      // Update ended state for replay button visibility/logic
-      if (position >= duration && duration > Duration.zero) {
-        if (!_videoController.value.isLooping && !_isVideoEnded) {
-          setState(() {
-            _isVideoEnded = true;
-            _showPlayPauseIndicator = true; // Show replay/play icon
-          });
-        }
-
-        if (!_videoController.value.isLooping && !_endEventDispatched) {
-          _endEventDispatched = true;
-          widget.onVideoEnd?.call();
-        }
-      } else if (position < duration && _isVideoEnded) {
-        setState(() => _isVideoEnded = false);
-      }
-    }
   }
 
   Future<void> _downloadVideo() async {
@@ -1239,39 +940,7 @@ class _ReelItemState extends State<_ReelItem>
     }
   }
 
-  Future<void> _skipBackward() async {
-    final wasPlaying = _videoController.value.isPlaying;
-    final newPos =
-        _videoController.value.position - const Duration(seconds: 10);
-
-    // Continuous Flow: Seek without awaiting to keep UI/playback engine reactive
-    _videoController.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
-
-    if (_isVideoEnded) {
-      setState(() => _isVideoEnded = false);
-    }
-    if (wasPlaying) {
-      _videoController.play();
-    }
-    _showSkipIndicator(forward: false);
-  }
-
-  Future<void> _skipForward() async {
-    final wasPlaying = _videoController.value.isPlaying;
-    final newPos =
-        _videoController.value.position + const Duration(seconds: 10);
-
-    // Continuous Flow: Seek without awaiting to keep UI/playback engine reactive
-    _videoController.seekTo(newPos);
-
-    if (wasPlaying) {
-      _videoController.play();
-    }
-    _showSkipIndicator(forward: true);
-  }
-
-  Future<void> _handleDoubleTapDown(TapDownDetails details) async {
-    // Center area double tap for Like remains
+  Future<void> _handleDoubleTap() async {
     if (!_isLiked) {
       await _toggleLike();
     }
@@ -1279,18 +948,6 @@ class _ReelItemState extends State<_ReelItem>
     _heartAnimationController.forward(from: 0).then((_) {
       setState(() => _showLikeHeart = false);
     });
-  }
-
-  void _showSkipIndicator({required bool forward}) {
-    setState(() {
-      _showSkipForward = forward;
-      _showSkipBackward = !forward;
-      _showMuteIndicator = false;
-      _showPlayPauseIndicator = true; // Show play/pause button too
-      _showDetails = true;
-    });
-
-    _startHideTimer();
   }
 
   @override
@@ -1303,8 +960,22 @@ class _ReelItemState extends State<_ReelItem>
       children: [
         if (_isInitialized)
           GestureDetector(
-            onDoubleTapDown: _handleDoubleTapDown,
-            onTap: _togglePlayPause,
+            behavior: HitTestBehavior.opaque,
+            onDoubleTap: _handleDoubleTap,
+            onTap: () {
+              setState(() {
+                _showProgress = true;
+                if (_videoController.value.isPlaying) {
+                  _videoController.pause();
+                  ScreenAwakeController.release();
+                  _progressTimer?.cancel();
+                } else {
+                  _videoController.play();
+                  ScreenAwakeController.acquire();
+                  _startProgressTimer();
+                }
+              });
+            },
             child: Center(
               child: AspectRatio(
                 aspectRatio: _videoController.value.aspectRatio,
@@ -1314,93 +985,6 @@ class _ReelItemState extends State<_ReelItem>
           )
         else
           const Center(child: CircularProgressIndicator(color: Colors.white)),
-
-        // Mute/Unmute/Play/Pause Indicator
-        if (_showMuteIndicator || _showPlayPauseIndicator)
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.black45,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _showMuteIndicator
-                    ? (_isMuted ? Icons.volume_off : Icons.volume_up)
-                    : (_isVideoEnded
-                          ? Icons.replay
-                          : (_videoController.value.isPlaying
-                                ? Icons.pause
-                                : Icons.play_arrow)),
-                color: Colors.white,
-                size: 40,
-              ),
-            ),
-          ),
-
-        // Skip Backward Button / Indicator
-        if (_showSkipBackward || _showDetails)
-          Positioned(
-            left: 60,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: _skipBackward,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: Colors.black26,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.replay_10,
-                    color: Colors.white,
-                    size: 44,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-        // Skip Forward Button / Indicator
-        if (_showSkipForward || _showDetails)
-          Positioned(
-            right: 80, // Offset more to avoid sidebar conflict
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: _skipForward,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: Colors.black26,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.forward_10,
-                    color: Colors.white,
-                    size: 44,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-        // Buffering Indicator
-        if (_isInitialized)
-          ValueListenableBuilder(
-            valueListenable: _videoController,
-            builder: (context, VideoPlayerValue value, child) {
-              if (value.isBuffering) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.white70),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
 
         // Double tap heart animation
         if (_showLikeHeart)
@@ -1416,7 +1000,6 @@ class _ReelItemState extends State<_ReelItem>
             ),
           ),
 
-        // Interaction Sidebar & Details
         AnimatedOpacity(
           opacity: _showDetails ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
@@ -1425,16 +1008,17 @@ class _ReelItemState extends State<_ReelItem>
             child: Stack(
               children: [
                 Positioned(
-                  top: MediaQuery.of(context).padding.top + 8,
-                  left: 12,
-                  child: const AuthorProfileAvatar(),
-                ),
-                Positioned(
                   right: 12,
                   bottom: 120,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _InteractionButton(
+                        icon: _isMuted ? Icons.volume_off : Icons.volume_up,
+                        label: _isMuted ? 'Muted' : 'Mute',
+                        onTap: _toggleMute,
+                      ),
+                      const SizedBox(height: 14),
                       _InteractionButton(
                         icon: _isLiked ? Icons.favorite : Icons.favorite_border,
                         iconColor: _isLiked ? Colors.redAccent : Colors.white,
@@ -1445,7 +1029,7 @@ class _ReelItemState extends State<_ReelItem>
                       _InteractionButton(
                         icon: Icons.comment_outlined,
                         label: '${widget.post.commentCount}',
-                        onTap: _openComments,
+                        onTap: _openInteractionsSheet,
                       ),
                       const SizedBox(height: 14),
                       _InteractionButton(
@@ -1460,19 +1044,6 @@ class _ReelItemState extends State<_ReelItem>
                         icon: Icons.share_outlined,
                         label: 'Share',
                         onTap: _sharePost,
-                      ),
-                      const SizedBox(height: 14),
-                      _InteractionButton(
-                        icon: Icons.more_horiz_outlined,
-                        label: 'More',
-                        onTap: _showMoreOptions,
-                      ),
-                      const SizedBox(height: 14),
-                      _InteractionButton(
-                        icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        iconColor: _isSaved ? Colors.amberAccent : Colors.white,
-                        label: _isSaved ? 'Saved' : 'Save',
-                        onTap: _toggleSave,
                       ),
                       if ((widget.post.originalAuthorId ??
                               widget.post.authorId) ==
@@ -1500,84 +1071,109 @@ class _ReelItemState extends State<_ReelItem>
                 ),
                 Positioned(
                   left: 0,
-                  right: 60, // Leave space for the interaction sidebar
+                  right: 0,
                   bottom: 0,
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black87],
-                      ),
+                      color: Colors.transparent,
                     ),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.4,
-                      ),
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: widget.onOpenProfile,
-                                  child: CircleAvatar(
-                                    radius: 18,
-                                    backgroundImage:
-                                        (widget.post.originalAuthorImageUrl ??
-                                                widget.post.authorImageUrl) !=
-                                            null
-                                        ? CachedNetworkImageProvider(
-                                            widget
-                                                    .post
-                                                    .originalAuthorImageUrl ??
-                                                widget.post.authorImageUrl!,
-                                          )
-                                        : null,
-                                    child:
-                                        (widget.post.originalAuthorImageUrl ??
-                                                widget.post.authorImageUrl) ==
-                                            null
-                                        ? const Icon(Icons.person)
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    ownerName.isEmpty ? 'Unknown' : ownerName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
+                            GestureDetector(
+                              onTap: widget.onOpenProfile,
+                              child: CircleAvatar(
+                                radius: 18,
+                                backgroundImage:
+                                    (widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl) !=
+                                        null
+                                    ? CachedNetworkImageProvider(
+                                        widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl!,
+                                      )
+                                    : null,
+                                child:
+                                    (widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl) ==
+                                        null
+                                    ? const Icon(Icons.person)
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                ownerName.isEmpty ? 'Unknown' : ownerName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 4.0,
+                                      color: Colors.black54,
+                                      offset: Offset(0, 1),
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  ],
                                 ),
-                                Text(
-                                  '$_viewCount views',
-                                  style: const TextStyle(color: Colors.white70),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              '${widget.post.videoViewCount} views',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 4.0,
+                                    color: Colors.black54,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (widget.post.content.trim().isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          ExpandableText(
+                            widget.post.content,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 4.0,
+                                  color: Colors.black54,
+                                  offset: Offset(0, 1),
                                 ),
                               ],
                             ),
-                            if (widget.post.content.trim().isNotEmpty) ...[
-                              const SizedBox(height: 10),
-                              ExpandableText(
-                                widget.post.content,
-                                style: const TextStyle(color: Colors.white),
-                                trimLines: 3,
-                                actionStyle: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
+                            trimLines: 3,
+                            actionStyle: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 4.0,
+                                  color: Colors.black54,
+                                  offset: Offset(0, 1),
                                 ),
-                                onTap: _openComments,
-                              ),
-                            ],
-                            if (_isInitialized)
-                              Padding(
+                              ],
+                            ),
+                            onTap: _openComments,
+                          ),
+                        ],
+                        if (_isInitialized)
+                          AnimatedOpacity(
+                            opacity: _showProgress ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: IgnorePointer(
+                              ignoring: !_showProgress,
+                              child: Padding(
                                 padding: const EdgeInsets.only(top: 12),
                                 child: Column(
                                   children: [
@@ -1644,9 +1240,9 @@ class _ReelItemState extends State<_ReelItem>
                                   ],
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -1682,7 +1278,7 @@ class _InteractionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black45,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -1692,7 +1288,18 @@ class _InteractionButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: iconColor ?? Colors.white, size: 22),
+              Icon(
+                icon,
+                color: iconColor ?? Colors.white,
+                size: 22,
+                shadows: const [
+                  Shadow(
+                    blurRadius: 4.0,
+                    color: Colors.black54,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 label,
@@ -1700,6 +1307,13 @@ class _InteractionButton extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 4.0,
+                      color: Colors.black54,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1715,11 +1329,9 @@ class _ReelInteractionsSheet extends StatefulWidget {
   final bool isLiked;
   final int likeCount;
   final bool isReposting;
-  final bool isSaved;
   final Future<void> Function() onLike;
   final Future<void> Function() onComments;
   final Future<void> Function() onRepost;
-  final Future<void> Function() onSave;
   final VoidCallback onShare;
   final ScrollController scrollController;
 
@@ -1728,11 +1340,9 @@ class _ReelInteractionsSheet extends StatefulWidget {
     required this.isLiked,
     required this.likeCount,
     required this.isReposting,
-    required this.isSaved,
     required this.onLike,
     required this.onComments,
     required this.onRepost,
-    required this.onSave,
     required this.onShare,
     required this.scrollController,
   });
@@ -1758,24 +1368,17 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
     await widget.onRepost();
   }
 
-  Future<void> _handleSave() async {
-    await widget.onSave();
-    if (!mounted) return;
-    Navigator.of(context).pop();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final content = widget.post.content.trim();
 
     return SafeArea(
-      child: ListView(
-        controller: widget.scrollController,
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1792,7 +1395,7 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
           ),
           if (content.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -1800,19 +1403,23 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
                   color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(content, style: theme.textTheme.bodyMedium),
+                child: Text(
+                  content,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
+          const SizedBox(height: 12),
           const Divider(height: 1),
           DefaultTabController(
-            length: 5,
+            length: 4,
             child: TabBar(
               onTap: (index) {
                 if (index == 0) _handleLike();
                 if (index == 1) _handleComments();
                 if (index == 2) _handleRepost();
-                if (index == 3) _handleSave();
-                if (index == 4) {
+                if (index == 3) {
                   widget.onShare();
                   Navigator.of(context).pop();
                 }
@@ -1853,15 +1460,6 @@ class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
                     widget.isReposting ? '...' : '${widget.post.repostCount}',
                     style: const TextStyle(fontSize: 11),
                   ),
-                ),
-                Tab(
-                  height: 60,
-                  icon: Icon(
-                    widget.isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: widget.isSaved ? Colors.amberAccent : null,
-                    size: 24,
-                  ),
-                  child: const Text('Save', style: TextStyle(fontSize: 11)),
                 ),
                 const Tab(
                   height: 60,

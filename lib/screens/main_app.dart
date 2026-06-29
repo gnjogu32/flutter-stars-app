@@ -99,7 +99,7 @@ class MainAppState extends State<MainApp> {
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           const BottomNavigationBarItem(
             icon: Icon(Icons.play_circle_outline),
-            label: 'Reels',
+            label: 'View stars short videos(Vistas)',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.explore),
