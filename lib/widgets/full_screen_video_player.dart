@@ -175,11 +175,18 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _pageController.dispose();
-    _preloadedControllers.forEach((_, c) => c.dispose());
+
+    // Only dispose controllers that were created here,
+    // do NOT dispose the one handed over from the feed.
+    _preloadedControllers.forEach((_, c) {
+      if (c != widget.manualController) {
+        c.dispose();
+      }
+    });
+
     super.dispose();
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
     if (_videos.isEmpty) {
@@ -293,7 +300,8 @@ class _FullScreenVideoItem extends StatefulWidget {
   State<_FullScreenVideoItem> createState() => _FullScreenVideoItemState();
 }
 
-class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
+class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _showControls = true;
@@ -308,6 +316,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   Timer? _indicatorTimer;
   String? _error;
 
+  @override
+  bool get wantKeepAlive => true;
+
   static const List<String> _quickEmojis = [
     '😀', '😁', '😂', '🤣', '😊', '😍', '🥳', '😎', '🤔', '👏', '🔥', '💯', '✨', '🙌', '👍', '🙏', '❤️', '💙', '💚', '🎉', '😢', '😡', '🤝', '💫',
   ];
@@ -315,6 +326,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _viewCount = widget.post.videoViewCount;
 
     // Sync-init to prevent black frame when manualController is provided
@@ -467,19 +479,47 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _indicatorTimer?.cancel();
     if (_isInitialized) {
       _controller.removeListener(_videoListener);
       if (_controller.value.isPlaying) {
         ScreenAwakeController.release();
       }
-      _controller.pause();
-      _controller.dispose();
-    } else {
-      // Still initializing or failed
+
+      // ONLY dispose if we are NOT the borrowed controller from the feed
+      if (widget.manualController == null) {
+        _controller.pause();
+        _controller.dispose();
+      }
+    } else if (widget.manualController == null) {
+      // Still initializing or failed, and we own it
       _controller.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isInitialized) return;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+        ScreenAwakeController.release();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // Background Playback Fix: Do not automatically resume if it was paused.
+      // But if it's immersive and was supposed to be playing, we can resume.
+      if (widget.autoPlay && !_controller.value.isPlaying) {
+        // Only resume if user hasn't explicitly paused it before backgrounding?
+        // For simplicity in immersive, we resume if it's the active one.
+        _controller.play();
+        ScreenAwakeController.acquire();
+      }
+    }
   }
 
   void _togglePlay() {
@@ -999,6 +1039,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
         .trim();
 
@@ -1021,7 +1062,9 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                 : _isInitialized
                 ? AspectRatio(
                     aspectRatio: _controller.value.aspectRatio,
-                    child: VideoPlayer(_controller),
+                    child: RepaintBoundary(
+                      child: VideoPlayer(_controller),
+                    ),
                   )
                 : const CircularProgressIndicator(color: Colors.white),
           ),
@@ -1199,13 +1242,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
-                                      shadows: [
-                                        Shadow(
-                                          blurRadius: 4.0,
-                                          color: Colors.black54,
-                                          offset: Offset(0, 1),
-                                        ),
-                                      ],
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1214,13 +1250,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                   '$_viewCount views',
                                   style: const TextStyle(
                                     color: Colors.white70,
-                                    shadows: [
-                                      Shadow(
-                                        blurRadius: 4.0,
-                                        color: Colors.black54,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
                                   ),
                                 ),
                                 ],
@@ -1231,25 +1260,11 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem> {
                                   widget.post.content,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    shadows: [
-                                      Shadow(
-                                        blurRadius: 4.0,
-                                        color: Colors.black54,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
                                   ),
                                   trimLines: 3,
                                   actionStyle: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
-                                    shadows: [
-                                      Shadow(
-                                        blurRadius: 4.0,
-                                        color: Colors.black54,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
                                   ),
                                   onTap: _openComments,
                                 ),

@@ -1407,7 +1407,7 @@ class _PostWidgetState extends State<PostWidget>
                   child: VideoPlayerWidget(
                     key: _videoPlayerKey,
                     videoUrl: widget.post.videoUrl!,
-                    autoPlay: false,
+                    autoPlay: true, // Let it autostart when ready (VisibilityDetector will manage)
                     looping: true,
                     muted: true, // Start muted for inline playback
                     post: widget.post,

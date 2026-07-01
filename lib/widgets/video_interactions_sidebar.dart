@@ -336,13 +336,6 @@ class _InteractionButton extends StatelessWidget {
                 icon,
                 color: iconColor ?? Colors.white,
                 size: 22,
-                shadows: const [
-                  Shadow(
-                    blurRadius: 4.0,
-                    color: Colors.black54,
-                    offset: Offset(0, 1),
-                  ),
-                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -351,13 +344,6 @@ class _InteractionButton extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 4.0,
-                      color: Colors.black54,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
                 ),
               ),
             ],

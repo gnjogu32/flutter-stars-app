@@ -37,7 +37,8 @@ class VideoPlayerWidget extends StatefulWidget {
   State<VideoPlayerWidget> createState() => VideoPlayerWidgetState();
 }
 
-class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+class VideoPlayerWidgetState extends State<VideoPlayerWidget>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   late bool _isMuted;
@@ -50,8 +51,12 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       false; // Flag to allow seamless portal transitions
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _isMuted = widget.muted;
     _initializeController();
   }
@@ -106,12 +111,31 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _indicatorTimer?.cancel();
     if (_isInitialized && _controller.value.isPlaying) {
       ScreenAwakeController.release();
     }
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isInitialized) return;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+        ScreenAwakeController.release();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // Inline videos only autostart if they were playing before or if they are "active"
+      // But for feeds, VisibilityDetector usually handles this.
+      // We'll leave it to VisibilityDetector to avoid playing all videos at once.
+    }
   }
 
   void _togglePlay() {
@@ -184,6 +208,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_error != null) {
       return Container(
         height: 200,
@@ -260,7 +285,9 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               }
             },
             onLongPress: _togglePlay,
-            child: VideoPlayer(_controller),
+            child: RepaintBoundary(
+              child: VideoPlayer(_controller),
+            ),
           ),
 
           // Buffering Indicator

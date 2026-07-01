@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'full_screen_comments_page.dart';
 
 import '../models/post_model.dart';
@@ -108,9 +109,7 @@ class ReelsScreenState extends State<ReelsScreen> {
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
           _preloadedControllers[idx] = controller;
-          controller.initialize().then((_) {
-            if (mounted) setState(() {});
-          });
+          controller.initialize();
         }
       }
     }
@@ -277,7 +276,7 @@ class _ReelItem extends StatefulWidget {
 }
 
 class _ReelItemState extends State<_ReelItem>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   late VideoPlayerController _videoController;
   bool _isInitialized = false;
   late bool _isLiked;
@@ -290,6 +289,10 @@ class _ReelItemState extends State<_ReelItem>
   bool _showProgress = true;
   late AnimationController _heartAnimationController;
   Timer? _progressTimer;
+  bool _isPageVisible = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   void _startProgressTimer() {
     _progressTimer?.cancel();
@@ -301,30 +304,7 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   static const List<String> _quickEmojis = [
-    '😀',
-    '😁',
-    '😂',
-    '🤣',
-    '😊',
-    '😍',
-    '🥳',
-    '😎',
-    '🤔',
-    '👏',
-    '🔥',
-    '💯',
-    '✨',
-    '🙌',
-    '👍',
-    '🙏',
-    '❤️',
-    '💙',
-    '💚',
-    '🎉',
-    '😢',
-    '😡',
-    '🤝',
-    '💫',
+    '😀', '😁', '😂', '🤣', '😊', '😍', '🥳', '😎', '🤔', '👏', '🔥', '💯', '✨', '🙌', '👍', '🙏', '❤️', '💙', '💚', '🎉', '😢', '😡', '🤝', '💫',
   ];
 
   bool get _isSharedPost =>
@@ -338,11 +318,10 @@ class _ReelItemState extends State<_ReelItem>
 
   bool get _canInteract => _activeUserId.isNotEmpty;
 
-  // Video player logic removed for AGP 9+ compatibility
-
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _isLiked = widget.post.isLikedBy(_activeUserId);
     _likeCount = widget.post.likeCount;
     _heartAnimationController = AnimationController(
@@ -374,7 +353,7 @@ class _ReelItemState extends State<_ReelItem>
         setState(() {
           _isInitialized = true;
         });
-        if (widget.isActive) {
+        if (widget.isActive && _isPageVisible) {
           _videoController.play();
           ScreenAwakeController.acquire();
           AnalyticsService().trackView(widget.post.postId, _ownerId);
@@ -408,7 +387,7 @@ class _ReelItemState extends State<_ReelItem>
     }
 
     if (widget.isActive && !oldWidget.isActive) {
-      if (_isInitialized) {
+      if (_isInitialized && _isPageVisible) {
         _videoController.play();
         ScreenAwakeController.acquire();
         AnalyticsService().trackView(widget.post.postId, _ownerId);
@@ -419,6 +398,26 @@ class _ReelItemState extends State<_ReelItem>
       if (_isInitialized) {
         _videoController.pause();
         ScreenAwakeController.release();
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isInitialized) return;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      if (_videoController.value.isPlaying) {
+        _videoController.pause();
+        ScreenAwakeController.release();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // Automatic resume only if this item is currently on screen and visible
+      if (widget.isActive && _isPageVisible && !_videoController.value.isPlaying) {
+        _videoController.play();
+        ScreenAwakeController.acquire();
       }
     }
   }
@@ -546,7 +545,7 @@ class _ReelItemState extends State<_ReelItem>
       if (_activeUserId != widget.post.authorId &&
           (scheduleTime == null ||
               scheduleTime.isBefore(
-                DateTime.now().add(Duration(seconds: 1)),
+                DateTime.now().add(const Duration(seconds: 1)),
               ))) {
         try {
           await notificationService.createNotification(
@@ -698,8 +697,7 @@ class _ReelItemState extends State<_ReelItem>
                                           textController.selection;
                                       final start = currentSelection.start >= 0
                                           ? currentSelection.start
-                                          : currentText.length;
-                                      final end = currentSelection.end >= 0
+                                          : currentText.length;                                      final end = currentSelection.end >= 0
                                           ? currentSelection.end
                                           : currentText.length;
                                       final newText = currentText.replaceRange(
@@ -873,6 +871,7 @@ class _ReelItemState extends State<_ReelItem>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _progressTimer?.cancel();
     if (_isInitialized && _videoController.value.isPlaying) {
       ScreenAwakeController.release();
@@ -952,305 +951,302 @@ class _ReelItemState extends State<_ReelItem>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
         .trim();
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (_isInitialized)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onDoubleTap: _handleDoubleTap,
-            onTap: () {
-              setState(() {
-                _showProgress = true;
-                if (_videoController.value.isPlaying) {
-                  _videoController.pause();
-                  ScreenAwakeController.release();
-                  _progressTimer?.cancel();
-                } else {
-                  _videoController.play();
-                  ScreenAwakeController.acquire();
-                  _startProgressTimer();
-                }
-              });
-            },
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: _videoController.value.aspectRatio,
-                child: VideoPlayer(_videoController),
-              ),
-            ),
-          )
-        else
-          const Center(child: CircularProgressIndicator(color: Colors.white)),
-
-        // Double tap heart animation
-        if (_showLikeHeart)
-          Center(
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.0, end: 1.2).animate(
-                CurvedAnimation(
-                  parent: _heartAnimationController,
-                  curve: Curves.elasticOut,
-                ),
-              ),
-              child: const Icon(Icons.favorite, color: Colors.white, size: 100),
-            ),
-          ),
-
-        AnimatedOpacity(
-          opacity: _showDetails ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          child: IgnorePointer(
-            ignoring: !_showDetails,
-            child: Stack(
-              children: [
-                Positioned(
-                  right: 12,
-                  bottom: 120,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _InteractionButton(
-                        icon: _isMuted ? Icons.volume_off : Icons.volume_up,
-                        label: _isMuted ? 'Muted' : 'Mute',
-                        onTap: _toggleMute,
-                      ),
-                      const SizedBox(height: 14),
-                      _InteractionButton(
-                        icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-                        iconColor: _isLiked ? Colors.redAccent : Colors.white,
-                        label: '$_likeCount',
-                        onTap: _toggleLike,
-                      ),
-                      const SizedBox(height: 14),
-                      _InteractionButton(
-                        icon: Icons.comment_outlined,
-                        label: '${widget.post.commentCount}',
-                        onTap: _openInteractionsSheet,
-                      ),
-                      const SizedBox(height: 14),
-                      _InteractionButton(
-                        icon: Icons.repeat,
-                        label: _isReposting
-                            ? '...'
-                            : '${widget.post.repostCount}',
-                        onTap: _confirmRepost,
-                      ),
-                      const SizedBox(height: 14),
-                      _InteractionButton(
-                        icon: Icons.share_outlined,
-                        label: 'Share',
-                        onTap: _sharePost,
-                      ),
-                      if ((widget.post.originalAuthorId ??
-                              widget.post.authorId) ==
-                          _activeUserId) ...[
-                        const SizedBox(height: 14),
-                        _InteractionButton(
-                          icon: Icons.download_outlined,
-                          label: 'Download',
-                          onTap: _downloadVideo,
-                        ),
-                      ],
-                      if (!_canInteract) ...[
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Sign in',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ],
+    return VisibilityDetector(
+      key: ValueKey('reel_vis_${widget.post.postId}'),
+      onVisibilityChanged: (info) {
+        final visible = info.visibleFraction > 0.7;
+        if (visible != _isPageVisible) {
+          if (mounted) {
+            setState(() => _isPageVisible = visible);
+          }
+          if (visible) {
+            if (widget.isActive && !_videoController.value.isPlaying) {
+              _videoController.play();
+              ScreenAwakeController.acquire();
+            }
+          } else {
+            if (_videoController.value.isPlaying) {
+              _videoController.pause();
+              ScreenAwakeController.release();
+            }
+          }
+        }
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_isInitialized)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onDoubleTap: _handleDoubleTap,
+              onTap: () {
+                setState(() {
+                  _showProgress = true;
+                  if (_videoController.value.isPlaying) {
+                    _videoController.pause();
+                    ScreenAwakeController.release();
+                    _progressTimer?.cancel();
+                  } else {
+                    _videoController.play();
+                    ScreenAwakeController.acquire();
+                    _startProgressTimer();
+                  }
+                });
+              },
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: _videoController.value.aspectRatio,
+                  child: RepaintBoundary(
+                    child: VideoPlayer(_videoController),
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
-                    decoration: const BoxDecoration(
-                      color: Colors.transparent,
-                    ),
+              ),
+            )
+          else
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
+
+          // Double tap heart animation
+          if (_showLikeHeart)
+            Center(
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.0, end: 1.2).animate(
+                  CurvedAnimation(
+                    parent: _heartAnimationController,
+                    curve: Curves.elasticOut,
+                  ),
+                ),
+                child: const Icon(Icons.favorite, color: Colors.white, size: 100),
+              ),
+            ),
+
+          AnimatedOpacity(
+            opacity: _showDetails ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: IgnorePointer(
+              ignoring: !_showDetails,
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: 12,
+                    bottom: 120,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: widget.onOpenProfile,
-                              child: CircleAvatar(
-                                radius: 18,
-                                backgroundImage:
-                                    (widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl) !=
-                                        null
-                                    ? CachedNetworkImageProvider(
-                                        widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl!,
-                                      )
-                                    : null,
-                                child:
-                                    (widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl) ==
-                                        null
-                                    ? const Icon(Icons.person)
-                                    : null,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                ownerName.isEmpty ? 'Unknown' : ownerName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  shadows: [
-                                    Shadow(
-                                      blurRadius: 4.0,
-                                      color: Colors.black54,
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              '${widget.post.videoViewCount} views',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 4.0,
-                                    color: Colors.black54,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        _InteractionButton(
+                          icon: _isMuted ? Icons.volume_off : Icons.volume_up,
+                          label: _isMuted ? 'Muted' : 'Mute',
+                          onTap: _toggleMute,
                         ),
-                        if (widget.post.content.trim().isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          ExpandableText(
-                            widget.post.content,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                  blurRadius: 4.0,
-                                  color: Colors.black54,
-                                  offset: Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            trimLines: 3,
-                            actionStyle: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              shadows: [
-                                Shadow(
-                                  blurRadius: 4.0,
-                                  color: Colors.black54,
-                                  offset: Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            onTap: _openComments,
+                        const SizedBox(height: 14),
+                        _InteractionButton(
+                          icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+                          iconColor: _isLiked ? Colors.redAccent : Colors.white,
+                          label: '$_likeCount',
+                          onTap: _toggleLike,
+                        ),
+                        const SizedBox(height: 14),
+                        _InteractionButton(
+                          icon: Icons.comment_outlined,
+                          label: '${widget.post.commentCount}',
+                          onTap: _openInteractionsSheet,
+                        ),
+                        const SizedBox(height: 14),
+                        _InteractionButton(
+                          icon: Icons.repeat,
+                          label: _isReposting
+                              ? '...'
+                              : '${widget.post.repostCount}',
+                          onTap: _confirmRepost,
+                        ),
+                        const SizedBox(height: 14),
+                        _InteractionButton(
+                          icon: Icons.share_outlined,
+                          label: 'Share',
+                          onTap: _sharePost,
+                        ),
+                        if ((widget.post.originalAuthorId ??
+                                widget.post.authorId) ==
+                            _activeUserId) ...[
+                          const SizedBox(height: 14),
+                          _InteractionButton(
+                            icon: Icons.download_outlined,
+                            label: 'Download',
+                            onTap: _downloadVideo,
                           ),
                         ],
-                        if (_isInitialized)
-                          AnimatedOpacity(
-                            opacity: _showProgress ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 300),
-                            child: IgnorePointer(
-                              ignoring: !_showProgress,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 12),
-                                child: Column(
-                                  children: [
-                                    VideoProgressIndicator(
-                                      _videoController,
-                                      allowScrubbing: true,
-                                      colors: const VideoProgressColors(
-                                        playedColor: Colors.white,
-                                        bufferedColor: Colors.white24,
-                                        backgroundColor: Colors.white12,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        ValueListenableBuilder(
-                                          valueListenable: _videoController,
-                                          builder:
-                                              (
-                                                context,
-                                                VideoPlayerValue value,
-                                                child,
-                                              ) {
-                                                return Text(
-                                                  _formatDuration(
-                                                    value.position,
-                                                  ),
-                                                  style: const TextStyle(
-                                                    color: Colors.white70,
-                                                    fontSize: 10,
-                                                  ),
-                                                );
-                                              },
-                                        ),
-                                        const Text(
-                                          ' / ',
-                                          style: TextStyle(
-                                            color: Colors.white30,
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                        Text(
-                                          _formatDuration(
-                                            _videoController.value.duration,
-                                          ),
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        GestureDetector(
-                                          onTap: _toggleMute,
-                                          child: Icon(
-                                            _isMuted
-                                                ? Icons.volume_off
-                                                : Icons.volume_up,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        if (!_canInteract) ...[
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Sign in',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
+                        ],
                       ],
                     ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
+                      decoration: const BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: widget.onOpenProfile,
+                                child: CircleAvatar(
+                                  radius: 18,
+                                  backgroundImage:
+                                      (widget.post.originalAuthorImageUrl ??
+                                              widget.post.authorImageUrl) !=
+                                          null
+                                      ? CachedNetworkImageProvider(
+                                          widget.post.originalAuthorImageUrl ??
+                                              widget.post.authorImageUrl!,
+                                        )
+                                      : null,
+                                  child:
+                                      (widget.post.originalAuthorImageUrl ??
+                                              widget.post.authorImageUrl) ==
+                                          null
+                                      ? const Icon(Icons.person)
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  ownerName.isEmpty ? 'Unknown' : ownerName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                '${widget.post.videoViewCount} views',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (widget.post.content.trim().isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            ExpandableText(
+                              widget.post.content,
+                              style: const TextStyle(
+                                color: Colors.white,
+                              ),
+                              trimLines: 3,
+                              actionStyle: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              onTap: _openComments,
+                            ),
+                          ],
+                          if (_isInitialized)
+                            AnimatedOpacity(
+                              opacity: _showProgress ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: IgnorePointer(
+                                ignoring: !_showProgress,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Column(
+                                    children: [
+                                      VideoProgressIndicator(
+                                        _videoController,
+                                        allowScrubbing: true,
+                                        colors: const VideoProgressColors(
+                                          playedColor: Colors.white,
+                                          bufferedColor: Colors.white24,
+                                          backgroundColor: Colors.white12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          ValueListenableBuilder(
+                                            valueListenable: _videoController,
+                                            builder:
+                                                (
+                                                  context,
+                                                  VideoPlayerValue value,
+                                                  child,
+                                                ) {
+                                                  return Text(
+                                                    _formatDuration(
+                                                      value.position,
+                                                    ),
+                                                    style: const TextStyle(
+                                                      color: Colors.white70,
+                                                      fontSize: 10,
+                                                    ),
+                                                  );
+                                                },
+                                          ),
+                                          const Text(
+                                            ' / ',
+                                            style: TextStyle(
+                                              color: Colors.white30,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatDuration(
+                                              _videoController.value.duration,
+                                            ),
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          GestureDetector(
+                                            onTap: _toggleMute,
+                                            child: Icon(
+                                              _isMuted
+                                                  ? Icons.volume_off
+                                                  : Icons.volume_up,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1292,13 +1288,6 @@ class _InteractionButton extends StatelessWidget {
                 icon,
                 color: iconColor ?? Colors.white,
                 size: 22,
-                shadows: const [
-                  Shadow(
-                    blurRadius: 4.0,
-                    color: Colors.black54,
-                    offset: Offset(0, 1),
-                  ),
-                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -1307,13 +1296,6 @@ class _InteractionButton extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 4.0,
-                      color: Colors.black54,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
                 ),
               ),
             ],
