@@ -106,6 +106,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
       _controller.dispose();
       _isInitialized = false;
       _initializeController();
+    } else if (widget.autoPlay && !oldWidget.autoPlay) {
+      // If autoPlay was just enabled and we are initialized, we might want to play.
+      // But we usually wait for VisibilityDetector to trigger it for feeds.
+      // For now, if autoPlay is true, we ensure it can play.
     }
   }
 
@@ -116,7 +120,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     if (_isInitialized && _controller.value.isPlaying) {
       ScreenAwakeController.release();
     }
-    _controller.dispose();
+    // Only dispose if not currently being borrowed by immersive screen
+    if (!_ignoreVisibilityPause) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -139,6 +146,11 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   }
 
   void _togglePlay() {
+    if (widget.post != null && !_controller.value.isPlaying) {
+      _handleTap();
+      return;
+    }
+
     _indicatorTimer?.cancel();
     setState(() {
       if (_controller.value.isPlaying) {
@@ -159,6 +171,54 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
         setState(() => _showPlayPauseIndicator = false);
       }
     });
+  }
+
+  Future<void> _handleTap() async {
+    if (widget.post != null) {
+      // Instant Autostart: Trigger playback and un-mute before transition
+      // We set the flag immediately to block any VisibilityDetector autopause
+      _ignoreVisibilityPause = true;
+
+      final currentPosition = _controller.value.position;
+      _controller.setVolume(1.0);
+      _controller.play();
+      ScreenAwakeController.acquire();
+
+      // Use a faster transition for "Instantaneous" feel
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+            FullScreenVideoPlayer(
+              videoUrl: widget.videoUrl,
+              startPosition: currentPosition,
+              post: widget.post,
+              currentUserId: widget.currentUserId,
+              manualController: _controller,
+            ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 250),
+        ),
+      );
+
+      // Restore state when returning to feed
+      // Delay reset slightly to allow VisibilityDetector to settle during pop transition
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          _ignoreVisibilityPause = false;
+        }
+      });
+
+      if (mounted) {
+        // Ensure audio returns to muted for feed browsing
+        _controller.setVolume(0.0);
+        setState(() {});
+      }
+    } else {
+      _togglePlay();
+    }
   }
 
   void pause() {
@@ -243,47 +303,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
         children: [
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () async {
-              if (widget.post != null) {
-                // Instant Autostart: Trigger playback and un-mute before transition
-                // We set the flag immediately to block any VisibilityDetector autopause
-                _ignoreVisibilityPause = true;
-
-                final currentPosition = _controller.value.position;
-                _controller.setVolume(1.0);
-                _controller.play();
-                ScreenAwakeController.acquire();
-
-                // Use a faster transition for "Instantaneous" feel
-                if (!mounted) return;
-                await Navigator.of(context).push(
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                      FullScreenVideoPlayer(
-                        videoUrl: widget.videoUrl,
-                        startPosition: currentPosition,
-                        post: widget.post,
-                        currentUserId: widget.currentUserId,
-                        manualController: _controller,
-                      ),
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    transitionDuration: const Duration(milliseconds: 250),
-                  ),
-                );
-
-                // Restore state when returning to feed
-                _ignoreVisibilityPause = false;
-                if (mounted) {
-                  // Ensure audio returns to muted for feed browsing
-                  _controller.setVolume(0.0);
-                  setState(() {});
-                }
-              } else {
-                _togglePlay();
-              }
-            },
+            onTap: _handleTap,
             onLongPress: _togglePlay,
             child: RepaintBoundary(
               child: VideoPlayer(_controller),
@@ -303,7 +323,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
             },
           ),
 
-          // Play/Pause Indicator
+          // Play/Pause Indicator (Brief popup)
           if (_showPlayPauseIndicator)
             Center(
               child: Container(
@@ -317,6 +337,19 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
                   color: Colors.white,
                   size: 40,
                 ),
+              ),
+            ),
+
+          // Persistent Center Play Button (When paused or autoplay off)
+          if (widget.showControls && _showOverlay && !_controller.value.isPlaying)
+            Center(
+              child: IconButton(
+                icon: const Icon(
+                  Icons.play_circle_outline,
+                  color: Colors.white70,
+                  size: 60,
+                ),
+                onPressed: _togglePlay,
               ),
             ),
 
