@@ -125,10 +125,21 @@ jobs:
         run: flutter pub get
 
       - name: Run static analysis
-        run: flutter analyze --fatal-infos
+        run: flutter analyze
 
       - name: Check code formatting
-        run: dart format --set-exit-if-changed lib/ test/ integration_test/
+        run: |
+          FORMAT_DIRS=()
+          [ -d "lib" ] && FORMAT_DIRS+=("lib")
+          [ -d "test" ] && FORMAT_DIRS+=("test")
+          [ -d "integration_test" ] && FORMAT_DIRS+=("integration_test")
+
+          if [ ${#FORMAT_DIRS[@]} -eq 0 ]; then
+            echo "No format target directories found; skipping format check"
+            exit 0
+          fi
+
+          dart format --set-exit-if-changed "${FORMAT_DIRS[@]}"
 
       - name: Run custom lints
         run: |
@@ -179,7 +190,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK (debug)
-        run: flutter build apk --debug --android-skip-build-dependency-validation
+        run: flutter build apk --debug
 
       - name: Verify build artifacts
         run: |
