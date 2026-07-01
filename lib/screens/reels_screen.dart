@@ -873,13 +873,16 @@ class _ReelItemState extends State<_ReelItem>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _progressTimer?.cancel();
-    if (_isInitialized && _videoController.value.isPlaying) {
-      ScreenAwakeController.release();
-    }
-    _videoController.removeListener(_videoListener);
-    // ONLY dispose if we created it locally
-    if (widget.preloadedController == null) {
-      _videoController.dispose();
+    if (_isInitialized) {
+      if (_videoController.value.isPlaying) {
+        _videoController.pause();
+        ScreenAwakeController.release();
+      }
+      _videoController.removeListener(_videoListener);
+      // ONLY dispose if we created it locally
+      if (widget.preloadedController == null) {
+        _videoController.dispose();
+      }
     }
     _heartAnimationController.dispose();
     super.dispose();

@@ -11,12 +11,14 @@ class AudioPlayerWidget extends StatefulWidget {
   State<AudioPlayerWidget> createState() => AudioPlayerWidgetState();
 }
 
-class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
+class AudioPlayerWidgetState extends State<AudioPlayerWidget>
+    with WidgetsBindingObserver {
   final _player = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _init();
     _player.playerStateStream.listen((state) {
       if (state.playing) {
@@ -42,7 +44,20 @@ class AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      if (_player.playing) {
+        _player.pause();
+        ScreenAwakeController.release();
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_player.playing) {
       ScreenAwakeController.release();
     }

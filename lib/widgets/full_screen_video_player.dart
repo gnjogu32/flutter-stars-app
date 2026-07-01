@@ -484,12 +484,12 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     if (_isInitialized) {
       _controller.removeListener(_videoListener);
       if (_controller.value.isPlaying) {
+        _controller.pause();
         ScreenAwakeController.release();
       }
 
       // ONLY dispose if we are NOT the borrowed controller from the feed
       if (widget.manualController == null) {
-        _controller.pause();
         _controller.dispose();
       }
     } else if (widget.manualController == null) {
@@ -511,11 +511,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
         ScreenAwakeController.release();
       }
     } else if (state == AppLifecycleState.resumed) {
-      // Background Playback Fix: Do not automatically resume if it was paused.
-      // But if it's immersive and was supposed to be playing, we can resume.
+      // For simplicity in immersive, we resume if it's the active one.
       if (widget.autoPlay && !_controller.value.isPlaying) {
-        // Only resume if user hasn't explicitly paused it before backgrounding?
-        // For simplicity in immersive, we resume if it's the active one.
         _controller.play();
         ScreenAwakeController.acquire();
       }
