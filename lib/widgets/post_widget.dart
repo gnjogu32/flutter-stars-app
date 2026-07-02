@@ -28,11 +28,15 @@ import 'audio_player_widget.dart';
 class PostWidget extends StatefulWidget {
   final PostModel post;
   final String currentUserId;
+  final bool isTabVisible;
+  final bool autoPlayEnabled;
 
   const PostWidget({
     super.key,
     required this.post,
     required this.currentUserId,
+    this.isTabVisible = true,
+    this.autoPlayEnabled = true,
   });
 
   @override
@@ -141,7 +145,12 @@ class _PostWidgetState extends State<PostWidget>
     if (widget.post.videoViewCount > _viewCount) {
       _viewCount = widget.post.videoViewCount;
     }
-    // _videoViewCount removed for AGP 9+ compatibility
+
+    // Handle tab visibility changes: pause if tab is hidden
+    if (!widget.isTabVisible && oldWidget.isTabVisible) {
+      _videoPlayerKey.currentState?.pause();
+      _audioPlayerKey.currentState?.pause();
+    }
   }
 
   // _incrementVideoViewCount removed for AGP 9+ compatibility
@@ -1379,6 +1388,7 @@ class _PostWidgetState extends State<PostWidget>
               VisibilityDetector(
                 key: ValueKey('post_audio_${widget.post.postId}'),
                 onVisibilityChanged: (info) {
+                  if (!widget.isTabVisible) return;
                   if (info.visibleFraction < 0.3) {
                     _audioPlayerKey.currentState?.pause();
                   }
@@ -1396,8 +1406,11 @@ class _PostWidgetState extends State<PostWidget>
               VisibilityDetector(
                 key: ValueKey('post_video_${widget.post.postId}'),
                 onVisibilityChanged: (info) {
+                  if (!widget.isTabVisible) return;
                   if (info.visibleFraction > 0.8) {
-                    _videoPlayerKey.currentState?.play();
+                    if (widget.autoPlayEnabled) {
+                      _videoPlayerKey.currentState?.play();
+                    }
                   } else if (info.visibleFraction < 0.2) {
                     _videoPlayerKey.currentState?.pause();
                   }
@@ -1407,7 +1420,7 @@ class _PostWidgetState extends State<PostWidget>
                   child: VideoPlayerWidget(
                     key: _videoPlayerKey,
                     videoUrl: widget.post.videoUrl!,
-                    autoPlay: true, // Let it autostart when ready (VisibilityDetector will manage)
+                    autoPlay: widget.autoPlayEnabled,
                     looping: true,
                     muted: true, // Start muted for inline playback
                     post: widget.post,

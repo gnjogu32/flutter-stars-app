@@ -6,11 +6,13 @@ import 'post_widget.dart';
 
 class TrendingSection extends StatefulWidget {
   final String currentUserId;
+  final bool autoPlayEnabled;
   final VoidCallback? onSeeAll;
 
   const TrendingSection({
     super.key,
     required this.currentUserId,
+    this.autoPlayEnabled = true,
     this.onSeeAll,
   });
 
@@ -144,6 +146,7 @@ class _TrendingSectionState extends State<TrendingSection>
         key: ValueKey('trending_${post.postId}'),
         post: post,
         currentUserId: widget.currentUserId,
+        autoPlayEnabled: widget.autoPlayEnabled,
       ),
     );
   }
@@ -173,11 +176,13 @@ class _TrendingSectionState extends State<TrendingSection>
 
 class TrendingStreamSection extends StatefulWidget {
   final String currentUserId;
+  final bool autoPlayEnabled;
   final VoidCallback? onSeeAll;
 
   const TrendingStreamSection({
     super.key,
     required this.currentUserId,
+    this.autoPlayEnabled = true,
     this.onSeeAll,
   });
 
@@ -302,6 +307,7 @@ class _TrendingStreamSectionState extends State<TrendingStreamSection>
         key: ValueKey('trending_${post.postId}'),
         post: post,
         currentUserId: widget.currentUserId,
+        autoPlayEnabled: widget.autoPlayEnabled,
       ),
     );
   }

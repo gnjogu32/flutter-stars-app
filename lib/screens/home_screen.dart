@@ -8,7 +8,8 @@ import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ValueNotifier<bool>? tabActiveNotifier;
+  const HomeScreen({super.key, this.tabActiveNotifier});
 
   @override
   State<HomeScreen> createState() => HomeScreenState();
@@ -26,12 +27,23 @@ class HomeScreenState extends State<HomeScreen> {
   bool _hasMore = true;
   DocumentSnapshot? _lastDocument;
   bool _showSearch = false;
+  bool _isTabVisible = true;
 
   @override
   void initState() {
     super.initState();
+    _isTabVisible = widget.tabActiveNotifier?.value ?? true;
+    widget.tabActiveNotifier?.addListener(_onTabActiveChanged);
     _loadPosts();
     _scrollController.addListener(_onScroll);
+  }
+
+  void _onTabActiveChanged() {
+    if (mounted) {
+      setState(() {
+        _isTabVisible = widget.tabActiveNotifier!.value;
+      });
+    }
   }
 
   void _onScroll() {
@@ -92,6 +104,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    widget.tabActiveNotifier?.removeListener(_onTabActiveChanged);
     _scrollController.dispose();
     super.dispose();
   }
@@ -166,6 +179,7 @@ class HomeScreenState extends State<HomeScreen> {
                 List<String> mutedPosts = [];
                 List<String> mutedAuthors = [];
                 List<String> blockedUsers = [];
+                bool autoPlayEnabled = true;
 
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
                   final userData =
@@ -177,6 +191,7 @@ class HomeScreenState extends State<HomeScreen> {
                   blockedUsers = List<String>.from(
                     userData['blockedUsers'] ?? [],
                   );
+                  autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
                 }
 
                 final filteredPosts = _posts.where((post) {
@@ -216,6 +231,7 @@ class HomeScreenState extends State<HomeScreen> {
                     if (index == 0) {
                       return TrendingStreamSection(
                         currentUserId: _auth.currentUser?.uid ?? '',
+                        autoPlayEnabled: autoPlayEnabled,
                       );
                     }
 
@@ -232,6 +248,8 @@ class HomeScreenState extends State<HomeScreen> {
                       key: ValueKey(filteredPosts[postIndex].postId),
                       post: filteredPosts[postIndex],
                       currentUserId: _auth.currentUser?.uid ?? '',
+                      isTabVisible: _isTabVisible,
+                      autoPlayEnabled: autoPlayEnabled,
                     );
                   },
                 );

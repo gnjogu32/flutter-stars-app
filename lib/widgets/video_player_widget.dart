@@ -134,7 +134,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
-      if (_controller.value.isPlaying) {
+      if (!_ignoreVisibilityPause && _controller.value.isPlaying) {
         _controller.pause();
         ScreenAwakeController.release();
       }
@@ -146,11 +146,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   }
 
   void _togglePlay() {
-    if (widget.post != null && !_controller.value.isPlaying) {
-      _handleTap();
-      return;
-    }
-
     _indicatorTimer?.cancel();
     setState(() {
       if (_controller.value.isPlaying) {
@@ -175,18 +170,29 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
 
   Future<void> _handleTap() async {
     if (widget.post != null) {
-      // Instant Autostart: Trigger playback and un-mute before transition
-      // We set the flag immediately to block any VisibilityDetector autopause
+      // One-Tap Immersion: Instant un-mute and jump to full-screen
       _ignoreVisibilityPause = true;
 
-      final currentPosition = _controller.value.position;
+      // Force un-mute and start playback IMMEDIATELY before navigation
+      // Using a microtask or just not awaiting too much to keep UI responsive
       _controller.setVolume(1.0);
       _controller.play();
+      _dispatchPlayEvent();
       ScreenAwakeController.acquire();
 
-      // Use a faster transition for "Instantaneous" feel
+      final currentPosition = _controller.value.position;
+
+      if (mounted) {
+        setState(() {
+          _isMuted = false;
+          _showOverlay = false;
+        });
+      }
+
       if (!mounted) return;
-      await Navigator.of(context).push(
+      // High-speed transition to immersive view
+      // We don't await the push here, we handle the return in the .then() block
+      Navigator.of(context).push(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
             FullScreenVideoPlayer(
@@ -201,21 +207,21 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
           },
           transitionDuration: const Duration(milliseconds: 250),
         ),
-      );
-
-      // Restore state when returning to feed
-      // Delay reset slightly to allow VisibilityDetector to settle during pop transition
-      Future.delayed(const Duration(milliseconds: 600), () {
+      ).then((_) {
+        // Restore feed state when returning
         if (mounted) {
-          _ignoreVisibilityPause = false;
+          // Delay reset slightly to allow VisibilityDetector to settle
+          Future.delayed(const Duration(milliseconds: 600), () {
+            if (mounted) {
+              _ignoreVisibilityPause = false;
+              // Return to muted state for feed browsing
+              _controller.setVolume(0.0);
+              _isMuted = true;
+              setState(() {});
+            }
+          });
         }
       });
-
-      if (mounted) {
-        // Ensure audio returns to muted for feed browsing
-        _controller.setVolume(0.0);
-        setState(() {});
-      }
     } else {
       _togglePlay();
     }
@@ -349,7 +355,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
                   color: Colors.white70,
                   size: 60,
                 ),
-                onPressed: _togglePlay,
+                onPressed: _handleTap,
               ),
             ),
 

@@ -434,4 +434,16 @@ class UserService {
       rethrow;
     }
   }
+
+  // Update autoplay settings
+  Future<void> updateAutoPlaySettings(String userId, bool enabled) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(userId).update({
+        'autoPlayEnabled': enabled,
+        'updatedAt': DateTime.now(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

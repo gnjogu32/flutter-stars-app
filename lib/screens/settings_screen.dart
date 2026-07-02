@@ -29,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               builder: (context, snapshot) {
                 final user = snapshot.data;
                 final notificationsEnabled = user?.notificationsEnabled ?? true;
+                final autoPlayEnabled = user?.autoPlayEnabled ?? true;
 
                 return ListView(
                   children: [
@@ -80,6 +81,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     _buildSectionHeader(context, 'Preferences'),
                     SwitchListTile(
+                      secondary: const Icon(Icons.play_circle_outline),
+                      title: const Text('Media Autoplay'),
+                      subtitle: const Text('Videos and audios play automatically in feeds'),
+                      value: autoPlayEnabled,
+                      onChanged: (bool value) async {
+                        await _userService.updateAutoPlaySettings(
+                          userId,
+                          value,
+                        );
+                        setState(() {});
+                      },
+                    ),
+                    SwitchListTile(
                       secondary: const Icon(Icons.dark_mode_outlined),
                       title: const Text('Dark Mode'),
                       subtitle: const Text('Use system theme settings'),
@@ -92,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       leading: const Icon(Icons.info_outline),
                       title: const Text('Starpage Version'),
                       trailing:
-                          Text('1.1.8+12', style: const TextStyle(color: Colors.grey)),
+                          Text('1.1.9+13', style: const TextStyle(color: Colors.grey)),
                     ),
 
                     const SizedBox(height: 32),

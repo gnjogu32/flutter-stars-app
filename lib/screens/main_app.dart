@@ -23,6 +23,7 @@ class MainApp extends StatefulWidget {
 class MainAppState extends State<MainApp> {
   late int _selectedIndex;
   late final List<Widget> _screens;
+  final ValueNotifier<bool> _homeTabActive = ValueNotifier(true);
   final ValueNotifier<bool> _reelsTabActive = ValueNotifier(false);
   final NotificationService _notificationService = NotificationService();
   final ChatService _chatService = ChatService();
@@ -38,6 +39,7 @@ class MainAppState extends State<MainApp> {
       return;
     }
 
+    _homeTabActive.value = index == 0;
     _reelsTabActive.value = index == 1;
     setState(() {
       _selectedIndex = index;
@@ -52,19 +54,11 @@ class MainAppState extends State<MainApp> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    final currentUser = FirebaseAuth.instance.currentUser;
-
-    // Debug authentication state
-    if (currentUser != null) {
-      debugPrint('✅ User authenticated: ${currentUser.uid}');
-      debugPrint('   Email: ${currentUser.email}');
-      debugPrint('   Display Name: ${currentUser.displayName}');
-    } else {
-      debugPrint('❌ No user authenticated');
-    }
+    _homeTabActive.value = _selectedIndex == 0;
+    _reelsTabActive.value = _selectedIndex == 1;
 
     _screens = [
-      HomeScreen(key: _homeKey),
+      HomeScreen(key: _homeKey, tabActiveNotifier: _homeTabActive),
       ReelsScreen(key: _reelsKey, tabActiveNotifier: _reelsTabActive),
       const DiscoverScreen(),
       const MessagesScreen(),
@@ -74,6 +68,7 @@ class MainAppState extends State<MainApp> {
 
   @override
   void dispose() {
+    _homeTabActive.dispose();
     _reelsTabActive.dispose();
     super.dispose();
   }

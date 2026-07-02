@@ -10,6 +10,7 @@ import 'package:starpage/widgets/expandable_text.dart';
 import 'package:starpage/screens/profile_screen.dart';
 import 'package:starpage/screens/full_screen_comments_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:starpage/services/repost_queue_service.dart';
 import 'package:starpage/services/notification_service.dart';
 import 'package:starpage/widgets/keyboard_prompt_banner.dart';
@@ -107,7 +108,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   }
 
   void _preloadAdjacent(int index) {
-    if (_videos.isEmpty) return;
+    if (_videos.length <= 1) return;
 
     // Preload next 3 and previous 1 for seamless navigation
     final indicesToPreload = [index + 1, index + 2, index + 3, index - 1];
@@ -115,9 +116,13 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     for (int i in indicesToPreload) {
       if (i < 0) continue;
 
+      // Avoid preloading the same video multiple times if the list is small
+      final post = _getVideoAtGlobalIndex(i, _videos);
+      final currentPost = _getVideoAtGlobalIndex(index, _videos);
+      if (post.postId == currentPost.postId) continue;
+
       if (!_preloadedControllers.containsKey(i)) {
-        final reel = _getVideoAtGlobalIndex(i, _videos);
-        final url = reel.videoUrl;
+        final url = post.videoUrl;
         if (url != null && url.isNotEmpty) {
           final controller = VideoPlayerController.networkUrl(
             Uri.parse(url),
@@ -340,16 +345,20 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
 
   Future<void> _initializeController() async {
     if (widget.manualController != null) {
-      // Logic already handled in initState sync-path for speed,
-      // but we still need to ensure listeners and playback state.
       if (_isInitialized) {
         _controller.addListener(_videoListener);
-        // Sync volume, playback and auto-replay for immersive experience
         _isMuted = false;
-        _controller.setVolume(1.0);
-        _controller.setLooping(true);
 
-        if (widget.autoPlay && !_controller.value.isPlaying) {
+        // Ensure settings are correct for immersive playback
+        if (_controller.value.volume != 1.0) {
+          _controller.setVolume(1.0);
+        }
+        if (!_controller.value.isLooping) {
+          _controller.setLooping(true);
+        }
+
+        if (widget.autoPlay) {
+          // Force play even if it thinks it's playing to ensure surface sync
           _controller.play();
           ScreenAwakeController.acquire();
         }
@@ -484,12 +493,12 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     if (_isInitialized) {
       _controller.removeListener(_videoListener);
       if (_controller.value.isPlaying) {
-        _controller.pause();
         ScreenAwakeController.release();
       }
 
       // ONLY dispose if we are NOT the borrowed controller from the feed
       if (widget.manualController == null) {
+        _controller.pause();
         _controller.dispose();
       }
     } else if (widget.manualController == null) {
@@ -1040,31 +1049,48 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
         .trim();
 
-    return GestureDetector(
-      onTap: _togglePlay,
-      onLongPress: () {
-        setState(() {
-          _showControls = !_showControls;
-        });
+    return VisibilityDetector(
+      key: ValueKey('fs_vis_${widget.post.postId}_${widget.autoPlay}'),
+      onVisibilityChanged: (info) {
+        if (!mounted) return;
+        final visible = info.visibleFraction > 0.8;
+        if (visible) {
+          if (widget.autoPlay && !_controller.value.isPlaying) {
+            _controller.play();
+            ScreenAwakeController.acquire();
+          }
+        } else {
+          // Only pause if it's really gone
+          if (info.visibleFraction < 0.1 && _controller.value.isPlaying) {
+            _controller.pause();
+            ScreenAwakeController.release();
+          }
+        }
       },
-      onDoubleTapDown: (details) {
-        // Center area double tap for Like remains if needed (but currently not explicitly implemented in this gesture detector)
-        // We can add Like logic here or just leave it for unified center double tap if we want.
-      },
-      child: Stack(
-        children: [
-          Center(
-            child: _error != null
-                ? Text(_error!, style: const TextStyle(color: Colors.white))
-                : _isInitialized
-                ? AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
-                    child: RepaintBoundary(
-                      child: VideoPlayer(_controller),
-                    ),
-                  )
-                : const CircularProgressIndicator(color: Colors.white),
-          ),
+      child: GestureDetector(
+        onTap: _togglePlay,
+        onLongPress: () {
+          setState(() {
+            _showControls = !_showControls;
+          });
+        },
+        onDoubleTapDown: (details) {
+          // Center area double tap for Like remains if needed
+        },
+        child: Stack(
+          children: [
+            Center(
+              child: _error != null
+                  ? Text(_error!, style: const TextStyle(color: Colors.white))
+                  : _isInitialized
+                  ? AspectRatio(
+                      aspectRatio: _controller.value.aspectRatio,
+                      child: RepaintBoundary(
+                        child: VideoPlayer(_controller),
+                      ),
+                    )
+                  : const CircularProgressIndicator(color: Colors.white),
+            ),
 
           // Mute/Unmute/Play/Pause Indicator
           if (_showMuteIndicator || _showPlayPauseIndicator)
@@ -1352,6 +1378,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
             ),
         ],
       ),
+    ),
     );
   }
 
