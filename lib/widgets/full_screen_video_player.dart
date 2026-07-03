@@ -83,6 +83,16 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     }
   }
 
+  @override
+  void didUpdateWidget(FullScreenVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.playlist != null && widget.playlist != oldWidget.playlist) {
+      setState(() {
+        _videos = widget.playlist!;
+      });
+    }
+  }
+
   void _preloadAdjacent(int index) {
     if (_videos.length <= 1) return;
 
@@ -168,6 +178,8 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     super.dispose();
   }
 
+  bool _isPopping = false;
+
   @override
   Widget build(BuildContext context) {
     if (_videos.isEmpty) {
@@ -186,10 +198,18 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
       backgroundColor: Colors.black,
       body: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
+          if (_isPopping) return false;
+
           // Detect downward overscroll at the start of the playlist to "go back"
           if (notification is ScrollUpdateNotification &&
               _currentIndex == 0 &&
-              notification.metrics.pixels < -80) {
+              notification.metrics.pixels < -100) {
+            _isPopping = true;
+            // Immediate silence and pause for stability
+            _preloadedControllers.forEach((_, c) {
+              c.pause();
+              c.setVolume(0);
+            });
             Navigator.of(context).pop();
             return true;
           }
@@ -202,6 +222,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
             parent: AlwaysScrollableScrollPhysics(),
           ),
           onPageChanged: (index) {
+            if (!mounted) return;
             setState(() {
               _currentIndex = index;
             });
@@ -302,6 +323,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
   late int _viewCount;
   Timer? _indicatorTimer;
   String? _error;
+  bool _isPageVisible = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -423,20 +445,20 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
   }
 
   void _videoListener() {
-    if (_isInitialized) {
-      final position = _controller.value.position;
-      final duration = _controller.value.duration;
+    if (!mounted || !_isInitialized) return;
 
-      if (position >= duration && duration > Duration.zero) {
-        if (!_controller.value.isLooping && !_isVideoEnded) {
-          setState(() {
-            _isVideoEnded = true;
-            _showControls = true; // Show controls to reveal replay button
-          });
-        }
-      } else if (position < duration && _isVideoEnded) {
-        setState(() => _isVideoEnded = false);
+    final position = _controller.value.position;
+    final duration = _controller.value.duration;
+
+    if (position >= duration && duration > Duration.zero) {
+      if (!_controller.value.isLooping && !_isVideoEnded) {
+        setState(() {
+          _isVideoEnded = true;
+          _showControls = true;
+        });
       }
+    } else if (position < duration && _isVideoEnded) {
+      setState(() => _isVideoEnded = false);
     }
   }
 
@@ -474,13 +496,15 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     _indicatorTimer?.cancel();
     if (_isInitialized) {
       _controller.removeListener(_videoListener);
+
+      // Always pause on dispose to prevent ghost audio
       if (_controller.value.isPlaying) {
+        _controller.pause();
         ScreenAwakeController.release();
       }
 
-      // ONLY dispose if we are NOT the borrowed controller from the feed
+      // ONLY dispose if we own the controller (it's not the borrowed manualController)
       if (widget.manualController == null) {
-        _controller.pause();
         _controller.dispose();
       }
     } else if (widget.manualController == null) {
@@ -511,6 +535,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
   }
 
   void _togglePlay() {
+    if (!mounted) return;
     setState(() {
       if (_controller.value.isPlaying) {
         _controller.pause();
@@ -522,7 +547,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
           _isVideoEnded = false;
         }
         _controller.play();
-        _showControls = true; // Keep visible for a few seconds
+        _showControls = true;
         ScreenAwakeController.acquire();
       }
       _showPlayPauseIndicator = true;
@@ -537,6 +562,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
   }
 
   void _toggleMute() {
+    if (!mounted) return;
     _indicatorTimer?.cancel();
     setState(() {
       _isMuted = !_isMuted;
@@ -1032,20 +1058,24 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
         .trim();
 
     return VisibilityDetector(
-      key: ValueKey('fs_vis_${widget.post.postId}_${widget.autoPlay}'),
+      key: ValueKey('fs_vis_${widget.post.postId}'),
       onVisibilityChanged: (info) {
         if (!mounted) return;
         final visible = info.visibleFraction > 0.8;
-        if (visible) {
-          if (widget.autoPlay && !_controller.value.isPlaying) {
-            _controller.play();
-            ScreenAwakeController.acquire();
-          }
-        } else {
-          // Only pause if it's really gone
-          if (info.visibleFraction < 0.1 && _controller.value.isPlaying) {
-            _controller.pause();
-            ScreenAwakeController.release();
+        if (visible != _isPageVisible) {
+          setState(() {
+            _isPageVisible = visible;
+          });
+          if (visible) {
+            if (widget.autoPlay && !_controller.value.isPlaying) {
+              _controller.play();
+              ScreenAwakeController.acquire();
+            }
+          } else {
+            if (_controller.value.isPlaying) {
+              _controller.pause();
+              ScreenAwakeController.release();
+            }
           }
         }
       },

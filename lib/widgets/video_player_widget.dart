@@ -191,9 +191,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
 
       if (!mounted) return;
       // High-speed transition to immersive view
-      // We don't await the push here, we handle the return in the .then() block
       Navigator.of(context).push(
         PageRouteBuilder(
+          opaque: false,
+          barrierColor: Colors.black.withValues(alpha: 0.1),
           pageBuilder: (context, animation, secondaryAnimation) =>
             FullScreenVideoPlayer(
               videoUrl: widget.videoUrl,
@@ -203,19 +204,25 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
               manualController: _controller,
             ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
+            final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+            return FadeTransition(
+              opacity: curve,
+              child: child,
+            );
           },
-          transitionDuration: const Duration(milliseconds: 250),
+          transitionDuration: const Duration(milliseconds: 300),
         ),
       ).then((_) {
         // Restore feed state when returning
         if (mounted) {
-          // Delay reset slightly to allow VisibilityDetector to settle
-          Future.delayed(const Duration(milliseconds: 600), () {
+          // Immediate silence on return to feed
+          _controller.pause();
+          _controller.setVolume(0.0);
+
+          // Delay reset slightly to allow VisibilityDetector to settle and prevent accidental autoplay
+          Future.delayed(const Duration(milliseconds: 400), () {
             if (mounted) {
               _ignoreVisibilityPause = false;
-              // Return to muted state for feed browsing
-              _controller.setVolume(0.0);
               _isMuted = true;
               setState(() {});
             }

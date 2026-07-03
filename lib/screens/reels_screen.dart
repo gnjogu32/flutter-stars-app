@@ -242,8 +242,29 @@ class ReelsScreenState extends State<ReelsScreen> {
     // Use cached block list if available to avoid expensive shuffling on every build frame.
     if (!_shuffledBlocksCache.containsKey(blockIndex) ||
         _shuffledBlocksCache[blockIndex]!.length != source.length) {
+
+      // Before creating new shuffled block, try to preserve current reel if it's the active index
+      String? currentPostId;
+      if (index == _activeIndex && _shuffledBlocksCache.containsKey(blockIndex)) {
+         final oldBlock = _shuffledBlocksCache[blockIndex]!;
+         if (localIndex < oldBlock.length) {
+           currentPostId = oldBlock[localIndex].postId;
+         }
+      }
+
       final blockList = List<PostModel>.from(source);
       blockList.shuffle(Random(blockSeed));
+
+      // Pinned Position Optimization: Keep the current video at its local index
+      if (currentPostId != null) {
+         final currentPos = blockList.indexWhere((p) => p.postId == currentPostId);
+         if (currentPos != -1 && currentPos != localIndex) {
+            final temp = blockList[localIndex];
+            blockList[localIndex] = blockList[currentPos];
+            blockList[currentPos] = temp;
+         }
+      }
+
       _shuffledBlocksCache[blockIndex] = blockList;
 
       // Keep cache size manageable
@@ -347,21 +368,22 @@ class _ReelItemState extends State<_ReelItem>
       if (!_isInitialized) {
         await _videoController.initialize();
       }
+      if (!mounted) return;
+
       await _videoController.setLooping(true); // Loop Vistas indefinitely
       await _videoController.setVolume(1.0);
 
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-        if (widget.isActive && _isPageVisible) {
-          _videoController.play();
-          ScreenAwakeController.acquire();
-          AnalyticsService().trackView(widget.post.postId, _ownerId);
-        }
+      setState(() {
+        _isInitialized = true;
+      });
 
-        _videoController.addListener(_videoListener);
+      if (widget.isActive && _isPageVisible) {
+        _videoController.play();
+        ScreenAwakeController.acquire();
+        AnalyticsService().trackView(widget.post.postId, _ownerId);
       }
+
+      _videoController.addListener(_videoListener);
     } catch (e) {
       debugPrint('Error initializing reel video: $e');
     }
@@ -875,12 +897,14 @@ class _ReelItemState extends State<_ReelItem>
     WidgetsBinding.instance.removeObserver(this);
     _progressTimer?.cancel();
     if (_isInitialized) {
+      // Always pause on dispose to prevent audio leaks
       if (_videoController.value.isPlaying) {
         _videoController.pause();
         ScreenAwakeController.release();
       }
       _videoController.removeListener(_videoListener);
-      // ONLY dispose if we created it locally
+
+      // ONLY dispose if we created it locally (not preloaded/managed by parent)
       if (widget.preloadedController == null) {
         _videoController.dispose();
       }
@@ -890,6 +914,7 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _toggleMute() {
+    if (!mounted) return;
     setState(() {
       _isMuted = !_isMuted;
       _videoController.setVolume(_isMuted ? 0 : 1);
