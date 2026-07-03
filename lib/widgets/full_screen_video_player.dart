@@ -171,6 +171,8 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     // do NOT dispose the one handed over from the feed.
     _preloadedControllers.forEach((_, c) {
       if (c != widget.manualController) {
+        c.setVolume(0);
+        c.pause();
         c.dispose();
       }
     });
@@ -387,6 +389,8 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     try {
       await _controller.initialize();
       if (!mounted) {
+        _controller.setVolume(0);
+        _controller.pause();
         _controller.dispose();
         return;
       }
@@ -401,14 +405,18 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
 
       setState(() {
         _isInitialized = true;
-        if (widget.autoPlay) {
-          _controller.play();
-          _showControls = true; // Show initially
-          _startHideTimer();
-          ScreenAwakeController.acquire();
-          _trackView();
-        }
       });
+
+      // Defensive check: only play if STILL active after async initialization
+      if (widget.autoPlay && mounted) {
+        _controller.play();
+        _showControls = true; // Show initially
+        _startHideTimer();
+        ScreenAwakeController.acquire();
+        _trackView();
+      } else {
+        _controller.pause();
+      }
     } catch (e) {
       if (mounted) {
         setState(() {

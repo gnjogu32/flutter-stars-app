@@ -80,6 +80,8 @@ class ReelsScreenState extends State<ReelsScreen> {
 
   void _disposeAllPreloaded() {
     for (final controller in _preloadedControllers.values) {
+      controller.setVolume(0);
+      controller.pause();
       controller.dispose();
     }
     _preloadedControllers.clear();
@@ -94,6 +96,8 @@ class ReelsScreenState extends State<ReelsScreen> {
     // Clean up controllers far away from current index
     _preloadedControllers.removeWhere((idx, controller) {
       if (!indicesToPreload.contains(idx)) {
+        controller.setVolume(0);
+        controller.pause();
         controller.dispose();
         return true;
       }
@@ -368,7 +372,12 @@ class _ReelItemState extends State<_ReelItem>
       if (!_isInitialized) {
         await _videoController.initialize();
       }
-      if (!mounted) return;
+      if (!mounted) {
+        // If no longer mounted, ensure silence
+        _videoController.setVolume(0);
+        _videoController.pause();
+        return;
+      }
 
       await _videoController.setLooping(true); // Loop Vistas indefinitely
       await _videoController.setVolume(1.0);
@@ -377,10 +386,15 @@ class _ReelItemState extends State<_ReelItem>
         _isInitialized = true;
       });
 
-      if (widget.isActive && _isPageVisible) {
+      // Defensive check: only play if STILL active and visible after async initialization
+      if (widget.isActive && _isPageVisible && mounted) {
         _videoController.play();
         ScreenAwakeController.acquire();
         AnalyticsService().trackView(widget.post.postId, _ownerId);
+        setState(() => _showProgress = true);
+        _startProgressTimer();
+      } else {
+        _videoController.pause();
       }
 
       _videoController.addListener(_videoListener);
@@ -883,6 +897,174 @@ class _ReelItemState extends State<_ReelItem>
     );
   }
 
+  void _showMoreOptions() {
+    if (_activeUserId.isEmpty) {
+      AuthGuard.show(context);
+      return;
+    }
+
+    final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
+        .trim();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            StatefulBuilder(
+              builder: (context, setSheetState) => SwitchListTile(
+                secondary: const Icon(Icons.replay_circle_filled_outlined),
+                title: const Text('Auto Replay'),
+                subtitle: const Text('Loop video automatically'),
+                value: _videoController.value.isLooping,
+                onChanged: (val) async {
+                  await _videoController.setLooping(val);
+                  setSheetState(() {});
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.visibility_off_outlined),
+              title: const Text('Mute this post'),
+              onTap: () async {
+                Navigator.pop(context);
+                final confirmed = await showDialog<bool>(
+                  context: this.context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Mute Post'),
+                    content: const Text(
+                      'Are you sure you want to hide this post from your feed?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
+                        child: const Text('Mute'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await UserService().mutePost(
+                    _activeUserId,
+                    widget.post.postId,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text('Post muted ✓')),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_off_outlined),
+              title: Text('Mute $ownerName'),
+              onTap: () async {
+                Navigator.pop(context);
+                final confirmed = await showDialog<bool>(
+                  context: this.context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text('Mute $ownerName'),
+                    content: Text(
+                      'Are you sure you want to hide all posts from $ownerName?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
+                        child: const Text('Mute'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await UserService().muteAuthor(_activeUserId, _ownerId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('Posts from $ownerName muted ✓')),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block_outlined, color: Colors.red),
+              title: Text(
+                'Block $ownerName',
+                style: const TextStyle(color: Colors.red),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                final confirmed = await showDialog<bool>(
+                  context: this.context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text('Block $ownerName'),
+                    content: Text(
+                      'Block $ownerName? They will no longer be able to message you or see your notifications.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Block'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await UserService().blockUser(_activeUserId, _ownerId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('$ownerName blocked ✓')),
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _sharePost() {
     ShareService.sharePost(widget.post);
     // Track share in analytics
@@ -918,7 +1100,9 @@ class _ReelItemState extends State<_ReelItem>
     setState(() {
       _isMuted = !_isMuted;
       _videoController.setVolume(_isMuted ? 0 : 1);
+      _showProgress = true; // Show progress overlay when toggling mute
     });
+    _startProgressTimer(); // Restart the 3-second hide timer
   }
 
   Future<void> _downloadVideo() async {
@@ -985,13 +1169,12 @@ class _ReelItemState extends State<_ReelItem>
         .trim();
 
     return VisibilityDetector(
-      key: ValueKey('reel_vis_${widget.post.postId}'),
+      key: ValueKey('reel_vis_${widget.post.postId}_${widget.isActive}'),
       onVisibilityChanged: (info) {
-        final visible = info.visibleFraction > 0.7;
+        if (!mounted) return;
+        final visible = info.visibleFraction > 0.8;
         if (visible != _isPageVisible) {
-          if (mounted) {
-            setState(() => _isPageVisible = visible);
-          }
+          setState(() => _isPageVisible = visible);
           if (visible) {
             if (widget.isActive && !_videoController.value.isPlaying) {
               _videoController.play();
@@ -1066,12 +1249,6 @@ class _ReelItemState extends State<_ReelItem>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _InteractionButton(
-                          icon: _isMuted ? Icons.volume_off : Icons.volume_up,
-                          label: _isMuted ? 'Muted' : 'Mute',
-                          onTap: _toggleMute,
-                        ),
-                        const SizedBox(height: 14),
-                        _InteractionButton(
                           icon: _isLiked ? Icons.favorite : Icons.favorite_border,
                           iconColor: _isLiked ? Colors.redAccent : Colors.white,
                           label: '$_likeCount',
@@ -1096,6 +1273,12 @@ class _ReelItemState extends State<_ReelItem>
                           icon: Icons.share_outlined,
                           label: 'Share',
                           onTap: _sharePost,
+                        ),
+                        const SizedBox(height: 14),
+                        _InteractionButton(
+                          icon: Icons.more_vert,
+                          label: 'More',
+                          onTap: _showMoreOptions,
                         ),
                         if ((widget.post.originalAuthorId ??
                                 widget.post.authorId) ==
@@ -1251,12 +1434,14 @@ class _ReelItemState extends State<_ReelItem>
                                           const Spacer(),
                                           GestureDetector(
                                             onTap: _toggleMute,
-                                            child: Icon(
-                                              _isMuted
-                                                  ? Icons.volume_off
-                                                  : Icons.volume_up,
-                                              color: Colors.white,
-                                              size: 18,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              color: Colors.transparent,
+                                              child: Icon(
+                                                _isMuted ? Icons.volume_off : Icons.volume_up,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
                                             ),
                                           ),
                                         ],
