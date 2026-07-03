@@ -41,7 +41,7 @@ class ReelsScreen extends StatefulWidget {
 
 class ReelsScreenState extends State<ReelsScreen> {
   late final FirebaseFirestore _firestore;
-  static const int _infiniteLoopOffset = 10000;
+  static const int _infiniteLoopOffset = 0; // Enforce "Load from bottom upward" logic
   int _refreshSeed = Random().nextInt(1000000);
   late final PageController _pageController;
   int _activeIndex = _infiniteLoopOffset;
@@ -101,6 +101,7 @@ class ReelsScreenState extends State<ReelsScreen> {
     });
 
     for (final idx in indicesToPreload) {
+      if (idx < 0) continue;
       if (!_preloadedControllers.containsKey(idx)) {
         final post = _getReelAtGlobalIndex(idx, reels);
         if (post.videoUrl != null && post.videoUrl!.isNotEmpty) {

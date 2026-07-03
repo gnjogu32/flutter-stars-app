@@ -182,12 +182,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               );
             }
 
-            return ListView.builder(
-              itemCount: filteredUsers.length,
-              itemBuilder: (context, index) {
-                final user = filteredUsers[index];
-                return _buildUserCard(user);
+            return RefreshIndicator(
+              onRefresh: () async {
+                // The stream handles updates, but we can force a rebuild or just wait
+                await Future.delayed(const Duration(milliseconds: 400));
+                if (mounted) setState(() {});
               },
+              child: ListView.builder(
+                itemCount: filteredUsers.length,
+                itemBuilder: (context, index) {
+                  final user = filteredUsers[index];
+                  return _buildUserCard(user);
+                },
+              ),
             );
           },
         );

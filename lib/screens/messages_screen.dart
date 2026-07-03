@@ -250,19 +250,25 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   );
                 }
 
-                return ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: conversations.length,
-                  itemBuilder: (context, index) {
-                    return AnimationUtils.slideUpAnimation(
-                      duration: const Duration(milliseconds: 400),
-                      delayMilliseconds: index * 50,
-                      child: _buildConversationItem(
-                        context,
-                        conversations[index],
-                      ),
-                    );
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await Future.delayed(const Duration(milliseconds: 400));
+                    if (mounted) setState(() {});
                   },
+                  child: ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: conversations.length,
+                    itemBuilder: (context, index) {
+                      return AnimationUtils.slideUpAnimation(
+                        duration: const Duration(milliseconds: 400),
+                        delayMilliseconds: index * 50,
+                        child: _buildConversationItem(
+                          context,
+                          conversations[index],
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),

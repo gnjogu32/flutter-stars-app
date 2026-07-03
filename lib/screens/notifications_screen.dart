@@ -125,20 +125,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
 
-          return ListView.builder(
-            itemCount: notifications.length,
-            physics: const BouncingScrollPhysics(),
-            itemBuilder: (context, index) {
-              return AnimationUtils.slideUpAnimation(
-                duration: const Duration(milliseconds: 400),
-                delayMilliseconds: index * 50,
-                child: _buildNotificationItem(
-                  context,
-                  notifications[index],
-                  userId,
-                ),
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              await Future.delayed(const Duration(milliseconds: 400));
+              if (mounted) setState(() {});
             },
+            child: ListView.builder(
+              itemCount: notifications.length,
+              physics: const BouncingScrollPhysics(),
+              itemBuilder: (context, index) {
+                return AnimationUtils.slideUpAnimation(
+                  duration: const Duration(milliseconds: 400),
+                  delayMilliseconds: index * 50,
+                  child: _buildNotificationItem(
+                    context,
+                    notifications[index],
+                    userId,
+                  ),
+                );
+              },
+            ),
           );
         },
       ),

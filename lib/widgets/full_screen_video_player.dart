@@ -47,8 +47,6 @@ class FullScreenVideoPlayer extends StatefulWidget {
 }
 
 class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
-  // Use a large initial offset for seamless infinite vertical scrolling in both directions
-  static const int _infiniteLoopOffset = 10000;
   late PageController _pageController;
   late int _currentIndex;
   late List<PostModel> _videos;
@@ -60,19 +58,11 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    // If opened from a single post, initialize with a list of 1 to keep mapping stable initially.
+    // Start from index 0 to enforce "Load from bottom upward" flow
     _videos = widget.playlist ?? (widget.post != null ? [widget.post!] : []);
-
-    if (widget.playlist != null) {
-      _currentIndex = _infiniteLoopOffset + widget.initialIndex;
-    } else {
-      // If single post, start at exactly _infiniteLoopOffset so index % 1 is always 0.
-      _currentIndex = _infiniteLoopOffset;
-    }
-
+    _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
 
-    // If we have a manual controller for the first item, cache it at its global index
     if (widget.manualController != null && _videos.isNotEmpty) {
       _preloadedControllers[_currentIndex] = widget.manualController!;
     }
@@ -91,20 +81,6 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     } else {
       _preloadAdjacent(_currentIndex);
     }
-  }
-
-  void _reshuffle() {
-    if (_videos.length <= 1) return;
-    _shuffledBlocksCache.clear();
-    setState(() {
-      _videos.shuffle(Random());
-      // Reset to start of current loop segment
-      _currentIndex = _infiniteLoopOffset;
-    });
-    if (_pageController.hasClients) {
-      _pageController.jumpToPage(_infiniteLoopOffset);
-    }
-    _preloadAdjacent(_infiniteLoopOffset);
   }
 
   void _preloadAdjacent(int index) {
@@ -208,16 +184,22 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _reshuffle();
-          await Future.delayed(const Duration(milliseconds: 400));
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          // Detect downward overscroll at the start of the playlist to "go back"
+          if (notification is ScrollUpdateNotification &&
+              _currentIndex == 0 &&
+              notification.metrics.pixels < -80) {
+            Navigator.of(context).pop();
+            return true;
+          }
+          return false;
         },
         child: PageView.builder(
           controller: _pageController,
           scrollDirection: Axis.vertical,
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
           onPageChanged: (index) {
             setState(() {
@@ -231,7 +213,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               key: ValueKey('fs_${post.postId}_$index'),
               post: post,
               autoPlay: index == _currentIndex,
-              startPosition: index == widget.initialIndex + _infiniteLoopOffset
+              startPosition: index == widget.initialIndex
                   ? widget.startPosition
                   : null,
               currentUserId: widget.currentUserId,
