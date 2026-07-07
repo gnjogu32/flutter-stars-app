@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:gal/gal.dart';
 import 'package:video_player/video_player.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:starpage/models/post_model.dart';
@@ -640,6 +644,54 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     }
   }
 
+  Future<void> _downloadVideo() async {
+    if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
+
+    // Strict Security: Only the original content creator can download
+    final currentUserId = widget.currentUserId ?? '';
+    final originalAuthorId =
+        widget.post.originalAuthorId ?? widget.post.authorId;
+    if (originalAuthorId != currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Only the original author can download this video.'),
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
+
+    try {
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(widget.post.videoUrl!));
+      final response = await request.close();
+      final bytes = await consolidateHttpClientResponseBytes(response);
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(
+        '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4',
+      );
+      await tempFile.writeAsBytes(bytes);
+
+      await Gal.putVideo(tempFile.path, album: 'Starpage');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video saved to gallery ✓')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      }
+    }
+  }
+
   void _onOpenProfile() {
     final userId = (widget.post.originalAuthorId ?? widget.post.authorId)
         .trim();
@@ -935,6 +987,16 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
               ),
             ),
             const Divider(),
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+                currentUserId)
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Download Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadVideo();
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
               title: const Text('Mute this post'),
@@ -1293,6 +1355,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
                                   '$_viewCount views',
                                   style: const TextStyle(
                                     color: Colors.white70,
+                                    fontSize: 12,
                                   ),
                                 ),
                                 ],

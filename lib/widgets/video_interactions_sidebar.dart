@@ -1,8 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:gal/gal.dart';
 import '../models/post_model.dart';
 import '../services/user_service.dart';
 import '../services/post_service.dart';
@@ -203,51 +199,6 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
     }
   }
 
-  Future<void> _download() async {
-    if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
-
-    if ((widget.post.originalAuthorId ?? widget.post.authorId) !=
-        widget.currentUserId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Only the original author can download this video.'),
-        ),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
-
-    try {
-      final client = HttpClient();
-      final request = await client.getUrl(Uri.parse(widget.post.videoUrl!));
-      final response = await request.close();
-      final bytes = await consolidateHttpClientResponseBytes(response);
-
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File(
-        '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4',
-      );
-      await tempFile.writeAsBytes(bytes);
-
-      await Gal.putVideo(tempFile.path, album: 'Starpage');
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Video saved ✓')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -284,19 +235,10 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           label: _isSaved ? 'Saved' : 'Save',
           onTap: _toggleSave,
         ),
-        if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
-            widget.currentUserId) ...[
-          const SizedBox(height: 14),
-          _InteractionButton(
-            icon: Icons.download_outlined,
-            label: 'Download',
-            onTap: _download,
-          ),
-        ],
         if (widget.onMoreTap != null) ...[
           const SizedBox(height: 14),
           _InteractionButton(
-            icon: Icons.more_horiz_outlined,
+            icon: Icons.more_vert,
             label: 'More',
             onTap: widget.onMoreTap!,
           ),
@@ -328,7 +270,7 @@ class _InteractionButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.all(12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -342,7 +284,7 @@ class _InteractionButton extends StatelessWidget {
                 label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),

@@ -90,8 +90,8 @@ class ReelsScreenState extends State<ReelsScreen> {
   void _preloadAdjacent(int index, List<PostModel> reels) {
     if (reels.isEmpty) return;
 
-    // We preload the current, next and previous to ensure zero-lag swipes
-    final indicesToPreload = [index, index + 1, index - 1];
+    // We preload current, next 2, and previous 1 for high-performance seamless swiping
+    final indicesToPreload = [index, index + 1, index + 2, index - 1];
 
     // Clean up controllers far away from current index
     _preloadedControllers.removeWhere((idx, controller) {
@@ -309,6 +309,7 @@ class _ReelItemState extends State<_ReelItem>
   late int _likeCount;
   bool _isLikeUpdating = false;
   bool _isReposting = false;
+  bool _isSaved = false;
   bool _isMuted = false;
   bool _showLikeHeart = false;
   final bool _showDetails = true; // Sidebar/Details stay persistent
@@ -354,7 +355,57 @@ class _ReelItemState extends State<_ReelItem>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+    _checkSavedStatus();
     _initializeVideo();
+  }
+
+  Future<void> _checkSavedStatus() async {
+    if (_activeUserId.isEmpty) return;
+    try {
+      final userService = UserService();
+      final savedIds = await userService.getSavedPostIds(_activeUserId);
+      if (mounted) {
+        setState(() {
+          _isSaved = savedIds.contains(widget.post.postId);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSave() async {
+    if (_activeUserId.isEmpty) {
+      await AuthGuard.show(context);
+      return;
+    }
+
+    final wasSaved = _isSaved;
+    setState(() => _isSaved = !wasSaved);
+
+    try {
+      final userService = UserService();
+      if (wasSaved) {
+        await userService.unsavePost(_activeUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Removed from Saved ✓')),
+          );
+        }
+      } else {
+        await userService.savePost(_activeUserId, widget.post.postId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Added to Saved ✓')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaved = wasSaved);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _initializeVideo() async {
@@ -869,34 +920,6 @@ class _ReelItemState extends State<_ReelItem>
     );
   }
 
-  Future<void> _openInteractionsSheet() async {
-    if (!mounted) return;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.42,
-        minChildSize: 0.3,
-        maxChildSize: 0.85,
-        snap: true,
-        snapSizes: const [0.42, 0.85],
-        builder: (context, scrollController) => _ReelInteractionsSheet(
-          post: widget.post,
-          isLiked: _isLiked,
-          likeCount: _likeCount,
-          isReposting: _isReposting,
-          onLike: _toggleLike,
-          onComments: _openComments,
-          onRepost: _confirmRepost,
-          onShare: _sharePost,
-          scrollController: scrollController,
-        ),
-      ),
-    );
-  }
-
   void _showMoreOptions() {
     if (_activeUserId.isEmpty) {
       AuthGuard.show(context);
@@ -941,6 +964,16 @@ class _ReelItemState extends State<_ReelItem>
               ),
             ),
             const Divider(),
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+                _activeUserId)
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Download Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadVideo();
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
               title: const Text('Mute this post'),
@@ -1235,227 +1268,236 @@ class _ReelItemState extends State<_ReelItem>
               ),
             ),
 
-          AnimatedOpacity(
-            opacity: _showDetails ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
-            child: IgnorePointer(
-              ignoring: !_showDetails,
-              child: Stack(
-                children: [
-                  Positioned(
-                    right: 12,
-                    bottom: 120,
+          // Layer 3: Bottom Details Overlay
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedOpacity(
+              opacity: _showDetails ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: IgnorePointer(
+                ignoring: !_showDetails,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 32, 80, 24), // Increased right padding for sidebar space
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black54],
+                      ),
+                    ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _InteractionButton(
-                          icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-                          iconColor: _isLiked ? Colors.redAccent : Colors.white,
-                          label: '$_likeCount',
-                          onTap: _toggleLike,
-                        ),
-                        const SizedBox(height: 14),
-                        _InteractionButton(
-                          icon: Icons.comment_outlined,
-                          label: '${widget.post.commentCount}',
-                          onTap: _openInteractionsSheet,
-                        ),
-                        const SizedBox(height: 14),
-                        _InteractionButton(
-                          icon: Icons.repeat,
-                          label: _isReposting
-                              ? '...'
-                              : '${widget.post.repostCount}',
-                          onTap: _confirmRepost,
-                        ),
-                        const SizedBox(height: 14),
-                        _InteractionButton(
-                          icon: Icons.share_outlined,
-                          label: 'Share',
-                          onTap: _sharePost,
-                        ),
-                        const SizedBox(height: 14),
-                        _InteractionButton(
-                          icon: Icons.more_vert,
-                          label: 'More',
-                          onTap: _showMoreOptions,
-                        ),
-                        if ((widget.post.originalAuthorId ??
-                                widget.post.authorId) ==
-                            _activeUserId) ...[
-                          const SizedBox(height: 14),
-                          _InteractionButton(
-                            icon: Icons.download_outlined,
-                            label: 'Download',
-                            onTap: _downloadVideo,
-                          ),
-                        ],
-                        if (!_canInteract) ...[
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Sign in',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: widget.onOpenProfile,
+                              child: CircleAvatar(
+                                radius: 18,
+                                backgroundImage:
+                                    (widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl) !=
+                                        null
+                                ? CachedNetworkImageProvider(
+                                    widget.post.originalAuthorImageUrl ??
+                                        widget.post.authorImageUrl!,
+                                  )
+                                : null,
+                                child:
+                                    (widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl) ==
+                                        null
+                                    ? const Icon(Icons.person)
+                                    : null,
+                              ),
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: widget.onOpenProfile,
-                                child: CircleAvatar(
-                                  radius: 18,
-                                  backgroundImage:
-                                      (widget.post.originalAuthorImageUrl ??
-                                              widget.post.authorImageUrl) !=
-                                          null
-                                      ? CachedNetworkImageProvider(
-                                          widget.post.originalAuthorImageUrl ??
-                                              widget.post.authorImageUrl!,
-                                        )
-                                      : null,
-                                  child:
-                                      (widget.post.originalAuthorImageUrl ??
-                                              widget.post.authorImageUrl) ==
-                                          null
-                                      ? const Icon(Icons.person)
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  ownerName.isEmpty ? 'Unknown' : ownerName,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Text(
-                                '${widget.post.videoViewCount} views',
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                ownerName.isEmpty ? 'Unknown' : ownerName,
                                 style: const TextStyle(
-                                  color: Colors.white70,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
-                          if (widget.post.content.trim().isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            ExpandableText(
-                              widget.post.content,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${widget.post.videoViewCount} views',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: Colors.white70,
+                                fontSize: 12,
                               ),
-                              trimLines: 3,
-                              actionStyle: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              onTap: _openComments,
                             ),
                           ],
-                          if (_isInitialized)
-                            AnimatedOpacity(
-                              opacity: _showProgress ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 300),
-                              child: IgnorePointer(
-                                ignoring: !_showProgress,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 12),
-                                  child: Column(
+                        ),
+                      if (widget.post.content.trim().isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        ExpandableText(
+                          widget.post.content,
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          trimLines: 3,
+                          actionStyle: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          onTap: _openComments,
+                        ),
+                      ],
+                      if (_isInitialized)
+                        AnimatedOpacity(
+                          opacity: _showProgress ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 300),
+                          child: IgnorePointer(
+                            ignoring: !_showProgress,
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Column(
+                                children: [
+                                  VideoProgressIndicator(
+                                    _videoController,
+                                    allowScrubbing: true,
+                                    colors: const VideoProgressColors(
+                                      playedColor: Colors.white,
+                                      bufferedColor: Colors.white24,
+                                      backgroundColor: Colors.white12,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
                                     children: [
-                                      VideoProgressIndicator(
-                                        _videoController,
-                                        allowScrubbing: true,
-                                        colors: const VideoProgressColors(
-                                          playedColor: Colors.white,
-                                          bufferedColor: Colors.white24,
-                                          backgroundColor: Colors.white12,
+                                      ValueListenableBuilder(
+                                        valueListenable: _videoController,
+                                        builder:
+                                            (
+                                              context,
+                                              VideoPlayerValue value,
+                                              child,
+                                            ) {
+                                              return Text(
+                                                _formatDuration(
+                                                  value.position,
+                                                ),
+                                                style: const TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 10,
+                                                ),
+                                              );
+                                            },
+                                      ),
+                                      const Text(
+                                        ' / ',
+                                        style: TextStyle(
+                                          color: Colors.white30,
+                                          fontSize: 10,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          ValueListenableBuilder(
-                                            valueListenable: _videoController,
-                                            builder:
-                                                (
-                                                  context,
-                                                  VideoPlayerValue value,
-                                                  child,
-                                                ) {
-                                                  return Text(
-                                                    _formatDuration(
-                                                      value.position,
-                                                    ),
-                                                    style: const TextStyle(
-                                                      color: Colors.white70,
-                                                      fontSize: 10,
-                                                    ),
-                                                  );
-                                                },
+                                      Text(
+                                        _formatDuration(
+                                          _videoController.value.duration,
+                                        ),
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      GestureDetector(
+                                        onTap: _toggleMute,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          color: Colors.transparent,
+                                          child: Icon(
+                                            _isMuted ? Icons.volume_off : Icons.volume_up,
+                                            color: Colors.white,
+                                            size: 20,
                                           ),
-                                          const Text(
-                                            ' / ',
-                                            style: TextStyle(
-                                              color: Colors.white30,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                          Text(
-                                            _formatDuration(
-                                              _videoController.value.duration,
-                                            ),
-                                            style: const TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                          const Spacer(),
-                                          GestureDetector(
-                                            onTap: _toggleMute,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              color: Colors.transparent,
-                                              child: Icon(
-                                                _isMuted ? Icons.volume_off : Icons.volume_up,
-                                                color: Colors.white,
-                                                size: 18,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
                             ),
-                        ],
-                      ),
-                    ),
+                          ),
+                        ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ),
+          ),
+
+          // Layer 4: Right Sidebar (Interactions) - Topmost for tappability
+          Positioned(
+            right: 12,
+            bottom: 120,
+            child: AnimatedOpacity(
+              opacity: _showDetails ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: IgnorePointer(
+                ignoring: !_showDetails,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _InteractionButton(
+                      icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+                      iconColor: _isLiked ? Colors.redAccent : Colors.white,
+                      label: '$_likeCount',
+                      onTap: _toggleLike,
+                    ),
+                    const SizedBox(height: 14),
+                    _InteractionButton(
+                      icon: Icons.comment_outlined,
+                      label: '${widget.post.commentCount}',
+                      onTap: _openComments, // Changed to open typing screen directly
+                    ),
+                    const SizedBox(height: 14),
+                    _InteractionButton(
+                      icon: Icons.repeat,
+                      label: _isReposting
+                          ? '...'
+                          : '${widget.post.repostCount}',
+                      onTap: _confirmRepost,
+                    ),
+                    const SizedBox(height: 14),
+                    _InteractionButton(
+                      icon: Icons.share_outlined,
+                      label: 'Share',
+                      onTap: _sharePost,
+                    ),
+                    const SizedBox(height: 14),
+                    _InteractionButton(
+                      icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      iconColor: _isSaved ? Colors.amberAccent : Colors.white,
+                      label: _isSaved ? 'Saved' : 'Save',
+                      onTap: _toggleSave,
+                    ),
+                    const SizedBox(height: 14),
+                    _InteractionButton(
+                      icon: Icons.more_vert,
+                      label: 'More',
+                      onTap: _showMoreOptions,
+                    ),
+                    if (!_canInteract) ...[
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Sign in',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1494,7 +1536,7 @@ class _InteractionButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.all(12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1515,158 +1557,6 @@ class _InteractionButton extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ReelInteractionsSheet extends StatefulWidget {
-  final PostModel post;
-  final bool isLiked;
-  final int likeCount;
-  final bool isReposting;
-  final Future<void> Function() onLike;
-  final Future<void> Function() onComments;
-  final Future<void> Function() onRepost;
-  final VoidCallback onShare;
-  final ScrollController scrollController;
-
-  const _ReelInteractionsSheet({
-    required this.post,
-    required this.isLiked,
-    required this.likeCount,
-    required this.isReposting,
-    required this.onLike,
-    required this.onComments,
-    required this.onRepost,
-    required this.onShare,
-    required this.scrollController,
-  });
-
-  @override
-  State<_ReelInteractionsSheet> createState() => _ReelInteractionsSheetState();
-}
-
-class _ReelInteractionsSheetState extends State<_ReelInteractionsSheet> {
-  Future<void> _handleLike() async {
-    await widget.onLike();
-    if (!mounted) return;
-    Navigator.of(context).pop();
-  }
-
-  Future<void> _handleComments() async {
-    Navigator.of(context).pop();
-    await widget.onComments();
-  }
-
-  Future<void> _handleRepost() async {
-    Navigator.of(context).pop();
-    await widget.onRepost();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final content = widget.post.content.trim();
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Interactions',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          if (content.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  content,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          DefaultTabController(
-            length: 4,
-            child: TabBar(
-              onTap: (index) {
-                if (index == 0) _handleLike();
-                if (index == 1) _handleComments();
-                if (index == 2) _handleRepost();
-                if (index == 3) {
-                  widget.onShare();
-                  Navigator.of(context).pop();
-                }
-              },
-              indicatorColor: Colors.transparent,
-              labelColor: theme.colorScheme.primary,
-              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-              dividerColor: Colors.transparent,
-              labelStyle: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-              unselectedLabelStyle: theme.textTheme.labelSmall,
-              tabs: [
-                Tab(
-                  height: 60,
-                  icon: Icon(
-                    widget.isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: widget.isLiked ? Colors.redAccent : null,
-                    size: 24,
-                  ),
-                  child: Text(
-                    '${widget.likeCount}',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
-                Tab(
-                  height: 60,
-                  icon: const Icon(Icons.comment_outlined, size: 24),
-                  child: Text(
-                    '${widget.post.commentCount}',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
-                Tab(
-                  height: 60,
-                  icon: const Icon(Icons.repeat, size: 24),
-                  child: Text(
-                    widget.isReposting ? '...' : '${widget.post.repostCount}',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
-                const Tab(
-                  height: 60,
-                  icon: Icon(Icons.share_outlined, size: 24),
-                  child: Text('Share', style: TextStyle(fontSize: 11)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
       ),
     );
   }
