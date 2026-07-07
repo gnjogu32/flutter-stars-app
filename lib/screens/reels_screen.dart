@@ -485,6 +485,7 @@ class _ReelItemState extends State<_ReelItem>
 
     if (widget.isActive && !oldWidget.isActive) {
       if (_isInitialized && _isPageVisible) {
+        _videoController.setVolume(1.0);
         _videoController.play();
         ScreenAwakeController.acquire();
         AnalyticsService().trackView(widget.post.postId, _ownerId);
@@ -493,6 +494,7 @@ class _ReelItemState extends State<_ReelItem>
       }
     } else if (!widget.isActive && oldWidget.isActive) {
       if (_isInitialized) {
+        _videoController.setVolume(0);
         _videoController.pause();
         ScreenAwakeController.release();
       }
@@ -1223,7 +1225,9 @@ class _ReelItemState extends State<_ReelItem>
               ScreenAwakeController.acquire();
             }
           } else {
+            // Absolute silence on hide
             if (_videoController.value.isPlaying) {
+              _videoController.setVolume(0);
               _videoController.pause();
               ScreenAwakeController.release();
             }

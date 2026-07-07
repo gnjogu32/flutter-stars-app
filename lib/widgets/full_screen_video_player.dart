@@ -150,11 +150,16 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           .toList();
 
       if (mounted) {
+        // Different Author Fix: Ensure the post that was actually tapped is included
+        // in the list, even if it wasn't in the top 41 most recent results.
+        if (widget.post != null) {
+          final bool alreadyPresent = discovery.any((p) => p.postId == widget.post!.postId);
+          if (!alreadyPresent) {
+            discovery.add(widget.post!);
+          }
+        }
+
         setState(() {
-          // Replace entire list with discovery set.
-          // The Pinned Position Optimization in _getVideoAtGlobalIndex will handle
-          // keeping the current video visible at its current global index,
-          // eliminating the need for a jump and removing the black screen flicker.
           _videos = discovery;
         });
         _preloadAdjacent(_currentIndex);
@@ -171,12 +176,12 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _pageController.dispose();
 
-    // Only dispose controllers that were created here,
-    // do NOT dispose the one handed over from the feed.
+    // Silence and pause ALL controllers on dispose to prevent audio leaks
     _preloadedControllers.forEach((_, c) {
+      c.setVolume(0);
+      c.pause();
+      // ONLY dispose if we created it locally (not borrowed from feed)
       if (c != widget.manualController) {
-        c.setVolume(0);
-        c.pause();
         c.dispose();
       }
     });
@@ -266,17 +271,23 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         _shuffledBlocksCache[blockIndex]!.length != length) {
       final blockList = List<PostModel>.from(source);
 
-      // Pinned Position Optimization: If this is the current block on screen during a
-      // list-update (e.g. discovery load), ensure the current post stays at its global
-      // index to prevent black screen flickers and mapping shifts.
-      if (index == _currentIndex && widget.playlist == null && widget.post != null) {
-         final currentPostId = widget.post!.postId;
+      // Pinned Position Optimization: Ensure the initial post stays at its global
+      // index when discovery loads, preventing black screen flickers and mapping shifts.
+      // This also ensures the correct Author details are shown for the tapped video.
+      final int initialBlockIndex = widget.initialIndex ~/ length;
+      final int initialLocalIndex = widget.initialIndex % length;
+
+      if (blockIndex == initialBlockIndex && widget.playlist == null && widget.post != null) {
+         final String targetPostId = widget.post!.postId;
+         
+         // Shuffle first
          blockList.shuffle(Random(blockSeed));
 
-         final currentPos = blockList.indexWhere((p) => p.postId == currentPostId);
-         if (currentPos != -1 && currentPos != localIndex) {
-            final temp = blockList[localIndex];
-            blockList[localIndex] = blockList[currentPos];
+         // Then find the target post in the shuffled list and move it to the correct local index
+         final int currentPos = blockList.indexWhere((p) => p.postId == targetPostId);
+         if (currentPos != -1 && currentPos != initialLocalIndex) {
+            final temp = blockList[initialLocalIndex];
+            blockList[initialLocalIndex] = blockList[currentPos];
             blockList[currentPos] = temp;
          }
       } else {

@@ -174,7 +174,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
       _ignoreVisibilityPause = true;
 
       // Force un-mute and start playback IMMEDIATELY before navigation
-      // Using a microtask or just not awaiting too much to keep UI responsive
       _controller.setVolume(1.0);
       _controller.play();
       _dispatchPlayEvent();
@@ -213,17 +212,22 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
           transitionDuration: const Duration(milliseconds: 300),
         ),
       ).then((_) {
-        // Restore feed state when returning
+        // Ghost Audio Prevention: Restore feed state when returning
         if (mounted) {
-          // Immediate silence on return to feed
-          _controller.pause();
+          // Absolute silence and pause on return to feed
           _controller.setVolume(0.0);
+          _controller.pause();
 
-          // Delay reset slightly to allow VisibilityDetector to settle and prevent accidental autoplay
+          // Delay reset slightly to allow VisibilityDetector to settle
           Future.delayed(const Duration(milliseconds: 400), () {
             if (mounted) {
               _ignoreVisibilityPause = false;
               _isMuted = true;
+              // Double check pause state after flag reset
+              if (_controller.value.isPlaying) {
+                _controller.pause();
+                _controller.setVolume(0.0);
+              }
               setState(() {});
             }
           });
