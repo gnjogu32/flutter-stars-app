@@ -20,6 +20,8 @@ class UserModel {
   final String? fcmToken;
   final bool notificationsEnabled;
   final bool autoPlayEnabled;
+  final DateTime? birthday;
+  final bool birthdayPublic;
 
   UserModel({
     required this.uid,
@@ -40,6 +42,8 @@ class UserModel {
     this.fcmToken,
     this.notificationsEnabled = true,
     this.autoPlayEnabled = true,
+    this.birthday,
+    this.birthdayPublic = false,
   });
 
   // Convert UserModel to JSON for Firestore
@@ -63,6 +67,8 @@ class UserModel {
       'fcmToken': fcmToken,
       'notificationsEnabled': notificationsEnabled,
       'autoPlayEnabled': autoPlayEnabled,
+      'birthday': birthday?.toIso8601String(),
+      'birthdayPublic': birthdayPublic,
     };
   }
 
@@ -95,6 +101,8 @@ class UserModel {
       fcmToken: json['fcmToken'],
       notificationsEnabled: json['notificationsEnabled'] ?? true,
       autoPlayEnabled: json['autoPlayEnabled'] ?? true,
+      birthday: json['birthday'] != null ? DateTime.parse(json['birthday']) : null,
+      birthdayPublic: json['birthdayPublic'] ?? false,
     );
   }
 
@@ -132,6 +140,8 @@ class UserModel {
       fcmToken: data['fcmToken'],
       notificationsEnabled: data['notificationsEnabled'] ?? true,
       autoPlayEnabled: data['autoPlayEnabled'] ?? true,
+      birthday: data['birthday'] != null ? DateTime.parse(data['birthday']) : null,
+      birthdayPublic: data['birthdayPublic'] ?? false,
     );
   }
 
@@ -155,6 +165,8 @@ class UserModel {
     String? fcmToken,
     bool? notificationsEnabled,
     bool? autoPlayEnabled,
+    DateTime? birthday,
+    bool? birthdayPublic,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -175,6 +187,8 @@ class UserModel {
       fcmToken: fcmToken ?? this.fcmToken,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       autoPlayEnabled: autoPlayEnabled ?? this.autoPlayEnabled,
+      birthday: birthday ?? this.birthday,
+      birthdayPublic: birthdayPublic ?? this.birthdayPublic,
     );
   }
 

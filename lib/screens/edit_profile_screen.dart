@@ -29,6 +29,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedTalent;
   XFile? _selectedProfileImage;
   Uint8List? _selectedProfileImageBytes;
+  DateTime? _birthday;
+  bool _birthdayPublic = false;
   bool _isLoading = false;
   String? _errorMessage;
   UserModel? _currentUser;
@@ -78,6 +80,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _usernameController.text = user?.username ?? '';
             _bioController.text = user?.bio ?? '';
             _selectedTalent = user?.talent;
+            _birthday = user?.birthday;
+            _birthdayPublic = user?.birthdayPublic ?? false;
           });
         }
       }
@@ -352,6 +356,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         talent: _selectedTalent,
         clearProfileImage:
             _shouldDeletePhoto && _currentUser?.profileImageUrl != null,
+        birthday: _birthday,
+        birthdayPublic: _birthdayPublic,
       );
 
       // Keep Firebase Auth display name in sync with Firestore
@@ -560,6 +566,59 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Birthday Selection
+            InkWell(
+              onTap: () async {
+                final pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: _birthday ?? DateTime(2000),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                if (pickedDate != null) {
+                  setState(() {
+                    _birthday = pickedDate;
+                  });
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Birthday',
+                  prefixIcon: const Icon(Icons.cake),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _birthday == null
+                          ? 'Select Birthday'
+                          : '${_birthday!.year}-${_birthday!.month.toString().padLeft(2, '0')}-${_birthday!.day.toString().padLeft(2, '0')}',
+                    ),
+                    const Icon(Icons.calendar_today, size: 20),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Birthday Visibility
+            SwitchListTile(
+              title: const Text('Public Birthday'),
+              subtitle: const Text('Show your birthday on your profile'),
+              value: _birthdayPublic,
+              onChanged: (bool value) {
+                setState(() {
+                  _birthdayPublic = value;
+                });
+              },
+              secondary: const Icon(Icons.visibility),
+              contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 8),
 

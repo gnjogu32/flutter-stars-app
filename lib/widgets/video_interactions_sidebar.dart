@@ -210,25 +210,25 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           label: '$_likeCount',
           onTap: _toggleLike,
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         _InteractionButton(
           icon: Icons.comment_outlined,
           label: '${widget.post.commentCount}',
           onTap: _openComments,
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         _InteractionButton(
           icon: Icons.repeat,
           label: '${widget.post.repostCount}',
           onTap: _openRepost, // Reuse details for repost/comment actions
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         _InteractionButton(
           icon: Icons.share_outlined,
           label: 'Share',
           onTap: _share,
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         _InteractionButton(
           icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
           iconColor: _isSaved ? Colors.amberAccent : Colors.white,
@@ -236,7 +236,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
           onTap: _toggleSave,
         ),
         if (widget.onMoreTap != null) ...[
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           _InteractionButton(
             icon: Icons.more_vert,
             label: 'More',
@@ -270,21 +270,21 @@ class _InteractionButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
                 color: iconColor ?? Colors.white,
-                size: 22,
+                size: 20, // Slightly smaller icon
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2), // Smaller gap between icon and label
               Text(
                 label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 10, // Slightly smaller font
                   fontWeight: FontWeight.w600,
                 ),
               ),

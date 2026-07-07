@@ -206,6 +206,8 @@ class UserService {
     String? profileImageUrl,
     String? talent,
     bool clearProfileImage = false,
+    DateTime? birthday,
+    bool? birthdayPublic,
   }) async {
     try {
       final Map<String, dynamic> updateData = {};
@@ -219,6 +221,8 @@ class UserService {
         updateData['profileImageUrl'] = profileImageUrl;
       }
       if (talent != null) updateData['talent'] = talent;
+      if (birthday != null) updateData['birthday'] = birthday.toIso8601String();
+      if (birthdayPublic != null) updateData['birthdayPublic'] = birthdayPublic;
 
       updateData['updatedAt'] = DateTime.now();
 

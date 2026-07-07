@@ -129,6 +129,15 @@ class ReelsScreenState extends State<ReelsScreen> {
   void dispose() {
     widget.tabActiveNotifier.removeListener(_onTabVisibilityChanged);
     _pageController.dispose();
+    
+    // Silence and dispose all preloaded controllers to prevent ghost audio
+    for (final controller in _preloadedControllers.values) {
+      controller.setVolume(0);
+      controller.pause();
+      controller.dispose();
+    }
+    _preloadedControllers.clear();
+
     super.dispose();
   }
 
@@ -813,7 +822,7 @@ class _ReelItemState extends State<_ReelItem>
                       ),
                       const SizedBox(height: 16),
                       const Divider(),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       const Text(
                         'Schedule (Optional)',
                         style: TextStyle(
@@ -821,7 +830,7 @@ class _ReelItemState extends State<_ReelItem>
                           fontSize: 14,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       SizedBox(
                         width: double.maxFinite,
                         child: Column(
@@ -1452,13 +1461,13 @@ class _ReelItemState extends State<_ReelItem>
                       label: '$_likeCount',
                       onTap: _toggleLike,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _InteractionButton(
                       icon: Icons.comment_outlined,
                       label: '${widget.post.commentCount}',
                       onTap: _openComments, // Changed to open typing screen directly
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _InteractionButton(
                       icon: Icons.repeat,
                       label: _isReposting
@@ -1466,20 +1475,20 @@ class _ReelItemState extends State<_ReelItem>
                           : '${widget.post.repostCount}',
                       onTap: _confirmRepost,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _InteractionButton(
                       icon: Icons.share_outlined,
                       label: 'Share',
                       onTap: _sharePost,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _InteractionButton(
                       icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
                       iconColor: _isSaved ? Colors.amberAccent : Colors.white,
                       label: _isSaved ? 'Saved' : 'Save',
                       onTap: _toggleSave,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _InteractionButton(
                       icon: Icons.more_vert,
                       label: 'More',
@@ -1536,21 +1545,21 @@ class _InteractionButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
                 color: iconColor ?? Colors.white,
-                size: 22,
+                size: 20,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
               ),

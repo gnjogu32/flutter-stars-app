@@ -575,6 +575,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
+
+          // Birthday
+          if (user.birthday != null && (user.birthdayPublic || isOwnProfile))
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.cake, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Born ${DateFormat('MMMM dd, yyyy').format(user.birthday!)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  if (isOwnProfile) ...[
+                    const SizedBox(width: 8),
+                    Icon(
+                      user.birthdayPublic ? Icons.visibility : Icons.visibility_off,
+                      size: 12,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           const SizedBox(height: 16),
           // Stats row
           StreamBuilder<QuerySnapshot>(
