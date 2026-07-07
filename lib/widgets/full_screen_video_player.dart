@@ -1300,7 +1300,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
               right: 0,
               bottom: 0,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 32, 80, 24), // Increased right padding for sidebar
                 decoration: const BoxDecoration(
                   color: Colors.transparent,
                 ),
@@ -1343,21 +1343,22 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                    ownerName.isEmpty ? 'Unknown' : ownerName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
+                                      ownerName.isEmpty ? 'Unknown' : ownerName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                                Text(
-                                  '$_viewCount views',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$_viewCount views',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
                                 ],
                               ),
                               if (widget.post.content.trim().isNotEmpty) ...[
@@ -1378,7 +1379,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
                             ],
                           ),
                         ),
-                        const SizedBox(width: 60), // Space for sidebar
                       ],
                     ),
                     AnimatedOpacity(

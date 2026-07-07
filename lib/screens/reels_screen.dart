@@ -1452,13 +1452,13 @@ class _ReelItemState extends State<_ReelItem>
                       label: '$_likeCount',
                       onTap: _toggleLike,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 8),
                     _InteractionButton(
                       icon: Icons.comment_outlined,
                       label: '${widget.post.commentCount}',
                       onTap: _openComments, // Changed to open typing screen directly
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 8),
                     _InteractionButton(
                       icon: Icons.repeat,
                       label: _isReposting
@@ -1466,20 +1466,20 @@ class _ReelItemState extends State<_ReelItem>
                           : '${widget.post.repostCount}',
                       onTap: _confirmRepost,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 8),
                     _InteractionButton(
                       icon: Icons.share_outlined,
                       label: 'Share',
                       onTap: _sharePost,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 8),
                     _InteractionButton(
                       icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
                       iconColor: _isSaved ? Colors.amberAccent : Colors.white,
                       label: _isSaved ? 'Saved' : 'Save',
                       onTap: _toggleSave,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 8),
                     _InteractionButton(
                       icon: Icons.more_vert,
                       label: 'More',
@@ -1536,7 +1536,7 @@ class _InteractionButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
