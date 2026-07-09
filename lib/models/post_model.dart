@@ -19,6 +19,7 @@ class PostModel {
   final int commentCount;
   final int repostCount;
   final int videoViewCount;
+  final List<String> hashtags;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -41,6 +42,7 @@ class PostModel {
     this.commentCount = 0,
     this.repostCount = 0,
     this.videoViewCount = 0,
+    this.hashtags = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -66,6 +68,7 @@ class PostModel {
       'commentCount': commentCount,
       'repostCount': repostCount,
       'videoViewCount': videoViewCount,
+      'hashtags': hashtags,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -93,6 +96,7 @@ class PostModel {
       commentCount: json['commentCount'] ?? 0,
       repostCount: json['repostCount'] ?? 0,
       videoViewCount: json['videoViewCount'] ?? 0,
+      hashtags: List<String>.from(json['hashtags'] ?? []),
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -133,6 +137,7 @@ class PostModel {
       commentCount: data['commentCount'] ?? 0,
       repostCount: data['repostCount'] ?? 0,
       videoViewCount: data['videoViewCount'] ?? 0,
+      hashtags: List<String>.from(data['hashtags'] ?? []),
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.parse(
@@ -164,6 +169,7 @@ class PostModel {
     int? commentCount,
     int? repostCount,
     int? videoViewCount,
+    List<String>? hashtags,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -185,6 +191,7 @@ class PostModel {
       commentCount: commentCount ?? this.commentCount,
       repostCount: repostCount ?? this.repostCount,
       videoViewCount: videoViewCount ?? this.videoViewCount,
+      hashtags: hashtags ?? this.hashtags,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

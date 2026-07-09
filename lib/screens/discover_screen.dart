@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
+import '../models/post_model.dart';
 import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
 import '../widgets/author_profile_avatar.dart';
+import '../widgets/post_widget.dart';
 import 'profile_screen.dart';
+import 'hashtag_feed_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -15,11 +18,14 @@ class DiscoverScreen extends StatefulWidget {
   State<DiscoverScreen> createState() => _DiscoverScreenState();
 }
 
-class _DiscoverScreenState extends State<DiscoverScreen> {
+class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late TabController _tabController;
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   String _selectedTalentFilter = 'All';
+  List<String> _trendingHashtags = [];
+  List<PostModel>? _cachedDiscoveryPosts;
 
   final List<String> talents = [
     'All',
@@ -38,7 +44,33 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _searchFocusNode.addListener(_handleFocusChanged);
+    _loadTrendingHashtags();
+  }
+
+  Future<void> _loadTrendingHashtags() async {
+    try {
+      // Basic logic: get unique hashtags from recent posts
+      final snapshot = await _firestore.collection('posts')
+          .orderBy('createdAt', descending: true)
+          .limit(100)
+          .get();
+      
+      final Set<String> tags = {};
+      for (var doc in snapshot.docs) {
+        final post = PostModel.fromJson(doc.data());
+        tags.addAll(post.hashtags);
+      }
+      
+      if (mounted) {
+        setState(() {
+          _trendingHashtags = tags.toList().take(10).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading trending hashtags: $e');
+    }
   }
 
   void _handleFocusChanged() {
@@ -49,6 +81,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchFocusNode.removeListener(_handleFocusChanged);
     _searchFocusNode.dispose();
     _searchController.dispose();
@@ -60,9 +93,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const AuthorProfileAvatar(),
-        title: const Text('Discover Talents'),
+        title: const Text('Discover'),
         centerTitle: true,
         elevation: 0,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Stars'),
+            Tab(text: 'Posts'),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -72,8 +112,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search talented stars...',
+                hintText: _tabController.index == 0 
+                  ? 'Search talented stars...' 
+                  : 'Search posts or #hashtags...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty 
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -84,6 +135,50 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               },
             ),
           ),
+          
+          // Trending Hashtags
+          if (_trendingHashtags.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Text(
+                    'Trending Tags',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Row(
+                    children: _trendingHashtags.map((tag) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: ActionChip(
+                          label: Text('#$tag'),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => HashtagFeedScreen(hashtag: tag),
+                              ),
+                            );
+                          },
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+
           // Talent Filter Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -106,10 +201,100 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Users List
-          Expanded(child: _buildUsersList()),
+          // Content Area
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildUsersList(),
+                _buildPostsList(),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPostsList() {
+    Query query = _firestore.collection('posts');
+
+    // Apply talent filter
+    if (_selectedTalentFilter != 'All') {
+      query = query.where('talent', isEqualTo: _selectedTalentFilter);
+    }
+    
+    query = query.orderBy('createdAt', descending: true);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && _cachedDiscoveryPosts == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError && _cachedDiscoveryPosts == null) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (snapshot.hasData) {
+          final latestPosts = snapshot.data!.docs
+              .map((doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>))
+              .toList();
+
+          if (_cachedDiscoveryPosts == null || _cachedDiscoveryPosts!.isEmpty) {
+            _cachedDiscoveryPosts = latestPosts;
+          } else {
+            // Background update: only add truly new items to avoid jumping
+            final existingIds = _cachedDiscoveryPosts!.map((p) => p.postId).toSet();
+            final newItems = latestPosts.where((p) => !existingIds.contains(p.postId)).toList();
+            if (newItems.isNotEmpty) {
+              // Add new items but don't re-shuffle current block yet to prevent jumping
+              _cachedDiscoveryPosts!.insertAll(0, newItems);
+            }
+          }
+        }
+
+        final filteredPosts = _cachedDiscoveryPosts ?? [];
+
+        var searchedPosts = filteredPosts;
+
+        // Apply search filter (Keyword or Hashtag)
+        if (_searchController.text.isNotEmpty) {
+          final searchTerm = _searchController.text.toLowerCase();
+          searchedPosts = filteredPosts.where((post) {
+            final contentMatch = post.content.toLowerCase().contains(searchTerm);
+            final hashtagMatch = post.hashtags.any((tag) => tag.contains(searchTerm.replaceAll('#', '')));
+            final authorMatch = post.authorName.toLowerCase().contains(searchTerm);
+            return contentMatch || hashtagMatch || authorMatch;
+          }).toList();
+        }
+
+        if (searchedPosts.isEmpty) {
+          return const Center(
+            child: Text('No posts found matching your search.'),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {
+              _cachedDiscoveryPosts = null;
+            });
+            await Future.delayed(const Duration(milliseconds: 400));
+          },
+          child: ListView.builder(
+            itemCount: searchedPosts.length,
+            padding: const EdgeInsets.only(bottom: 24),
+            itemBuilder: (context, index) {
+              return PostWidget(
+                post: searchedPosts[index],
+                currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

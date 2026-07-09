@@ -114,6 +114,17 @@ class PostService {
       // Generate postId for the upload path (will be used in Firestore too)
       final postId = _firestore.collection('posts').doc().id;
 
+      // Extract hashtags
+      final hashtags = <String>[];
+      final hashtagRegex = RegExp(r'#(\w+)');
+      final matches = hashtagRegex.allMatches(content);
+      for (final match in matches) {
+        final tag = match.group(1)?.toLowerCase();
+        if (tag != null && !hashtags.contains(tag)) {
+          hashtags.add(tag);
+        }
+      }
+
       // Create post document (postId already generated above)
       final now = DateTime.now();
 
@@ -128,6 +139,7 @@ class PostService {
         videoUrl: videoUrl,
         talent: talent,
         postType: postType,
+        hashtags: hashtags,
         createdAt: now,
         updatedAt: now,
       );
@@ -247,9 +259,21 @@ class PostService {
     String? repostCaption,
   }) async {
     try {
+      // Extract hashtags from content
+      final hashtags = <String>[];
+      final hashtagRegex = RegExp(r'#(\w+)');
+      final matches = hashtagRegex.allMatches(content);
+      for (final match in matches) {
+        final tag = match.group(1)?.toLowerCase();
+        if (tag != null && !hashtags.contains(tag)) {
+          hashtags.add(tag);
+        }
+      }
+
       final updateData = {
         'content': content,
         'talent': talent,
+        'hashtags': hashtags,
         'updatedAt': DateTime.now(),
       };
 
