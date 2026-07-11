@@ -132,6 +132,8 @@ class _PostWidgetState extends State<PostWidget>
 
   @override
   void dispose() {
+    _videoPlayerKey.currentState?.pause();
+    _audioPlayerKey.currentState?.pause();
     _heartAnimationController.dispose();
     super.dispose();
   }
@@ -438,7 +440,7 @@ class _PostWidgetState extends State<PostWidget>
           );
         }
       } else {
-        await postService.repostPost(
+        final repostId = await postService.repostPost(
           originalPost: widget.post,
           reposterId: widget.currentUserId,
           reposterName: actorName,
@@ -455,7 +457,7 @@ class _PostWidgetState extends State<PostWidget>
               triggeredByName: actorName,
               triggeredByImageUrl: currentUser.profileImageUrl,
               type: 'repost_post',
-              postId: widget.post.postId,
+              postId: repostId,
               content: '$actorName reposted your content',
             );
           } catch (e) {
@@ -1001,36 +1003,6 @@ class _PostWidgetState extends State<PostWidget>
     textController.dispose();
   }
 
-  Future<void> _confirmCopyToClipboard() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Copy to Clipboard'),
-        content: const Text('Are you sure you want to copy this post?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.blue),
-            child: const Text('Copy'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await ShareService.copyToClipboard(widget.post);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Copied to clipboard!')));
-      }
-    }
-  }
-
   Future<void> _saveImageToGallery(String imageUrl) async {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(const SnackBar(content: Text('Saving image…')));
@@ -1259,70 +1231,98 @@ class _PostWidgetState extends State<PostWidget>
 
   Widget _buildResponsiveFeedInteractions() {
     final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            width: 0.5,
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.post.postId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        // Use stream data if available, fallback to widget.post
+        int likeCount = _likeCount;
+        int commentCount = widget.post.commentCount;
+        int repostCount = widget.post.repostCount;
+        bool isLiked = _isLiked;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final List likes = data['likes'] as List? ?? [];
+          likeCount = likes.length;
+          commentCount = data['commentCount'] ?? 0;
+          repostCount = data['repostCount'] ?? 0;
+          isLiked = likes.contains(widget.currentUserId);
+          
+          // Sync local state for optimistic UI if needed, but carefully
+          if (!_isLikeUpdating) {
+            _isLiked = isLiked;
+            _likeCount = likeCount;
+          }
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: 0.5,
+              ),
+            ),
           ),
-        ),
-      ),
-      child: DefaultTabController(
-        length: 4,
-        child: TabBar(
-          onTap: (index) {
-            if (index == 0) _toggleLike();
-            if (index == 1) {
-              _openCommentsSheet(postContent: widget.post.content);
-            }
-            if (index == 2) _confirmRepost();
-            if (index == 3) _showShareOptions();
-          },
-          indicatorColor:
-              Colors.transparent, // Hide indicator as these are actions
-          labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-          labelStyle: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+          child: DefaultTabController(
+            length: 4,
+            child: TabBar(
+              onTap: (index) {
+                if (index == 0) _toggleLike();
+                if (index == 1) {
+                  _openCommentsSheet(postContent: widget.post.content);
+                }
+                if (index == 2) _confirmRepost();
+                if (index == 3) _showShareOptions();
+              },
+              indicatorColor: Colors.transparent,
+              labelColor: theme.colorScheme.primary,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              labelStyle: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: theme.textTheme.labelSmall,
+              indicatorWeight: 0.1,
+              dividerColor: Colors.transparent,
+              tabs: [
+                Tab(
+                  height: 48,
+                  icon: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: isLiked ? Colors.red : null,
+                    size: 20,
+                  ),
+                  child: Text('$likeCount', style: const TextStyle(fontSize: 10)),
+                ),
+                Tab(
+                  height: 48,
+                  icon: const Icon(Icons.comment_outlined, size: 20),
+                  child: Text(
+                    '$commentCount',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ),
+                Tab(
+                  height: 48,
+                  icon: const Icon(Icons.repeat, size: 20),
+                  child: Text(
+                    '$repostCount',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ),
+                const Tab(
+                  height: 48,
+                  icon: Icon(Icons.share_outlined, size: 20),
+                  child: Text('Share', style: TextStyle(fontSize: 10)),
+                ),
+              ],
+            ),
           ),
-          unselectedLabelStyle: theme.textTheme.labelSmall,
-          indicatorWeight: 0.1,
-          dividerColor: Colors.transparent,
-          tabs: [
-            Tab(
-              height: 48,
-              icon: Icon(
-                _isLiked ? Icons.favorite : Icons.favorite_border,
-                color: _isLiked ? Colors.red : null,
-                size: 20,
-              ),
-              child: Text('$_likeCount', style: const TextStyle(fontSize: 10)),
-            ),
-            Tab(
-              height: 48,
-              icon: const Icon(Icons.comment_outlined, size: 20),
-              child: Text(
-                '${widget.post.commentCount}',
-                style: const TextStyle(fontSize: 10),
-              ),
-            ),
-            Tab(
-              height: 48,
-              icon: const Icon(Icons.repeat, size: 20),
-              child: Text(
-                '${widget.post.repostCount}',
-                style: const TextStyle(fontSize: 10),
-              ),
-            ),
-            const Tab(
-              height: 48,
-              icon: Icon(Icons.share_outlined, size: 20),
-              child: Text('Share', style: TextStyle(fontSize: 10)),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1641,21 +1641,34 @@ class _PostWidgetState extends State<PostWidget>
                         ),
                         Padding(
                           padding: const EdgeInsets.only(top: 6.0, left: 4.0),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.remove_red_eye_outlined,
-                                size: 14,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '$_viewCount views',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                              ),
-                            ],
+                          child: StreamBuilder<DocumentSnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('posts')
+                                .doc(widget.post.postId)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              int viewCount = _viewCount;
+                              if (snapshot.hasData && snapshot.data!.exists) {
+                                viewCount = snapshot.data!.get('videoViewCount') ?? 0;
+                                _viewCount = viewCount;
+                              }
+                              return Row(
+                                children: [
+                                  const Icon(
+                                    Icons.remove_red_eye_outlined,
+                                    size: 14,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$viewCount views',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(height: 12),

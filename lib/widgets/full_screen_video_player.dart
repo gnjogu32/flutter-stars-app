@@ -118,7 +118,6 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         if (url != null && url.isNotEmpty) {
           final controller = VideoPlayerController.networkUrl(
             Uri.parse(url),
-            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
           _preloadedControllers[i] = controller;
           controller.initialize().then((_) {
@@ -401,7 +400,6 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
 
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(url),
-      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
     );
     try {
       await _controller.initialize();
@@ -843,7 +841,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
           );
         }
       } else {
-        await postService.repostPost(
+        final repostId = await postService.repostPost(
           originalPost: widget.post,
           reposterId: currentUserId,
           reposterName: actorName,
@@ -863,7 +861,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
               triggeredByName: actorName,
               triggeredByImageUrl: currentUser.profileImageUrl,
               type: 'repost_post',
-              postId: widget.post.postId,
+              postId: repostId,
               content: '$actorName reposted your content',
             );
           } catch (e) {
@@ -1589,12 +1587,25 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    '$_viewCount views',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
+                                  StreamBuilder<DocumentSnapshot>(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('posts')
+                                        .doc(widget.post.postId)
+                                        .snapshots(),
+                                    builder: (context, snapshot) {
+                                      int viewCount = _viewCount;
+                                      if (snapshot.hasData && snapshot.data!.exists) {
+                                        viewCount = snapshot.data!.get('videoViewCount') ?? 0;
+                                        _viewCount = viewCount;
+                                      }
+                                      return Text(
+                                        '$viewCount views',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),

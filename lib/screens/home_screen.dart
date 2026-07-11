@@ -232,6 +232,7 @@ class HomeScreenState extends State<HomeScreen> {
                       return TrendingStreamSection(
                         currentUserId: _auth.currentUser?.uid ?? '',
                         autoPlayEnabled: autoPlayEnabled,
+                        isTabVisible: _isTabVisible,
                       );
                     }
 

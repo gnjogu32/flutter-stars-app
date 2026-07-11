@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/post_model.dart';
 import '../services/user_service.dart';
 import '../services/post_service.dart';
@@ -285,49 +286,76 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _InteractionButton(
-          icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-          iconColor: _isLiked ? Colors.redAccent : Colors.white,
-          label: '$_likeCount',
-          onTap: _toggleLike,
-        ),
-        const SizedBox(height: 4),
-        _InteractionButton(
-          icon: Icons.comment_outlined,
-          label: '${widget.post.commentCount}',
-          onTap: _openComments,
-        ),
-        const SizedBox(height: 4),
-        _InteractionButton(
-          icon: Icons.repeat,
-          label: '${widget.post.repostCount}',
-          onTap: _openRepost, // Reuse details for repost/comment actions
-        ),
-        const SizedBox(height: 4),
-        _InteractionButton(
-          icon: Icons.share_outlined,
-          label: 'Share',
-          onTap: _share,
-        ),
-        const SizedBox(height: 4),
-        _InteractionButton(
-          icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
-          iconColor: _isSaved ? Colors.amberAccent : Colors.white,
-          label: _isSaved ? 'Saved' : 'Save',
-          onTap: _toggleSave,
-        ),
-        if (widget.onMoreTap != null) ...[
-          const SizedBox(height: 4),
-          _InteractionButton(
-            icon: Icons.more_vert,
-            label: 'More',
-            onTap: widget.onMoreTap!,
-          ),
-        ],
-      ],
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.post.postId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        int likeCount = _likeCount;
+        int commentCount = widget.post.commentCount;
+        int repostCount = widget.post.repostCount;
+        bool isLiked = _isLiked;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final List likes = data['likes'] as List? ?? [];
+          likeCount = likes.length;
+          commentCount = data['commentCount'] ?? 0;
+          repostCount = data['repostCount'] ?? 0;
+          isLiked = likes.contains(widget.currentUserId);
+
+          if (!_isLikeUpdating) {
+            _isLiked = isLiked;
+            _likeCount = likeCount;
+          }
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _InteractionButton(
+              icon: isLiked ? Icons.favorite : Icons.favorite_border,
+              iconColor: isLiked ? Colors.redAccent : Colors.white,
+              label: '$likeCount',
+              onTap: _toggleLike,
+            ),
+            const SizedBox(height: 4),
+            _InteractionButton(
+              icon: Icons.comment_outlined,
+              label: '$commentCount',
+              onTap: _openComments,
+            ),
+            const SizedBox(height: 4),
+            _InteractionButton(
+              icon: Icons.repeat,
+              label: '$repostCount',
+              onTap: _openRepost, // Reuse details for repost/comment actions
+            ),
+            const SizedBox(height: 4),
+            _InteractionButton(
+              icon: Icons.share_outlined,
+              label: 'Share',
+              onTap: _share,
+            ),
+            const SizedBox(height: 4),
+            _InteractionButton(
+              icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
+              iconColor: _isSaved ? Colors.amberAccent : Colors.white,
+              label: _isSaved ? 'Saved' : 'Save',
+              onTap: _toggleSave,
+            ),
+            if (widget.onMoreTap != null) ...[
+              const SizedBox(height: 4),
+              _InteractionButton(
+                icon: Icons.more_vert,
+                label: 'More',
+                onTap: widget.onMoreTap!,
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

@@ -179,7 +179,7 @@ class PostService {
   }
 
   // Repost existing content to current user's feed
-  Future<void> repostPost({
+  Future<String> repostPost({
     required PostModel originalPost,
     required String reposterId,
     required String reposterName,
@@ -263,6 +263,7 @@ class PostService {
           type: 'mention_user',
         );
       }
+      return postId;
     } catch (e) {
       rethrow;
     }

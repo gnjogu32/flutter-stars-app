@@ -365,6 +365,7 @@ class _NotificationItemState extends State<_NotificationItem>
               notification.type == 'comment' ||
               notification.type == 'mention_followers' ||
               notification.type == 'mention_user' ||
+              notification.type == 'repost_post' ||
               notification.type == 'like_comment') {
             if (notification.postId != null && context.mounted) {
               await _openPostDetails(context, notification.postId!, currentUserId);

@@ -41,7 +41,7 @@ class ReelsScreen extends StatefulWidget {
   State<ReelsScreen> createState() => ReelsScreenState();
 }
 
-class ReelsScreenState extends State<ReelsScreen> {
+class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
   late final FirebaseFirestore _firestore;
   static const int _infiniteLoopOffset = 0; // Enforce "Load from bottom upward" logic
   int _refreshSeed = Random().nextInt(1000000);
@@ -58,10 +58,24 @@ class ReelsScreenState extends State<ReelsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _firestore = widget.firestore ?? FirebaseFirestore.instance;
     _tabVisible = widget.tabActiveNotifier.value;
     _pageController = PageController(initialPage: _infiniteLoopOffset);
     widget.tabActiveNotifier.addListener(_onTabVisibilityChanged);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      // Silence and pause all preloaded controllers when app is in background
+      for (final controller in _preloadedControllers.values) {
+        controller.setVolume(0);
+        controller.pause();
+      }
+    }
   }
 
   @visibleForTesting
@@ -113,7 +127,6 @@ class ReelsScreenState extends State<ReelsScreen> {
         if (post.videoUrl != null && post.videoUrl!.isNotEmpty) {
           final controller = VideoPlayerController.networkUrl(
             Uri.parse(post.videoUrl!),
-            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
           _preloadedControllers[idx] = controller;
           controller.initialize();
@@ -436,7 +449,6 @@ class _ReelItemState extends State<_ReelItem>
     } else {
       _videoController = VideoPlayerController.networkUrl(
         Uri.parse(widget.post.videoUrl!),
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
     }
 
@@ -651,7 +663,7 @@ class _ReelItemState extends State<_ReelItem>
           );
         }
       } else {
-        await postService.repostPost(
+        final repostId = await postService.repostPost(
           originalPost: widget.post,
           reposterId: _activeUserId,
           reposterName: actorName,
@@ -675,7 +687,7 @@ class _ReelItemState extends State<_ReelItem>
               triggeredByName: actorName,
               triggeredByImageUrl: currentUser.profileImageUrl,
               type: 'repost_post',
-              postId: widget.post.postId,
+              postId: repostId,
               content: '$actorName reposted your content',
             );
           } catch (e) {
@@ -1194,7 +1206,6 @@ class _ReelItemState extends State<_ReelItem>
 
   void _showShareOptions() {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
@@ -1388,287 +1399,316 @@ class _ReelItemState extends State<_ReelItem>
           }
         }
       },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_isInitialized)
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onDoubleTap: _handleDoubleTap,
-              onTap: () {
-                setState(() {
-                  _showProgress = true;
-                  if (_videoController.value.isPlaying) {
-                    _videoController.pause();
-                    ScreenAwakeController.release();
-                    _progressTimer?.cancel();
-                  } else {
-                    _videoController.play();
-                    ScreenAwakeController.acquire();
-                    _startProgressTimer();
-                  }
-                });
-              },
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: _videoController.value.aspectRatio,
-                  child: RepaintBoundary(
-                    child: VideoPlayer(_videoController),
-                  ),
-                ),
-              ),
-            )
-          else
-            const Center(child: CircularProgressIndicator(color: Colors.white)),
+      child: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('posts')
+            .doc(widget.post.postId)
+            .snapshots(),
+        builder: (context, snapshot) {
+          int likeCount = _likeCount;
+          int commentCount = widget.post.commentCount;
+          int repostCount = widget.post.repostCount;
+          int viewCount = widget.post.videoViewCount;
+          bool isLiked = _isLiked;
 
-          // Double tap heart animation
-          if (_showLikeHeart)
-            Center(
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.0, end: 1.2).animate(
-                  CurvedAnimation(
-                    parent: _heartAnimationController,
-                    curve: Curves.elasticOut,
-                  ),
-                ),
-                child: const Icon(Icons.favorite, color: Colors.white, size: 100),
-              ),
-            ),
+          if (snapshot.hasData && snapshot.data!.exists) {
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+            final List likes = data['likes'] as List? ?? [];
+            likeCount = likes.length;
+            commentCount = data['commentCount'] ?? 0;
+            repostCount = data['repostCount'] ?? 0;
+            viewCount = data['videoViewCount'] ?? 0;
+            isLiked = likes.contains(_activeUserId);
 
-          // Layer 3: Bottom Details Overlay
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedOpacity(
-              opacity: _showDetails ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              child: IgnorePointer(
-                ignoring: !_showDetails,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 32, 80, 24), // Increased right padding for sidebar space
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black54],
+            if (!_isLikeUpdating) {
+              _isLiked = isLiked;
+              _likeCount = likeCount;
+            }
+          }
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_isInitialized)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onDoubleTap: _handleDoubleTap,
+                  onTap: () {
+                    setState(() {
+                      _showProgress = true;
+                      if (_videoController.value.isPlaying) {
+                        _videoController.pause();
+                        ScreenAwakeController.release();
+                        _progressTimer?.cancel();
+                      } else {
+                        _videoController.play();
+                        ScreenAwakeController.acquire();
+                        _startProgressTimer();
+                      }
+                    });
+                  },
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: _videoController.value.aspectRatio,
+                      child: RepaintBoundary(
+                        child: VideoPlayer(_videoController),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
+                  ),
+                )
+              else
+                const Center(child: CircularProgressIndicator(color: Colors.white)),
+
+              // Double tap heart animation
+              if (_showLikeHeart)
+                Center(
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: 0.0, end: 1.2).animate(
+                      CurvedAnimation(
+                        parent: _heartAnimationController,
+                        curve: Curves.elasticOut,
+                      ),
+                    ),
+                    child: const Icon(Icons.favorite, color: Colors.white, size: 100),
+                  ),
+                ),
+
+              // Layer 3: Bottom Details Overlay
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: AnimatedOpacity(
+                  opacity: _showDetails ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: IgnorePointer(
+                    ignoring: !_showDetails,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 32, 80, 24), // Increased right padding for sidebar space
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Colors.black54],
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            GestureDetector(
-                              onTap: widget.onOpenProfile,
-                              child: CircleAvatar(
-                                radius: 18,
-                                backgroundImage:
-                                    (widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl) !=
-                                        null
-                                ? CachedNetworkImageProvider(
-                                    widget.post.originalAuthorImageUrl ??
-                                        widget.post.authorImageUrl!,
-                                  )
-                                : null,
-                                child:
-                                    (widget.post.originalAuthorImageUrl ??
-                                            widget.post.authorImageUrl) ==
-                                        null
-                                    ? const Icon(Icons.person)
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: widget.onOpenProfile,
+                                  child: CircleAvatar(
+                                    radius: 18,
+                                    backgroundImage:
+                                        (widget.post.originalAuthorImageUrl ??
+                                                widget.post.authorImageUrl) !=
+                                            null
+                                    ? CachedNetworkImageProvider(
+                                        widget.post.originalAuthorImageUrl ??
+                                            widget.post.authorImageUrl!,
+                                      )
                                     : null,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                ownerName.isEmpty ? 'Unknown' : ownerName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
+                                    child:
+                                        (widget.post.originalAuthorImageUrl ??
+                                                widget.post.authorImageUrl) ==
+                                            null
+                                        ? const Icon(Icons.person)
+                                        : null,
+                                  ),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    ownerName.isEmpty ? 'Unknown' : ownerName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '$viewCount views',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${widget.post.videoViewCount} views',
+                          if (widget.post.content.trim().isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            ExpandableText(
+                              widget.post.content,
                               style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
+                                color: Colors.white,
                               ),
+                              trimLines: 3,
+                              actionStyle: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              onTap: _openComments,
                             ),
                           ],
-                        ),
-                      if (widget.post.content.trim().isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        ExpandableText(
-                          widget.post.content,
-                          style: const TextStyle(
-                            color: Colors.white,
-                          ),
-                          trimLines: 3,
-                          actionStyle: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          onTap: _openComments,
-                        ),
-                      ],
-                      if (_isInitialized)
-                        AnimatedOpacity(
-                          opacity: _showProgress ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: IgnorePointer(
-                            ignoring: !_showProgress,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Column(
-                                children: [
-                                  VideoProgressIndicator(
-                                    _videoController,
-                                    allowScrubbing: true,
-                                    colors: const VideoProgressColors(
-                                      playedColor: Colors.white,
-                                      bufferedColor: Colors.white24,
-                                      backgroundColor: Colors.white12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
+                          if (_isInitialized)
+                            AnimatedOpacity(
+                              opacity: _showProgress ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: IgnorePointer(
+                                ignoring: !_showProgress,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Column(
                                     children: [
-                                      ValueListenableBuilder(
-                                        valueListenable: _videoController,
-                                        builder:
-                                            (
-                                              context,
-                                              VideoPlayerValue value,
-                                              child,
-                                            ) {
-                                              return Text(
-                                                _formatDuration(
-                                                  value.position,
-                                                ),
-                                                style: const TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 10,
-                                                ),
-                                              );
-                                            },
-                                      ),
-                                      const Text(
-                                        ' / ',
-                                        style: TextStyle(
-                                          color: Colors.white30,
-                                          fontSize: 10,
+                                      VideoProgressIndicator(
+                                        _videoController,
+                                        allowScrubbing: true,
+                                        colors: const VideoProgressColors(
+                                          playedColor: Colors.white,
+                                          bufferedColor: Colors.white24,
+                                          backgroundColor: Colors.white12,
                                         ),
                                       ),
-                                      Text(
-                                        _formatDuration(
-                                          _videoController.value.duration,
-                                        ),
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      GestureDetector(
-                                        onTap: _toggleMute,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                          color: Colors.transparent,
-                                          child: Icon(
-                                            _isMuted ? Icons.volume_off : Icons.volume_up,
-                                            color: Colors.white,
-                                            size: 20,
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          ValueListenableBuilder(
+                                            valueListenable: _videoController,
+                                            builder:
+                                                (
+                                                  context,
+                                                  VideoPlayerValue value,
+                                                  child,
+                                                ) {
+                                                  return Text(
+                                                    _formatDuration(
+                                                      value.position,
+                                                    ),
+                                                    style: const TextStyle(
+                                                      color: Colors.white70,
+                                                      fontSize: 10,
+                                                    ),
+                                                  );
+                                                },
                                           ),
-                                        ),
+                                          const Text(
+                                            ' / ',
+                                            style: TextStyle(
+                                              color: Colors.white30,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatDuration(
+                                              _videoController.value.duration,
+                                            ),
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          GestureDetector(
+                                            onTap: _toggleMute,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                              color: Colors.transparent,
+                                              child: Icon(
+                                                _isMuted ? Icons.volume_off : Icons.volume_up,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
 
-          // Layer 4: Right Sidebar (Interactions) - Topmost for tappability
-          Positioned(
-            right: 12,
-            bottom: 120,
-            child: AnimatedOpacity(
-              opacity: _showDetails ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              child: IgnorePointer(
-                ignoring: !_showDetails,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _InteractionButton(
-                      icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-                      iconColor: _isLiked ? Colors.redAccent : Colors.white,
-                      label: '$_likeCount',
-                      onTap: _toggleLike,
-                    ),
-                    const SizedBox(height: 4),
-                    _InteractionButton(
-                      icon: Icons.comment_outlined,
-                      label: '${widget.post.commentCount}',
-                      onTap: _openComments, // Changed to open typing screen directly
-                    ),
-                    const SizedBox(height: 4),
-                    _InteractionButton(
-                      icon: Icons.repeat,
-                      label: _isReposting
-                          ? '...'
-                          : '${widget.post.repostCount}',
-                      onTap: _confirmRepost,
-                    ),
-                    const SizedBox(height: 4),
-                    _InteractionButton(
-                      icon: Icons.share_outlined,
-                      label: 'Share',
-                      onTap: _showShareOptions,
-                    ),
-                    const SizedBox(height: 4),
-                    _InteractionButton(
-                      icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      iconColor: _isSaved ? Colors.amberAccent : Colors.white,
-                      label: _isSaved ? 'Saved' : 'Save',
-                      onTap: _toggleSave,
-                    ),
-                    const SizedBox(height: 4),
-                    _InteractionButton(
-                      icon: Icons.more_vert,
-                      label: 'More',
-                      onTap: _showMoreOptions,
-                    ),
-                    if (!_canInteract) ...[
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Sign in',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+              // Layer 4: Right Sidebar (Interactions) - Topmost for tappability
+              Positioned(
+                right: 12,
+                bottom: 120,
+                child: AnimatedOpacity(
+                  opacity: _showDetails ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: IgnorePointer(
+                    ignoring: !_showDetails,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _InteractionButton(
+                          icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                          iconColor: isLiked ? Colors.redAccent : Colors.white,
+                          label: '$likeCount',
+                          onTap: _toggleLike,
                         ),
-                      ),
-                    ],
-                  ],
+                        const SizedBox(height: 4),
+                        _InteractionButton(
+                          icon: Icons.comment_outlined,
+                          label: '$commentCount',
+                          onTap: _openComments, // Changed to open typing screen directly
+                        ),
+                        const SizedBox(height: 4),
+                        _InteractionButton(
+                          icon: Icons.repeat,
+                          label: _isReposting
+                              ? '...'
+                              : '$repostCount',
+                          onTap: _confirmRepost,
+                        ),
+                        const SizedBox(height: 4),
+                        _InteractionButton(
+                          icon: Icons.share_outlined,
+                          label: 'Share',
+                          onTap: _showShareOptions,
+                        ),
+                        const SizedBox(height: 4),
+                        _InteractionButton(
+                          icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          iconColor: _isSaved ? Colors.amberAccent : Colors.white,
+                          label: _isSaved ? 'Saved' : 'Save',
+                          onTap: _toggleSave,
+                        ),
+                        const SizedBox(height: 4),
+                        _InteractionButton(
+                          icon: Icons.more_vert,
+                          label: 'More',
+                          onTap: _showMoreOptions,
+                        ),
+                        if (!_canInteract) ...[
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Sign in',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
