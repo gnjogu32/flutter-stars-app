@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/comment_model.dart';
 import '../models/user_model.dart';
 import '../services/comment_service.dart';
 import '../services/user_service.dart';
+import '../utils/mention_utils.dart';
 import 'comment_thread_widget.dart';
+import 'expandable_text.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   final String postId;
@@ -33,11 +36,16 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   String? _replyToCommentId;
   String? _replyToName;
   bool _isSending = false;
+  List<UserModel> _mentionableUsers = const [];
+  List<UserModel> _filteredMentionUsers = const [];
+  String? _activeMentionQuery;
+  bool _isLoadingMentionUsers = false;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _controller.addListener(_handleMentionInputChanged);
     // Automatically focus when sheet opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -64,16 +72,103 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   void dispose() {
+    _controller.removeListener(_handleMentionInputChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _startReply(String commentId, String replyToName) {
+  Future<void> _ensureMentionableUsersLoaded() async {
+    if (_mentionableUsers.isNotEmpty || _isLoadingMentionUsers) return;
+    _isLoadingMentionUsers = true;
+    try {
+      final users = await _userService.getAllUsers();
+      if (!mounted) return;
+      setState(() => _mentionableUsers = users);
+    } finally {
+      _isLoadingMentionUsers = false;
+    }
+  }
+
+  Future<void> _handleMentionInputChanged() async {
+    final query = MentionUtils.activeMentionQuery(_controller.text, _controller.selection);
+    if (query == null) {
+      if (_activeMentionQuery != null || _filteredMentionUsers.isNotEmpty) {
+        setState(() {
+          _activeMentionQuery = null;
+          _filteredMentionUsers = const [];
+        });
+      }
+      return;
+    }
+    await _ensureMentionableUsersLoaded();
+    if (!mounted) return;
+    final normalizedQuery = query.toLowerCase();
+    final currentUserId = widget.currentUserId;
+    final matchingUsers = _mentionableUsers.where((user) {
+      if (user.uid == currentUserId) return false;
+      final handle = user.username ?? MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+      return normalizedQuery.isEmpty || handle.startsWith(normalizedQuery) || user.displayName.toLowerCase().contains(normalizedQuery);
+    }).take(5).toList();
     setState(() {
-      _replyToCommentId = commentId;
-      _replyToName = replyToName;
+      _activeMentionQuery = query;
+      _filteredMentionUsers = matchingUsers;
     });
+  }
+
+  void _insertMentionHandle(String handle) {
+    final nextValue = MentionUtils.insertMention(text: _controller.text, selection: _controller.selection, handle: handle);
+    _controller.value = nextValue;
+    setState(() {
+      _activeMentionQuery = null;
+      _filteredMentionUsers = const [];
+    });
+  }
+
+  Widget _buildMentionSuggestions() {
+    if (_activeMentionQuery == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final showFollowers = 'followers'.startsWith(_activeMentionQuery!.toLowerCase());
+    if (!showFollowers && _filteredMentionUsers.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.dividerColor)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showFollowers)
+            ListTile(dense: true, leading: const Icon(Icons.campaign_outlined), title: const Text('@followers'), onTap: () => _insertMentionHandle('followers')),
+          ..._filteredMentionUsers.map((user) {
+            final handle = user.username ?? MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+            return ListTile(
+              dense: true,
+              leading: CircleAvatar(radius: 14, backgroundImage: user.profileImageUrl != null ? CachedNetworkImageProvider(user.profileImageUrl!) : null, child: user.profileImageUrl == null ? const Icon(Icons.person, size: 14) : null),
+              title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
+              subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
+              onTap: () => _insertMentionHandle(handle),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  void _startReply(CommentModel comment, String parentId) {
+    setState(() {
+      _replyToCommentId = parentId;
+      _replyToName = comment.authorName;
+    });
+
+    if (comment.authorUsername != null) {
+      final String mention = '@${comment.authorUsername} ';
+      if (!_controller.text.contains(mention)) {
+        _controller.text = mention + _controller.text;
+        _controller.selection = TextSelection.fromPosition(
+          TextPosition(offset: _controller.text.length),
+        );
+      }
+    }
+
     // Add small delay to ensure keyboard pops up correctly
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted) {
@@ -101,6 +196,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         postId: widget.postId,
         authorId: widget.currentUserId,
         authorName: _currentUser?.displayName ?? 'User',
+        authorUsername: _currentUser?.username,
         authorImageUrl: _currentUser?.profileImageUrl,
         content: _controller.text.trim(),
         postAuthorId: widget.postAuthorId,
@@ -162,6 +258,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               ),
             ),
             const Divider(height: 1),
+            _buildMentionSuggestions(),
             if (_replyToName != null)
               Container(
                 color: isDark
@@ -218,7 +315,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              ExpandableText(
                                 widget.postContent!,
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   fontWeight: FontWeight.w500,
@@ -257,7 +354,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         postId: widget.postId,
                         onDelete: () {},
                         onReply: (c, parentId) {
-                          _startReply(parentId, c.authorName);
+                          _startReply(c, parentId);
                         },
                       );
                     },

@@ -11,14 +11,12 @@ import '../models/post_model.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
 import '../services/chat_service.dart';
-import '../services/repost_queue_service.dart';
 import '../services/user_service.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_details_sheet.dart';
 import 'analytics_dashboard_screen.dart';
 import 'chat_screen.dart';
 import 'followers_following_screen.dart';
-import 'repost_queue_screen.dart';
 
 enum _ProfileMediaFolder { all, photos, videos, saved }
 
@@ -36,7 +34,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final AnalyticsService _analyticsService = AnalyticsService();
   final ChatService _chatService = ChatService();
-  final RepostQueueService _repostQueueService = RepostQueueService();
   final UserService _userService = UserService();
   bool _isFollowing = false;
   bool _isLoadingFollow = false;
@@ -47,7 +44,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Cached futures/streams to prevent jumpy UI during rebuilds
   Stream<Map<String, dynamic>>? _analyticsStream;
-  Future<Map<String, int>>? _repostStatsFuture;
 
   @override
   void initState() {
@@ -92,7 +88,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _loadSummaries(String userId) {
     _analyticsStream = _analyticsService.getAuthorSummaryStream(userId);
-    _repostStatsFuture = _repostQueueService.getRepostStats(userId);
   }
 
   Future<void> _checkFollowStatus(String effectiveUserId) async {
@@ -266,12 +261,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const AnalyticsDashboardScreen()),
     );
-  }
-
-  void _openRepostQueue() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const RepostQueueScreen()));
   }
 
   @override
@@ -825,54 +814,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return StreamBuilder<Map<String, dynamic>>(
       stream: _analyticsStream,
       builder: (context, analyticsSnapshot) {
-        return FutureBuilder<Map<String, int>>(
-          future: _repostStatsFuture,
-          builder: (context, repostSnapshot) {
-            if (analyticsSnapshot.connectionState == ConnectionState.waiting ||
-                repostSnapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
+        if (analyticsSnapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-            final analytics = analyticsSnapshot.data ?? const {};
-            final reposts =
-                repostSnapshot.data ??
-                const {'pending': 0, 'sent': 0, 'failed': 0};
+        final analytics = analyticsSnapshot.data ?? const {};
+        final totalEngagements = analytics['totalEngagements'] ?? 0;
+        final engagementRate =
+            ((analytics['avgEngagementRate'] ?? 0.0) as num).toDouble();
 
-            final totalEngagements = analytics['totalEngagements'] ?? 0;
-            final engagementRate =
-                ((analytics['avgEngagementRate'] ?? 0.0) as num).toDouble();
-
-            return Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickSummaryCard(
-                      title: 'Engagements',
-                      value: '$totalEngagements',
-                      subtitle:
-                          '${(engagementRate * 100).toStringAsFixed(1)}% rate',
-                      icon: Icons.trending_up,
-                      onTap: _openAnalyticsDashboard,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildQuickSummaryCard(
-                      title: 'Repost Queue',
-                      value: '${reposts['pending'] ?? 0} pending',
-                      subtitle: '${reposts['sent'] ?? 0} sent',
-                      icon: Icons.schedule_send,
-                      onTap: _openRepostQueue,
-                    ),
-                  ),
-                ],
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildQuickSummaryCard(
+                  title: 'Engagements',
+                  value: '$totalEngagements',
+                  subtitle:
+                      '${(engagementRate * 100).toStringAsFixed(1)}% rate',
+                  icon: Icons.trending_up,
+                  onTap: _openAnalyticsDashboard,
+                ),
               ),
-            );
-          },
+              const SizedBox(width: 10),
+              const Spacer(),
+            ],
+          ),
         );
       },
     );

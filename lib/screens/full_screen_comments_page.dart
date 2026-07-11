@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/comment_model.dart';
 import '../models/user_model.dart';
 import '../services/comment_service.dart';
 import '../services/user_service.dart';
 import '../widgets/comment_thread_widget.dart' as custom;
 import '../utils/auth_guard.dart';
+import '../utils/mention_utils.dart';
 
 class FullScreenCommentsPage extends StatefulWidget {
   final String postId;
@@ -37,10 +39,16 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
   CommentModel? _replyTo;
   String? _replyParentId;
 
+  List<UserModel> _mentionableUsers = const [];
+  List<UserModel> _filteredMentionUsers = const [];
+  String? _activeMentionQuery;
+  bool _isLoadingMentionUsers = false;
+
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _commentController.addListener(_handleMentionInputChanged);
     // Automatically focus when page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -70,6 +78,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
         postId: widget.postId,
         authorId: widget.currentUserId,
         authorName: _currentUser?.displayName ?? 'User',
+        authorUsername: _currentUser?.username,
         authorImageUrl: _currentUser?.profileImageUrl,
         content: _commentController.text.trim(),
         postAuthorId: widget.postAuthorId,
@@ -135,9 +144,87 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
 
   @override
   void dispose() {
+    _commentController.removeListener(_handleMentionInputChanged);
     _commentController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _ensureMentionableUsersLoaded() async {
+    if (_mentionableUsers.isNotEmpty || _isLoadingMentionUsers) return;
+    _isLoadingMentionUsers = true;
+    try {
+      final users = await _userService.getAllUsers();
+      if (!mounted) return;
+      setState(() => _mentionableUsers = users);
+    } finally {
+      _isLoadingMentionUsers = false;
+    }
+  }
+
+  Future<void> _handleMentionInputChanged() async {
+    final query = MentionUtils.activeMentionQuery(
+      _commentController.text,
+      _commentController.selection,
+    );
+    if (query == null) {
+      if (_activeMentionQuery != null || _filteredMentionUsers.isNotEmpty) {
+        setState(() {
+          _activeMentionQuery = null;
+          _filteredMentionUsers = const [];
+        });
+      }
+      return;
+    }
+    await _ensureMentionableUsersLoaded();
+    if (!mounted) return;
+    final normalizedQuery = query.toLowerCase();
+    final matchingUsers = _mentionableUsers.where((user) {
+      if (user.uid == widget.currentUserId) return false;
+      final handle = user.username ?? MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+      return normalizedQuery.isEmpty || handle.startsWith(normalizedQuery) || user.displayName.toLowerCase().contains(normalizedQuery);
+    }).take(5).toList();
+    setState(() {
+      _activeMentionQuery = query;
+      _filteredMentionUsers = matchingUsers;
+    });
+  }
+
+  void _insertMentionHandle(String handle) {
+    final nextValue = MentionUtils.insertMention(text: _commentController.text, selection: _commentController.selection, handle: handle);
+    _commentController.value = nextValue;
+    setState(() {
+      _activeMentionQuery = null;
+      _filteredMentionUsers = const [];
+    });
+  }
+
+  Widget _buildMentionSuggestions() {
+    if (_activeMentionQuery == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final showFollowers = 'followers'.startsWith(_activeMentionQuery!.toLowerCase());
+    if (!showFollowers && _filteredMentionUsers.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.dividerColor)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showFollowers)
+            ListTile(dense: true, leading: const Icon(Icons.campaign_outlined), title: const Text('@followers'), onTap: () => _insertMentionHandle('followers')),
+          ..._filteredMentionUsers.map((user) {
+            final handle = user.username ?? MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+            return ListTile(
+              dense: true,
+              leading: CircleAvatar(radius: 14, backgroundImage: user.profileImageUrl != null ? CachedNetworkImageProvider(user.profileImageUrl!) : null, child: user.profileImageUrl == null ? const Icon(Icons.person, size: 14) : null),
+              title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
+              subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
+              onTap: () => _insertMentionHandle(handle),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   void _setReply(CommentModel replyTo, String parentId) {
@@ -245,6 +332,7 @@ class _FullScreenCommentsPageState extends State<FullScreenCommentsPage> {
                 ],
               ),
             ),
+          _buildMentionSuggestions(),
           SafeArea(
             top: false,
             child: Padding(

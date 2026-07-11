@@ -440,6 +440,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       await _postService.createPost(
         authorId: currentUser.uid,
         authorName: userData.displayName,
+        authorUsername: userData.username,
         authorImageUrl: userData.profileImageUrl,
         content: trimmedContent,
         imageFiles: List.from(_selectedImages),

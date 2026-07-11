@@ -642,7 +642,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                   if (isEditingThisReply)
                     _buildReplyEditField(reply)
                   else
-                    Text(
+                    custom.ExpandableText(
                       reply.content,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: textColor,

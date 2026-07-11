@@ -146,19 +146,36 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
     setState(() => _isReposting = true);
     try {
       final userService = UserService();
+      final postService = PostService();
       final currentUser = await userService.getUser(widget.currentUserId);
       if (currentUser == null) throw Exception('Profile not found');
 
-      await PostService().repostPost(
-        originalPost: widget.post,
-        reposterId: widget.currentUserId,
-        reposterName: currentUser.displayName,
-        reposterImageUrl: currentUser.profileImageUrl,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Reposted ✓')));
+      // Check if already reposted
+      final alreadyReposted = await postService.hasUserReposted(widget.post.postId, widget.currentUserId);
+
+      if (alreadyReposted) {
+        await postService.undoRepost(
+          originalPostId: widget.post.postId,
+          reposterId: widget.currentUserId,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Repost removed ✓')),
+          );
+        }
+      } else {
+        await postService.repostPost(
+          originalPost: widget.post,
+          reposterId: widget.currentUserId,
+          reposterName: currentUser.displayName,
+          reposterUsername: currentUser.username,
+          reposterImageUrl: currentUser.profileImageUrl,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Reposted ✓')));
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -171,8 +188,81 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
     }
   }
 
-  void _share() {
-    ShareService.sharePost(widget.post);
+  void _showShareOptions() {
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Share Post',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Copy Link'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.copyToClipboard(widget.post);
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Link copied to clipboard ✓')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: const Text('Share via...'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.sharePost(widget.post);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.repeat),
+              title: const Text('Repost'),
+              onTap: () {
+                Navigator.pop(context);
+                _repost();
+              },
+            ),
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+                    widget.currentUserId &&
+                widget.post.videoUrl != null)
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Download Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Use PostWidget's download if possible, or just call Gal directly if needed.
+                  // For now, consistent UI is enough.
+                },
+              ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -298,7 +388,7 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                 if (index == 1) _openComments();
                 if (index == 2) _repost();
                 if (index == 3) _toggleSave();
-                if (index == 4) _share();
+                if (index == 4) _showShareOptions();
               },
               indicatorColor: Colors.transparent,
               labelColor: theme.colorScheme.primary,

@@ -5,6 +5,7 @@ class CommentModel {
   final String postId;
   final String authorId;
   final String authorName;
+  final String? authorUsername;
   final String? authorImageUrl;
   final String content;
   final List<String> likes;
@@ -20,6 +21,7 @@ class CommentModel {
     required this.postId,
     required this.authorId,
     required this.authorName,
+    this.authorUsername,
     this.authorImageUrl,
     required this.content,
     this.likes = const [],
@@ -38,6 +40,7 @@ class CommentModel {
       'postId': postId,
       'authorId': authorId,
       'authorName': authorName,
+      'authorUsername': authorUsername,
       'authorImageUrl': authorImageUrl,
       'content': content,
       'likes': likes,
@@ -57,6 +60,7 @@ class CommentModel {
       postId: json['postId'] ?? '',
       authorId: json['authorId'] ?? '',
       authorName: json['authorName'] ?? '',
+      authorUsername: json['authorUsername'],
       authorImageUrl: json['authorImageUrl'],
       content: json['content'] ?? '',
       likes: List<String>.from(json['likes'] ?? []),
@@ -87,6 +91,7 @@ class CommentModel {
     String? postId,
     String? authorId,
     String? authorName,
+    String? authorUsername,
     String? authorImageUrl,
     String? content,
     List<String>? likes,
@@ -102,6 +107,7 @@ class CommentModel {
       postId: postId ?? this.postId,
       authorId: authorId ?? this.authorId,
       authorName: authorName ?? this.authorName,
+      authorUsername: authorUsername ?? this.authorUsername,
       authorImageUrl: authorImageUrl ?? this.authorImageUrl,
       content: content ?? this.content,
       likes: likes ?? this.likes,

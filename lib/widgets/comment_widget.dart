@@ -100,6 +100,7 @@ class _CommentWidgetState extends State<CommentWidget> {
                   postId: parent.postId,
                   authorId: widget.currentUserId,
                   authorName: _currentUser?.displayName ?? 'User',
+                  authorUsername: _currentUser?.username,
                   authorImageUrl: _currentUser?.profileImageUrl,
                   content: text,
                   postAuthorId: parent.authorId,
@@ -993,6 +994,7 @@ class _ReplyItemState extends State<_ReplyItem> {
                                         authorId: widget.currentUserId,
                                         authorName:
                                             _currentUser?.displayName ?? 'User',
+                                        authorUsername: _currentUser?.username,
                                         authorImageUrl:
                                             _currentUser?.profileImageUrl,
                                         content: text,

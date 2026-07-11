@@ -195,8 +195,92 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
     if (widget.onShareTap != null) {
       widget.onShareTap!();
     } else {
-      ShareService.sharePost(widget.post);
+      _showShareOptions();
     }
+  }
+
+  void _showShareOptions() {
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Share Post',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Copy Link'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.copyToClipboard(widget.post);
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Link copied to clipboard ✓')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: const Text('Share to...'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.sharePost(widget.post);
+                if (widget.currentUserId.isNotEmpty) {
+                  _analyticsService.trackShare(
+                    widget.post.postId,
+                    (widget.post.originalAuthorId ?? widget.post.authorId).trim(),
+                    widget.currentUserId,
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.repeat),
+              title: const Text('Repost'),
+              onTap: () {
+                Navigator.pop(context);
+                _openRepost();
+              },
+            ),
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+                    widget.currentUserId &&
+                widget.post.videoUrl != null)
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Download Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Video download logic handled by parent if needed, 
+                  // or just let it stay as a consistent UI option.
+                },
+              ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

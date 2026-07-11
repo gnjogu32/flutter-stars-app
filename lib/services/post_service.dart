@@ -25,6 +25,7 @@ class PostService {
   Future<void> createPost({
     required String authorId,
     required String authorName,
+    String? authorUsername,
     required String? authorImageUrl,
     required String content,
     required List<XFile> imageFiles,
@@ -132,6 +133,7 @@ class PostService {
         postId: postId,
         authorId: authorId,
         authorName: authorName,
+        authorUsername: authorUsername,
         authorImageUrl: authorImageUrl,
         content: content,
         imageUrls: imageUrls,
@@ -181,6 +183,7 @@ class PostService {
     required PostModel originalPost,
     required String reposterId,
     required String reposterName,
+    String? reposterUsername,
     required String? reposterImageUrl,
     String? repostCaption,
   }) async {
@@ -196,6 +199,7 @@ class PostService {
           .trim();
       final ownerName =
           (originalPost.originalAuthorName ?? originalPost.authorName).trim();
+      final ownerUsername = originalPost.originalAuthorUsername ?? originalPost.authorUsername;
       final ownerImageUrl =
           originalPost.originalAuthorImageUrl ?? originalPost.authorImageUrl;
 
@@ -203,9 +207,12 @@ class PostService {
         postId: postId,
         authorId: reposterId,
         authorName: reposterName,
+        authorUsername: reposterUsername,
         authorImageUrl: reposterImageUrl,
+        originalPostId: originalPost.postId,
         originalAuthorId: ownerId,
         originalAuthorName: ownerName,
+        originalAuthorUsername: ownerUsername,
         originalAuthorImageUrl: ownerImageUrl,
         content: originalPost.content,
         repostCaption: repostCaption,
@@ -234,6 +241,28 @@ class PostService {
           'repostCount': FieldValue.increment(1),
         });
       });
+
+      // Handle mentions in repost caption
+      if (repostCaption != null && repostCaption.isNotEmpty) {
+        if (_notificationService.containsFollowersMention(repostCaption)) {
+          await _notificationService.notifyFollowersMention(
+            authorId: reposterId,
+            authorName: reposterName,
+            authorImageUrl: reposterImageUrl,
+            content: repostCaption,
+            postId: postId,
+          );
+        }
+
+        await _notificationService.notifyUserMentions(
+          authorId: reposterId,
+          authorName: reposterName,
+          authorImageUrl: reposterImageUrl,
+          content: repostCaption,
+          postId: postId,
+          type: 'mention_user',
+        );
+      }
     } catch (e) {
       rethrow;
     }
@@ -310,6 +339,55 @@ class PostService {
     }
   }
 
+  // Undo a repost
+  Future<void> undoRepost({
+    required String originalPostId,
+    required String reposterId,
+  }) async {
+    try {
+      // Find the repost document
+      final repostQuery = await _firestore
+          .collection('posts')
+          .where('authorId', isEqualTo: reposterId)
+          .where('originalPostId', isEqualTo: originalPostId)
+          .limit(1)
+          .get();
+
+      if (repostQuery.docs.isEmpty) return;
+
+      final repostDoc = repostQuery.docs.first;
+      final originalPostRef = _firestore.collection('posts').doc(originalPostId);
+
+      await _firestore.runTransaction((transaction) async {
+        final originalSnapshot = await transaction.get(originalPostRef);
+        
+        transaction.delete(repostDoc.reference);
+        
+        if (originalSnapshot.exists) {
+          transaction.update(originalPostRef, {
+            'repostCount': FieldValue.increment(-1),
+          });
+        }
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Check if user has reposted a post
+  Future<bool> hasUserReposted(String postId, String userId) async {
+    try {
+      final query = await _firestore
+          .collection('posts')
+          .where('authorId', isEqualTo: userId)
+          .where('originalPostId', isEqualTo: postId)
+          .limit(1)
+          .get();
+      return query.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
   // Get post by ID
   Future<PostModel?> getPost(String postId) async {
     try {

@@ -8,6 +8,7 @@ import 'package:gal/gal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/post_model.dart';
+import '../models/user_model.dart';
 import '../services/notification_service.dart';
 import '../services/user_service.dart';
 import '../services/post_service.dart';
@@ -15,6 +16,7 @@ import '../services/share_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/auth_guard.dart';
 import '../utils/time_utils.dart';
+import '../utils/mention_utils.dart';
 // import '../utils/screen_awake_controller.dart';
 import '../screens/profile_screen.dart';
 import 'comments_bottom_sheet.dart';
@@ -54,6 +56,7 @@ class _PostWidgetState extends State<PostWidget>
   bool _isReposting = false;
   bool _isMutedLocally = false;
   bool _isDeleting = false;
+  bool _isReposted = false;
   bool _showLikeHeart = false;
   late AnimationController _heartAnimationController;
 
@@ -111,8 +114,19 @@ class _PostWidgetState extends State<PostWidget>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+    _checkRepostStatus();
     if (_ownerId != widget.currentUserId) {
       _checkFollowState();
+    }
+  }
+
+  Future<void> _checkRepostStatus() async {
+    if (widget.currentUserId.isEmpty) return;
+    final hasReposted = await PostService().hasUserReposted(widget.post.postId, widget.currentUserId);
+    if (mounted) {
+      setState(() {
+        _isReposted = hasReposted;
+      });
     }
   }
 
@@ -304,34 +318,62 @@ class _PostWidgetState extends State<PostWidget>
     }
   }
 
-  Future<void> _showShareDialog() async {
+  Future<void> _showShareOptions() async {
+    final theme = Theme.of(context);
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
               'Share Post',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.repeat),
-              title: Text(_isReposting ? 'Reposting...' : 'Repost to Feed'),
-              enabled: !_isReposting,
+              leading: const Icon(Icons.link),
+              title: const Text('Copy Link'),
               onTap: () {
                 Navigator.pop(context);
-                _confirmRepost();
+                ShareService.copyToClipboard(widget.post);
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Link copied to clipboard ✓')),
+                );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.share),
+              leading: const Icon(Icons.share_outlined),
               title: const Text('Share via...'),
               onTap: () {
                 Navigator.pop(context);
                 ShareService.sharePost(widget.post);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.repeat),
+              title: const Text('Repost'),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmRepost();
               },
             ),
             ListTile(
@@ -342,22 +384,18 @@ class _PostWidgetState extends State<PostWidget>
                 ShareService.shareViaWhatsApp(widget.post);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.tag),
-              title: const Text('Share on Twitter'),
-              onTap: () {
-                Navigator.pop(context);
-                ShareService.shareViaTwitter(widget.post);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.content_copy),
-              title: const Text('Copy to Clipboard'),
-              onTap: () {
-                Navigator.pop(context);
-                _confirmCopyToClipboard();
-              },
-            ),
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+                    widget.currentUserId &&
+                widget.post.videoUrl != null)
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Download Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadVideo();
+                },
+              ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -387,39 +425,56 @@ class _PostWidgetState extends State<PostWidget>
           ? 'Someone'
           : currentUser.displayName.trim();
 
-      await postService.repostPost(
-        originalPost: widget.post,
-        reposterId: widget.currentUserId,
-        reposterName: actorName,
-        reposterImageUrl: currentUser.profileImageUrl,
-        repostCaption: caption,
-      );
-
-      if (widget.currentUserId != widget.post.authorId) {
-        try {
-          await notificationService.createNotification(
-            userId: widget.post.authorId,
-            triggeredBy: widget.currentUserId,
-            triggeredByName: actorName,
-            triggeredByImageUrl: currentUser.profileImageUrl,
-            type: 'repost_post',
-            postId: widget.post.postId,
-            content: '$actorName reposted your content',
+      // Check if already reposted
+      if (_isReposted) {
+        await postService.undoRepost(
+          originalPostId: widget.post.postId,
+          reposterId: widget.currentUserId,
+        );
+        if (mounted) {
+          setState(() => _isReposted = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Repost removed ✓')),
           );
-        } catch (e) {
-          debugPrint('Repost notification skipped: $e');
+        }
+      } else {
+        await postService.repostPost(
+          originalPost: widget.post,
+          reposterId: widget.currentUserId,
+          reposterName: actorName,
+          reposterUsername: currentUser.username,
+          reposterImageUrl: currentUser.profileImageUrl,
+          repostCaption: caption,
+        );
+
+        if (widget.currentUserId != widget.post.authorId) {
+          try {
+            await notificationService.createNotification(
+              userId: widget.post.authorId,
+              triggeredBy: widget.currentUserId,
+              triggeredByName: actorName,
+              triggeredByImageUrl: currentUser.profileImageUrl,
+              type: 'repost_post',
+              postId: widget.post.postId,
+              content: '$actorName reposted your content',
+            );
+          } catch (e) {
+            debugPrint('Repost notification skipped: $e');
+          }
+        }
+
+        if (mounted) {
+          setState(() => _isReposted = true);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Reposted to your feed ✓')));
         }
       }
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Reposted to your feed ✓')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to repost: $e')));
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) {
         setState(() => _isReposting = false);
@@ -666,148 +721,277 @@ class _PostWidgetState extends State<PostWidget>
 
     final result = await showDialog<String?>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Repost'),
-          content: ValueListenableBuilder<bool>(
-            valueListenable: hasFocus,
-            builder: (context, value, child) {
-              final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-              final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
-              return AnimatedPadding(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.only(bottom: composerBottomInset),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      KeyboardPromptBanner(
-                        visible: keyboardInset > 0 && !showEmojiPanel,
-                        text: 'Add a repost caption before sharing.',
-                        icon: Icons.repeat_outlined,
+      builder: (context) {
+        bool listenerAdded = false;
+        // Mention state
+        List<UserModel> mentionableUsers = [];
+        List<UserModel> filteredMentionUsers = [];
+        String? activeMentionQuery;
+        bool isLoadingMentionUsers = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+
+          Future<void> ensureMentionableUsersLoaded() async {
+            if (mentionableUsers.isNotEmpty || isLoadingMentionUsers) return;
+            isLoadingMentionUsers = true;
+            try {
+              final users = await UserService().getAllUsers();
+              mentionableUsers = users;
+            } finally {
+              isLoadingMentionUsers = false;
+            }
+          }
+
+          void handleMentionInputChanged() async {
+            final query = MentionUtils.activeMentionQuery(
+              textController.text,
+              textController.selection,
+            );
+
+            if (query == null) {
+              if (activeMentionQuery != null || filteredMentionUsers.isNotEmpty) {
+                setDialogState(() {
+                  activeMentionQuery = null;
+                  filteredMentionUsers = const [];
+                });
+              }
+              return;
+            }
+
+            await ensureMentionableUsersLoaded();
+            final normalizedQuery = query.toLowerCase();
+            final currentUserId = widget.currentUserId;
+            final matchingUsers = mentionableUsers
+                .where((user) {
+                  if (user.uid == currentUserId) return false;
+                  final handle = user.username ??
+                      MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+                  return normalizedQuery.isEmpty ||
+                      handle.startsWith(normalizedQuery) ||
+                      user.displayName.toLowerCase().contains(normalizedQuery);
+                })
+                .take(5)
+                .toList();
+
+            setDialogState(() {
+              activeMentionQuery = query;
+              filteredMentionUsers = matchingUsers;
+            });
+          }
+
+          if (!listenerAdded) {
+            textController.addListener(handleMentionInputChanged);
+            listenerAdded = true;
+          }
+
+          void insertMentionHandle(String handle) {
+            final nextValue = MentionUtils.insertMention(
+              text: textController.text,
+              selection: textController.selection,
+              handle: handle,
+            );
+            textController.value = nextValue;
+            setDialogState(() {
+              activeMentionQuery = null;
+              filteredMentionUsers = const [];
+            });
+          }
+
+          Widget buildMentionSuggestions() {
+            if (activeMentionQuery == null) return const SizedBox.shrink();
+            final theme = Theme.of(context);
+            final showFollowers =
+                'followers'.startsWith(activeMentionQuery!.toLowerCase());
+            if (!showFollowers && filteredMentionUsers.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              margin: const EdgeInsets.only(top: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.dividerColor),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showFollowers)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.campaign_outlined),
+                      title: const Text('@followers'),
+                      onTap: () => insertMentionHandle('followers'),
+                    ),
+                  ...filteredMentionUsers.map((user) {
+                    final handle = user.username ??
+                        MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundImage: user.profileImageUrl != null
+                            ? CachedNetworkImageProvider(user.profileImageUrl!)
+                            : null,
+                        child: user.profileImageUrl == null
+                            ? const Icon(Icons.person, size: 14)
+                            : null,
                       ),
-                      if (keyboardInset > 0 && !showEmojiPanel)
+                      title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
+                      subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
+                      onTap: () => insertMentionHandle(handle),
+                    );
+                  }),
+                ],
+              ),
+            );
+          }
+
+          return AlertDialog(
+            title: const Text('Repost'),
+            content: ValueListenableBuilder<bool>(
+              valueListenable: hasFocus,
+              builder: (context, value, child) {
+                final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+                final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
+                return AnimatedPadding(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.only(bottom: composerBottomInset),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        KeyboardPromptBanner(
+                          visible: keyboardInset > 0 && !showEmojiPanel,
+                          text: 'Add a repost caption before sharing.',
+                          icon: Icons.repeat_outlined,
+                        ),
+                        if (keyboardInset > 0 && !showEmojiPanel)
+                          const SizedBox(height: 12),
+                        const Text(
+                          'Add an optional caption to your repost:',
+                          style: TextStyle(fontSize: 14),
+                        ),
                         const SizedBox(height: 12),
-                      const Text(
-                        'Add an optional caption to your repost:',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              setDialogState(
-                                () => showEmojiPanel = !showEmojiPanel,
-                              );
-                              if (showEmojiPanel) {
-                                focusNode.unfocus();
-                                SystemChannels.textInput.invokeMethod(
-                                  'TextInput.hide',
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                setDialogState(
+                                  () => showEmojiPanel = !showEmojiPanel,
                                 );
-                              } else {
-                                FocusScope.of(context).requestFocus(focusNode);
-                              }
-                            },
-                            icon: Icon(
-                              showEmojiPanel
-                                  ? Icons.keyboard_outlined
-                                  : Icons.emoji_emotions_outlined,
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: textController,
-                              focusNode: focusNode,
-                              onTap: () {
                                 if (showEmojiPanel) {
-                                  setDialogState(() => showEmojiPanel = false);
+                                  focusNode.unfocus();
+                                  SystemChannels.textInput.invokeMethod(
+                                    'TextInput.hide',
+                                  );
+                                } else {
+                                  FocusScope.of(context).requestFocus(focusNode);
                                 }
                               },
-                              decoration: InputDecoration(
-                                hintText: 'Write something...',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.all(12),
+                              icon: Icon(
+                                showEmojiPanel
+                                    ? Icons.keyboard_outlined
+                                    : Icons.emoji_emotions_outlined,
                               ),
-                              maxLines: 3,
-                              maxLength: 280,
                             ),
-                          ),
-                        ],
-                      ),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        height: showEmojiPanel ? 180 : 0,
-                        child: showEmojiPanel
-                            ? GridView.builder(
-                                padding: const EdgeInsets.only(top: 8),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 8,
-                                      childAspectRatio: 1.2,
-                                    ),
-                                itemCount: _quickEmojis.length,
-                                itemBuilder: (context, index) {
-                                  final emoji = _quickEmojis[index];
-                                  return InkWell(
-                                    borderRadius: BorderRadius.circular(8),
-                                    onTap: () {
-                                      final currentText = textController.text;
-                                      final currentSelection =
-                                          textController.selection;
-                                      final start = currentSelection.start >= 0
-                                          ? currentSelection.start
-                                          : currentText.length;
-                                      final end = currentSelection.end >= 0
-                                          ? currentSelection.end
-                                          : currentText.length;
-                                      final newText = currentText.replaceRange(
-                                        start,
-                                        end,
-                                        emoji,
-                                      );
-                                      textController.value = TextEditingValue(
-                                        text: newText,
-                                        selection: TextSelection.collapsed(
-                                          offset: start + emoji.length,
-                                        ),
-                                      );
-                                    },
-                                    child: Center(
-                                      child: Text(
-                                        emoji,
-                                        style: const TextStyle(fontSize: 24),
-                                      ),
-                                    ),
-                                  );
+                            Expanded(
+                              child: TextField(
+                                controller: textController,
+                                focusNode: focusNode,
+                                onTap: () {
+                                  if (showEmojiPanel) {
+                                    setDialogState(() => showEmojiPanel = false);
+                                  }
                                 },
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
+                                decoration: InputDecoration(
+                                  hintText: 'Write something...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.all(12),
+                                ),
+                                maxLines: 3,
+                                maxLength: 280,
+                              ),
+                            ),
+                          ],
+                        ),
+                        buildMentionSuggestions(),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          height: showEmojiPanel ? 180 : 0,
+                          child: showEmojiPanel
+                              ? GridView.builder(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 8,
+                                        childAspectRatio: 1.2,
+                                      ),
+                                  itemCount: _quickEmojis.length,
+                                  itemBuilder: (context, index) {
+                                    final emoji = _quickEmojis[index];
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () {
+                                        final currentText = textController.text;
+                                        final currentSelection =
+                                            textController.selection;
+                                        final start = currentSelection.start >= 0
+                                            ? currentSelection.start
+                                            : currentText.length;
+                                        final end = currentSelection.end >= 0
+                                            ? currentSelection.end
+                                            : currentText.length;
+                                        final newText = currentText.replaceRange(
+                                          start,
+                                          end,
+                                          emoji,
+                                        );
+                                        textController.value = TextEditingValue(
+                                          text: newText,
+                                          selection: TextSelection.collapsed(
+                                            offset: start + emoji.length,
+                                          ),
+                                        );
+                                      },
+                                      child: Center(
+                                        child: Text(
+                                          emoji,
+                                          style: const TextStyle(fontSize: 24),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+                );
+              },
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, textController.text),
-              style: TextButton.styleFrom(foregroundColor: Colors.blue),
-              child: const Text('Repost'),
-            ),
-          ],
-        ),
-      ),
-    );
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, textController.text),
+                style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                child: const Text('Repost'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 
     if (result != null && mounted) {
       await _repostToFeed(caption: result.trim());
@@ -1093,7 +1277,7 @@ class _PostWidgetState extends State<PostWidget>
               _openCommentsSheet(postContent: widget.post.content);
             }
             if (index == 2) _confirmRepost();
-            if (index == 3) _showShareDialog();
+            if (index == 3) _showShareOptions();
           },
           indicatorColor:
               Colors.transparent, // Hide indicator as these are actions

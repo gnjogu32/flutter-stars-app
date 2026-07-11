@@ -14,11 +14,13 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'full_screen_comments_page.dart';
 
 import '../models/post_model.dart';
+import '../models/user_model.dart';
 import '../services/notification_service.dart';
-import '../services/repost_queue_service.dart';
+import '../services/post_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
+import '../utils/mention_utils.dart';
 import '../services/share_service.dart';
 import '../services/user_service.dart';
 import '../widgets/expandable_text.dart';
@@ -122,7 +124,17 @@ class ReelsScreenState extends State<ReelsScreen> {
 
   void _onTabVisibilityChanged() {
     final visible = widget.tabActiveNotifier.value;
-    if (mounted) setState(() => _tabVisible = visible);
+    if (mounted) {
+      setState(() => _tabVisible = visible);
+      
+      // Ghost Audio Prevention: If tab becomes invisible, silence all preloaded controllers immediately
+      if (!visible) {
+        for (final controller in _preloadedControllers.values) {
+          controller.setVolume(0);
+          controller.pause();
+        }
+      }
+    }
   }
 
   @override
@@ -322,10 +334,10 @@ class _ReelItemState extends State<_ReelItem>
   bool _isMuted = false;
   bool _showLikeHeart = false;
   final bool _showDetails = true; // Sidebar/Details stay persistent
-  bool _showProgress = true;
+  bool _showProgress = false; // Start hidden, let initialize or tap show it
   late AnimationController _heartAnimationController;
   Timer? _progressTimer;
-  bool _isPageVisible = true;
+  bool _isPageVisible = false; // Start false, wait for VisibilityDetector
 
   @override
   bool get wantKeepAlive => true;
@@ -433,20 +445,22 @@ class _ReelItemState extends State<_ReelItem>
         await _videoController.initialize();
       }
       if (!mounted) {
-        // If no longer mounted, ensure silence
+        // If no longer mounted, ensure absolute silence
         _videoController.setVolume(0);
         _videoController.pause();
         return;
       }
 
       await _videoController.setLooping(true); // Loop Vistas indefinitely
-      await _videoController.setVolume(1.0);
+      
+      // Initialize mute state based on local _isMuted flag
+      await _videoController.setVolume(_isMuted ? 0.0 : 1.0);
 
       setState(() {
         _isInitialized = true;
       });
 
-      // Defensive check: only play if STILL active and visible after async initialization
+      // Defensive check: only play if BOTH active (tab) and visible (on screen)
       if (widget.isActive && _isPageVisible && mounted) {
         _videoController.play();
         ScreenAwakeController.acquire();
@@ -455,6 +469,7 @@ class _ReelItemState extends State<_ReelItem>
         _startProgressTimer();
       } else {
         _videoController.pause();
+        _videoController.setVolume(0.0);
       }
 
       _videoController.addListener(_videoListener);
@@ -485,7 +500,7 @@ class _ReelItemState extends State<_ReelItem>
 
     if (widget.isActive && !oldWidget.isActive) {
       if (_isInitialized && _isPageVisible) {
-        _videoController.setVolume(1.0);
+        _videoController.setVolume(_isMuted ? 0.0 : 1.0);
         _videoController.play();
         ScreenAwakeController.acquire();
         AnalyticsService().trackView(widget.post.postId, _ownerId);
@@ -494,6 +509,7 @@ class _ReelItemState extends State<_ReelItem>
       }
     } else if (!widget.isActive && oldWidget.isActive) {
       if (_isInitialized) {
+        // Absolute silence when tab becomes inactive
         _videoController.setVolume(0);
         _videoController.pause();
         ScreenAwakeController.release();
@@ -597,7 +613,6 @@ class _ReelItemState extends State<_ReelItem>
 
   Future<void> _repostToFeed({
     String caption = '',
-    DateTime? scheduleTime,
   }) async {
     if (_isReposting) return;
     if (_activeUserId.isEmpty) {
@@ -609,7 +624,7 @@ class _ReelItemState extends State<_ReelItem>
 
     try {
       final userService = UserService();
-      final queueService = RepostQueueService();
+      final postService = PostService();
       final analyticsService = AnalyticsService();
       final notificationService = NotificationService();
 
@@ -622,64 +637,63 @@ class _ReelItemState extends State<_ReelItem>
           ? 'Someone'
           : currentUser.displayName.trim();
 
-      // If scheduling for future, queue it; otherwise post immediately
-      await queueService.queueRepost(
-        userId: _activeUserId,
-        postId: widget.post.postId,
-        originalAuthorId: widget.post.authorId,
-        userName: actorName,
-        userImageUrl: currentUser.profileImageUrl,
-        post: widget.post,
-        caption: caption,
-        scheduleTime: scheduleTime, // Null = post immediately
-      );
-
-      // Track repost in analytics (regardless of schedule)
-      await analyticsService.trackRepost(
-        widget.post.postId,
-        _ownerId,
-        _activeUserId,
-      );
-
-      if (_activeUserId != widget.post.authorId &&
-          (scheduleTime == null ||
-              scheduleTime.isBefore(
-                DateTime.now().add(const Duration(seconds: 1)),
-              ))) {
-        try {
-          await notificationService.createNotification(
-            userId: widget.post.authorId,
-            triggeredBy: _activeUserId,
-            triggeredByName: actorName,
-            triggeredByImageUrl: currentUser.profileImageUrl,
-            type: 'repost_post',
-            postId: widget.post.postId,
-            content: '$actorName reposted your content',
+      // Check if already reposted
+      final alreadyReposted = await postService.hasUserReposted(widget.post.postId, _activeUserId);
+      
+      if (alreadyReposted) {
+        await postService.undoRepost(
+          originalPostId: widget.post.postId,
+          reposterId: _activeUserId,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Repost removed ✓')),
           );
-        } catch (e) {
-          debugPrint('Repost notification skipped: $e');
         }
-      }
-
-      if (!mounted) return;
-      if (scheduleTime != null && scheduleTime.isAfter(DateTime.now())) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Repost scheduled for ${scheduleTime.year}-${scheduleTime.month}-${scheduleTime.day} ✓',
-            ),
-          ),
-        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reposted to your feed ✓')),
+        await postService.repostPost(
+          originalPost: widget.post,
+          reposterId: _activeUserId,
+          reposterName: actorName,
+          reposterUsername: currentUser.username,
+          reposterImageUrl: currentUser.profileImageUrl,
+          repostCaption: caption,
         );
+
+        // Track repost in analytics
+        await analyticsService.trackRepost(
+          widget.post.postId,
+          _ownerId,
+          _activeUserId,
+        );
+
+        if (_activeUserId != widget.post.authorId) {
+          try {
+            await notificationService.createNotification(
+              userId: widget.post.authorId,
+              triggeredBy: _activeUserId,
+              triggeredByName: actorName,
+              triggeredByImageUrl: currentUser.profileImageUrl,
+              type: 'repost_post',
+              postId: widget.post.postId,
+              content: '$actorName reposted your content',
+            );
+          } catch (e) {
+            debugPrint('Repost notification skipped: $e');
+          }
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reposted to your feed ✓')),
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to repost: $e')));
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) {
         setState(() => _isReposting = false);
@@ -693,7 +707,13 @@ class _ReelItemState extends State<_ReelItem>
     final focusNode = FocusNode();
     final hasFocus = ValueNotifier(false);
     var showEmojiPanel = false;
-    DateTime? scheduleTime;
+
+    // Mention state
+    List<UserModel> mentionableUsers = [];
+    List<UserModel> filteredMentionUsers = [];
+    String? activeMentionQuery;
+    bool isLoadingMentionUsers = false;
+    bool listenerAdded = false;
 
     focusNode.addListener(() {
       hasFocus.value = focusNode.hasFocus;
@@ -702,214 +722,268 @@ class _ReelItemState extends State<_ReelItem>
     final result = await showDialog<String?>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Repost'),
-          content: ValueListenableBuilder<bool>(
-            valueListenable: hasFocus,
-            builder: (context, value, child) {
-              final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-              final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
-              return AnimatedPadding(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.only(bottom: composerBottomInset),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      KeyboardPromptBanner(
-                        visible: keyboardInset > 0 && !showEmojiPanel,
-                        text:
-                            'Add a repost caption before sharing or scheduling.',
-                        icon: Icons.repeat_outlined,
+        builder: (context, setDialogState) {
+          Future<void> ensureMentionableUsersLoaded() async {
+            if (mentionableUsers.isNotEmpty || isLoadingMentionUsers) return;
+            isLoadingMentionUsers = true;
+            try {
+              final users = await UserService().getAllUsers();
+              mentionableUsers = users;
+            } finally {
+              isLoadingMentionUsers = false;
+            }
+          }
+
+          void handleMentionInputChanged() async {
+            final query = MentionUtils.activeMentionQuery(
+              textController.text,
+              textController.selection,
+            );
+
+            if (query == null) {
+              if (activeMentionQuery != null || filteredMentionUsers.isNotEmpty) {
+                setDialogState(() {
+                  activeMentionQuery = null;
+                  filteredMentionUsers = const [];
+                });
+              }
+              return;
+            }
+
+            await ensureMentionableUsersLoaded();
+            final normalizedQuery = query.toLowerCase();
+            final matchingUsers = mentionableUsers
+                .where((user) {
+                  if (user.uid == _activeUserId) return false;
+                  final handle = user.username ??
+                      MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+                  return normalizedQuery.isEmpty ||
+                      handle.startsWith(normalizedQuery) ||
+                      user.displayName.toLowerCase().contains(normalizedQuery);
+                })
+                .take(5)
+                .toList();
+
+            setDialogState(() {
+              activeMentionQuery = query;
+              filteredMentionUsers = matchingUsers;
+            });
+          }
+
+          if (!listenerAdded) {
+            textController.addListener(handleMentionInputChanged);
+            listenerAdded = true;
+          }
+
+          void insertMentionHandle(String handle) {
+            final nextValue = MentionUtils.insertMention(
+              text: textController.text,
+              selection: textController.selection,
+              handle: handle,
+            );
+            textController.value = nextValue;
+            setDialogState(() {
+              activeMentionQuery = null;
+              filteredMentionUsers = const [];
+            });
+          }
+
+          Widget buildMentionSuggestions() {
+            if (activeMentionQuery == null) return const SizedBox.shrink();
+            final theme = Theme.of(context);
+            final showFollowers =
+                'followers'.startsWith(activeMentionQuery!.toLowerCase());
+            if (!showFollowers && filteredMentionUsers.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              margin: const EdgeInsets.only(top: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.dividerColor),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showFollowers)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.campaign_outlined),
+                      title: const Text('@followers'),
+                      onTap: () => insertMentionHandle('followers'),
+                    ),
+                  ...filteredMentionUsers.map((user) {
+                    final handle = user.username ??
+                        MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundImage: user.profileImageUrl != null
+                            ? CachedNetworkImageProvider(user.profileImageUrl!)
+                            : null,
+                        child: user.profileImageUrl == null
+                            ? const Icon(Icons.person, size: 14)
+                            : null,
                       ),
-                      if (keyboardInset > 0 && !showEmojiPanel)
-                        const SizedBox(height: 12),
-                      const Text(
-                        'Add an optional caption to your repost:',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              setState(() => showEmojiPanel = !showEmojiPanel);
-                              if (showEmojiPanel) {
-                                focusNode.unfocus();
-                                SystemChannels.textInput.invokeMethod(
-                                  'TextInput.hide',
-                                );
-                              } else {
-                                FocusScope.of(context).requestFocus(focusNode);
-                              }
-                            },
-                            icon: Icon(
-                              showEmojiPanel
-                                  ? Icons.keyboard_outlined
-                                  : Icons.emoji_emotions_outlined,
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: textController,
-                              focusNode: focusNode,
-                              onTap: () {
-                                if (showEmojiPanel) {
-                                  setState(() => showEmojiPanel = false);
-                                }
-                              },
-                              decoration: InputDecoration(
-                                hintText: 'Write something...',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.all(12),
-                              ),
-                              maxLines: 3,
-                              maxLength: 280,
-                            ),
-                          ),
-                        ],
-                      ),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        height: showEmojiPanel ? 180 : 0,
-                        child: showEmojiPanel
-                            ? GridView.builder(
-                                padding: const EdgeInsets.only(top: 8),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 8,
-                                      childAspectRatio: 1.2,
-                                    ),
-                                itemCount: _quickEmojis.length,
-                                itemBuilder: (context, index) {
-                                  final emoji = _quickEmojis[index];
-                                  return InkWell(
-                                    borderRadius: BorderRadius.circular(8),
-                                    onTap: () {
-                                      final currentText = textController.text;
-                                      final currentSelection =
-                                          textController.selection;
-                                      final start = currentSelection.start >= 0
-                                          ? currentSelection.start
-                                          : currentText.length;                                      final end = currentSelection.end >= 0
-                                          ? currentSelection.end
-                                          : currentText.length;
-                                      final newText = currentText.replaceRange(
-                                        start,
-                                        end,
-                                        emoji,
-                                      );
-                                      textController.value = TextEditingValue(
-                                        text: newText,
-                                        selection: TextSelection.collapsed(
-                                          offset: start + emoji.length,
-                                        ),
-                                      );
-                                    },
-                                    child: Center(
-                                      child: Text(
-                                        emoji,
-                                        style: const TextStyle(fontSize: 24),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Schedule (Optional)',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                      title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
+                      subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
+                      onTap: () => insertMentionHandle(handle),
+                    );
+                  }),
+                ],
+              ),
+            );
+          }
+
+          return AlertDialog(
+            title: const Text('Repost'),
+            content: ValueListenableBuilder<bool>(
+              valueListenable: hasFocus,
+              builder: (context, value, child) {
+                final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+                final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
+                return AnimatedPadding(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.only(bottom: composerBottomInset),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        KeyboardPromptBanner(
+                          visible: keyboardInset > 0 && !showEmojiPanel,
+                          text: 'Add a repost caption before sharing.',
+                          icon: Icons.repeat_outlined,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        width: double.maxFinite,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        if (keyboardInset > 0 && !showEmojiPanel)
+                          const SizedBox(height: 12),
+                        const Text(
+                          'Add an optional caption to your repost:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
                           children: [
-                            TextButton.icon(
-                              onPressed: () async {
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime.now().add(
-                                    const Duration(days: 1),
-                                  ),
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime.now().add(
-                                    const Duration(days: 365),
-                                  ),
+                            IconButton(
+                              onPressed: () {
+                                setDialogState(
+                                  () => showEmojiPanel = !showEmojiPanel,
                                 );
-                                if (date != null && context.mounted) {
-                                  final time = await showTimePicker(
-                                    context: context,
-                                    initialTime: const TimeOfDay(
-                                      hour: 9,
-                                      minute: 0,
-                                    ),
+                                if (showEmojiPanel) {
+                                  focusNode.unfocus();
+                                  SystemChannels.textInput.invokeMethod(
+                                    'TextInput.hide',
                                   );
-                                  if (time != null) {
-                                    setState(() {
-                                      scheduleTime = DateTime(
-                                        date.year,
-                                        date.month,
-                                        date.day,
-                                        time.hour,
-                                        time.minute,
-                                      );
-                                    });
-                                  }
+                                } else {
+                                  FocusScope.of(context).requestFocus(focusNode);
                                 }
                               },
-                              icon: const Icon(Icons.schedule),
-                              label: Text(
-                                scheduleTime == null
-                                    ? 'Post now'
-                                    : 'Scheduled: ${scheduleTime!.year}-${scheduleTime!.month}-${scheduleTime!.day} ${scheduleTime!.hour}:${scheduleTime!.minute.toString().padLeft(2, '0')}',
+                              icon: Icon(
+                                showEmojiPanel
+                                    ? Icons.keyboard_outlined
+                                    : Icons.emoji_emotions_outlined,
                               ),
                             ),
-                            if (scheduleTime != null)
-                              TextButton(
-                                onPressed: () =>
-                                    setState(() => scheduleTime = null),
-                                child: const Text('Remove schedule'),
+                            Expanded(
+                              child: TextField(
+                                controller: textController,
+                                focusNode: focusNode,
+                                onTap: () {
+                                  if (showEmojiPanel) {
+                                    setDialogState(() => showEmojiPanel = false);
+                                  }
+                                },
+                                decoration: InputDecoration(
+                                  hintText: 'Write something...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.all(12),
+                                ),
+                                maxLines: 3,
+                                maxLength: 280,
                               ),
+                            ),
                           ],
                         ),
-                      ),
-                    ],
+                        buildMentionSuggestions(),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          height: showEmojiPanel ? 180 : 0,
+                          child: showEmojiPanel
+                              ? GridView.builder(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 8,
+                                        childAspectRatio: 1.2,
+                                      ),
+                                  itemCount: _quickEmojis.length,
+                                  itemBuilder: (context, index) {
+                                    final emoji = _quickEmojis[index];
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: () {
+                                        final currentText = textController.text;
+                                        final currentSelection =
+                                            textController.selection;
+                                        final start = currentSelection.start >= 0
+                                            ? currentSelection.start
+                                            : currentText.length;
+                                        final end = currentSelection.end >= 0
+                                            ? currentSelection.end
+                                            : currentText.length;
+                                        final newText = currentText.replaceRange(
+                                          start,
+                                          end,
+                                          emoji,
+                                        );
+                                        textController.value = TextEditingValue(
+                                          text: newText,
+                                          selection: TextSelection.collapsed(
+                                            offset: start + emoji.length,
+                                          ),
+                                        );
+                                      },
+                                      child: Center(
+                                        child: Text(
+                                          emoji,
+                                          style: const TextStyle(fontSize: 24),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+                );
+              },
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, textController.text),
-              style: TextButton.styleFrom(foregroundColor: Colors.blue),
-              child: const Text('Repost'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, textController.text),
+                style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                child: const Text('Repost'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
     if (result != null && mounted) {
-      await _repostToFeed(caption: result.trim(), scheduleTime: scheduleTime);
+      await _repostToFeed(caption: result.trim());
     }
     hasFocus.dispose();
     focusNode.dispose();
@@ -1118,16 +1192,92 @@ class _ReelItemState extends State<_ReelItem>
     }
   }
 
+  void _showShareOptions() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Share Post',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Copy Link'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.copyToClipboard(widget.post);
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Link copied to clipboard ✓')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: const Text('Share to...'),
+              onTap: () {
+                Navigator.pop(context);
+                _sharePost();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.repeat),
+              title: const Text('Repost'),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmRepost();
+              },
+            ),
+            if ((widget.post.originalAuthorId ?? widget.post.authorId) ==
+                _activeUserId)
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Download Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadVideo();
+                },
+              ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _progressTimer?.cancel();
     if (_isInitialized) {
-      // Always pause on dispose to prevent audio leaks
-      if (_videoController.value.isPlaying) {
-        _videoController.pause();
-        ScreenAwakeController.release();
-      }
+      // Definitive silence protocol on dispose
+      _videoController.setVolume(0);
+      _videoController.pause();
+      ScreenAwakeController.release();
+
       _videoController.removeListener(_videoListener);
 
       // ONLY dispose if we created it locally (not preloaded/managed by parent)
@@ -1220,13 +1370,17 @@ class _ReelItemState extends State<_ReelItem>
         if (visible != _isPageVisible) {
           setState(() => _isPageVisible = visible);
           if (visible) {
-            if (widget.isActive && !_videoController.value.isPlaying) {
+            // Only resume if tab is ALSO active
+            if (widget.isActive && _isInitialized && !_videoController.value.isPlaying) {
+              _videoController.setVolume(_isMuted ? 0.0 : 1.0);
               _videoController.play();
               ScreenAwakeController.acquire();
+              setState(() => _showProgress = true);
+              _startProgressTimer();
             }
           } else {
-            // Absolute silence on hide
-            if (_videoController.value.isPlaying) {
+            // Definitive silence protocol on hide
+            if (_isInitialized) {
               _videoController.setVolume(0);
               _videoController.pause();
               ScreenAwakeController.release();
@@ -1483,7 +1637,7 @@ class _ReelItemState extends State<_ReelItem>
                     _InteractionButton(
                       icon: Icons.share_outlined,
                       label: 'Share',
-                      onTap: _sharePost,
+                      onTap: _showShareOptions,
                     ),
                     const SizedBox(height: 4),
                     _InteractionButton(

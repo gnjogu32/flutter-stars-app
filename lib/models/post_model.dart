@@ -4,9 +4,12 @@ class PostModel {
   final String postId;
   final String authorId;
   final String authorName;
+  final String? authorUsername;
   final String? authorImageUrl;
+  final String? originalPostId;
   final String? originalAuthorId;
   final String? originalAuthorName;
+  final String? originalAuthorUsername;
   final String? originalAuthorImageUrl;
   final String content;
   final String? repostCaption;
@@ -27,9 +30,12 @@ class PostModel {
     required this.postId,
     required this.authorId,
     required this.authorName,
+    this.authorUsername,
     this.authorImageUrl,
+    this.originalPostId,
     this.originalAuthorId,
     this.originalAuthorName,
+    this.originalAuthorUsername,
     this.originalAuthorImageUrl,
     required this.content,
     this.repostCaption,
@@ -53,9 +59,12 @@ class PostModel {
       'postId': postId,
       'authorId': authorId,
       'authorName': authorName,
+      'authorUsername': authorUsername,
       'authorImageUrl': authorImageUrl,
+      'originalPostId': originalPostId,
       'originalAuthorId': originalAuthorId,
       'originalAuthorName': originalAuthorName,
+      'originalAuthorUsername': originalAuthorUsername,
       'originalAuthorImageUrl': originalAuthorImageUrl,
       'content': content,
       'repostCaption': repostCaption,
@@ -80,9 +89,12 @@ class PostModel {
       postId: json['postId'] ?? '',
       authorId: json['authorId'] ?? '',
       authorName: json['authorName'] ?? '',
+      authorUsername: json['authorUsername'],
       authorImageUrl: json['authorImageUrl'],
+      originalPostId: json['originalPostId'],
       originalAuthorId: json['originalAuthorId'],
       originalAuthorName: json['originalAuthorName'],
+      originalAuthorUsername: json['originalAuthorUsername'],
       originalAuthorImageUrl: json['originalAuthorImageUrl'],
       content: json['content'] ?? '',
       repostCaption: json['repostCaption'],
@@ -122,6 +134,7 @@ class PostModel {
       authorId: data['authorId'] ?? '',
       authorName: data['authorName'] ?? '',
       authorImageUrl: data['authorImageUrl'],
+      originalPostId: data['originalPostId'],
       originalAuthorId: data['originalAuthorId'],
       originalAuthorName: data['originalAuthorName'],
       originalAuthorImageUrl: data['originalAuthorImageUrl'],
@@ -156,9 +169,12 @@ class PostModel {
     String? postId,
     String? authorId,
     String? authorName,
+    String? authorUsername,
     String? authorImageUrl,
+    String? originalPostId,
     String? originalAuthorId,
     String? originalAuthorName,
+    String? originalAuthorUsername,
     String? originalAuthorImageUrl,
     String? content,
     List<String>? imageUrls,
@@ -177,9 +193,12 @@ class PostModel {
       postId: postId ?? this.postId,
       authorId: authorId ?? this.authorId,
       authorName: authorName ?? this.authorName,
+      authorUsername: authorUsername ?? this.authorUsername,
       authorImageUrl: authorImageUrl ?? this.authorImageUrl,
+      originalPostId: originalPostId ?? this.originalPostId,
       originalAuthorId: originalAuthorId ?? this.originalAuthorId,
       originalAuthorName: originalAuthorName ?? this.originalAuthorName,
+      originalAuthorUsername: originalAuthorUsername ?? this.originalAuthorUsername,
       originalAuthorImageUrl:
           originalAuthorImageUrl ?? this.originalAuthorImageUrl,
       content: content ?? this.content,
