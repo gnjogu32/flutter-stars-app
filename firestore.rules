@@ -65,12 +65,13 @@ service cloud.firestore {
       // Notifications sub-collection
       match /userNotifications/{notificationId} {
         allow read: if isOwner(userId);
-        allow create: if isOwner(userId) &&
-                         validateString(request.resource.data.title, 1, 100) &&
-                         validateString(request.resource.data.body, 1, 500) &&
+        allow create: if isAuthenticated() &&
+                         request.resource.data.userId == userId &&
+                         request.resource.data.triggeredBy == request.auth.uid &&
                          isTimestamp(request.resource.data.createdAt);
         allow update: if isOwner(userId) &&
                          request.resource.data.keys().hasOnly(['isRead', 'readAt']);
+        allow delete: if isOwner(userId);
       }
     }
     
@@ -103,9 +104,11 @@ service cloud.firestore {
     // Conversations (Direct Messaging)
     match /conversations/{conversationId} {
       allow read: if isAuthenticated() &&
-                     (resource.data.participantIds == null || resource.data.participantIds.size() == 0 ||
+                     (resource == null ||
+                      resource.data.participantIds == null ||
+                      resource.data.participantIds.size() == 0 ||
                       request.auth.uid in resource.data.participantIds) &&
-                     conversationId.matches('^[a-zA-Z0-9_]+_[a-zA-Z0-9_]+$');
+                     conversationId.matches('^[a-zA-Z0-9._-]+_[a-zA-Z0-9._-]+$');
       allow create: if isAuthenticated() &&
                        request.resource.data.participantIds is list &&
                        request.resource.data.participantIds.size() == 2 &&
@@ -126,7 +129,8 @@ service cloud.firestore {
                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
         allow create: if isAuthenticated() &&
                         request.auth.uid == request.resource.data.senderId &&
-                        validateString(request.resource.data.content, 1, 5000) &&
+                        (validateString(request.resource.data.content, 1, 5000) ||
+                         (request.resource.data.content == "" && (request.resource.data.imageUrl != null || request.resource.data.videoUrl != null))) &&
                         (isTimestamp(request.resource.data.sentAt) || isTimestamp(request.resource.data.createdAt)) &&
                         ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null ||
                           get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.size() == 0) ||
@@ -147,9 +151,9 @@ service cloud.firestore {
       allow create: if isAuthenticated() &&
                        request.resource.data.userId == userId &&
                        request.resource.data.triggeredBy == request.auth.uid &&
-                       validateString(request.resource.data.type, 1, 50) &&
-                       validateString(request.resource.data.content, 1, 500) &&
-                       validateString(request.resource.data.triggeredByName, 1, 100) &&
+                       validateString(request.resource.data.type, 1, 100) &&
+                       validateString(request.resource.data.content, 1, 1000) &&
+                       validateString(request.resource.data.triggeredByName, 1, 200) &&
                        isTimestamp(request.resource.data.createdAt);
       allow update: if isOwner(userId) &&
                        request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead', 'readAt']);
