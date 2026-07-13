@@ -405,50 +405,6 @@ class ChatService {
     }
   }
 
-  // Migrate legacy conversations without participantIds field
-  Future<void> migrateLegacyConversations(String currentUserId) async {
-    try {
-      // Also check conversations that don't have participantIds (legacy)
-      final legacySnapshot = await _firestore.collection('conversations').get();
-
-      final conversationsToMigrate = <String>[];
-
-      for (var doc in legacySnapshot.docs) {
-        final data = doc.data();
-        // Check if this is a legacy conversation (no participantIds)
-        if (data['participantIds'] == null ||
-            (data['participantIds'] is List &&
-                (data['participantIds'] as List).isEmpty)) {
-          // Extract participant IDs from the document ID format: "userId1_userId2"
-          final conversationId = doc.id;
-          if (conversationId.contains('_')) {
-            conversationsToMigrate.add(conversationId);
-          }
-        }
-      }
-
-      // Update each legacy conversation with properly formatted participantIds
-      for (var conversationId in conversationsToMigrate) {
-        final parts = conversationId.split('_');
-        if (parts.length == 2) {
-          final participantIds = parts;
-          await _firestore
-              .collection('conversations')
-              .doc(conversationId)
-              .update({'participantIds': participantIds});
-          debugPrint('Migrated legacy conversation: $conversationId');
-        }
-      }
-
-      debugPrint(
-        'Migration complete: ${conversationsToMigrate.length} conversations updated',
-      );
-    } catch (e) {
-      debugPrint('Error during migration: $e');
-      // Don't throw - migration should not block app functionality
-    }
-  }
-
   // Set typing status
   Future<void> setTypingStatus({
     required String conversationId,

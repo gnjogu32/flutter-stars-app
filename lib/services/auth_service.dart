@@ -145,4 +145,22 @@ class AuthService {
       rethrow;
     }
   }
+
+  // Delete account
+  Future<void> deleteAccount() async {
+    try {
+      final User? user = _firebaseAuth.currentUser;
+      if (user == null) return;
+
+      final String uid = user.uid;
+
+      // Delete user from Firestore
+      await _firebaseFirestore.collection('users').doc(uid).delete();
+
+      // Delete user from Firebase Auth
+      await user.delete();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

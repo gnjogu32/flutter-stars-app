@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../models/user_model.dart';
@@ -33,7 +34,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 return ListView(
                   children: [
-                    _buildSectionHeader(context, 'Account'),
+                    _buildSectionHeader(context, 'Account Details'),
+                    ListTile(
+                      leading: const Icon(Icons.email_outlined),
+                      title: const Text('Email'),
+                      subtitle: Text(user?.email ?? 'Not available'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.calendar_today_outlined),
+                      title: const Text('Joined'),
+                      subtitle: Text(
+                        user != null
+                            ? DateFormat('MMMM dd, yyyy').format(user.createdAt)
+                            : 'Not available',
+                      ),
+                    ),
+
+                    _buildSectionHeader(context, 'Account Management'),
                     ListTile(
                       leading: const Icon(Icons.person_outline),
                       title: const Text('Edit Profile'),
@@ -122,6 +139,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: const Text('Logout'),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextButton(
+                        onPressed: () => _showDeleteAccountDialog(context),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red.withValues(alpha: 0.7),
+                        ),
+                        child: const Text('Delete Account'),
+                      ),
+                    ),
                     const SizedBox(height: 40),
                   ],
                 );
@@ -144,6 +172,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'Are you sure you want to delete your account? This action is permanent and cannot be undone. All your data will be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+              try {
+                Navigator.pop(ctx);
+                await AuthService().deleteAccount();
+                if (mounted) {
+                  navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+                }
+              } catch (e) {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Error deleting account: ${e.toString().contains('requires-recent-login') ? 'Please log out and log in again before deleting your account for security.' : e.toString()}',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              'Delete Forever',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -157,10 +230,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           TextButton(
             onPressed: () {
+              final navigator = Navigator.of(context);
               Navigator.pop(ctx);
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil('/login', (route) => false);
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
               AuthService().logout().ignore();
             },
             child: const Text('Logout', style: TextStyle(color: Colors.red)),

@@ -28,11 +28,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   void initState() {
     super.initState();
-    // Run migration on first load to fix legacy conversations without participantIds
-    final currentUserId = _auth.currentUser?.uid;
-    if (currentUserId != null) {
-      _chatService.migrateLegacyConversations(currentUserId).ignore();
-    }
     _searchFocusNode.addListener(_handleFocusChanged);
   }
 
