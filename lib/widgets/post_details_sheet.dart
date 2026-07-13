@@ -132,15 +132,23 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
     }
   }
 
-  void _openComments() {
+  void _openComments() async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => CommentsBottomSheet(
-        postId: widget.post.postId,
-        postAuthorId: widget.post.authorId,
-        currentUserId: widget.currentUserId,
-        postContent: widget.post.content,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => CommentsBottomSheet(
+          postId: widget.post.postId,
+          postAuthorId: widget.post.authorId,
+          currentUserId: widget.currentUserId,
+          postContent: widget.post.content,
+          scrollController: scrollController,
+        ),
       ),
     );
   }
@@ -155,7 +163,10 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
       if (currentUser == null) throw Exception('Profile not found');
 
       // Check if already reposted
-      final alreadyReposted = await postService.hasUserReposted(widget.post.postId, widget.currentUserId);
+      final alreadyReposted = await postService.hasUserReposted(
+        widget.post.postId,
+        widget.currentUserId,
+      );
 
       if (alreadyReposted) {
         await postService.undoRepost(
@@ -163,9 +174,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
           reposterId: widget.currentUserId,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Repost removed ✓')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Repost removed ✓')));
         }
       } else {
         final repostId = await postService.repostPost(
@@ -251,7 +262,8 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               );
 
               if (query == null) {
-                if (activeMentionQuery != null || filteredMentionUsers.isNotEmpty) {
+                if (activeMentionQuery != null ||
+                    filteredMentionUsers.isNotEmpty) {
                   setDialogState(() {
                     activeMentionQuery = null;
                     filteredMentionUsers = const [];
@@ -266,11 +278,16 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               final matchingUsers = mentionableUsers
                   .where((user) {
                     if (user.uid == currentUserId) return false;
-                    final handle = user.username ??
-                        MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+                    final handle =
+                        user.username ??
+                        MentionUtils.normalizeDisplayNameToHandle(
+                          user.displayName,
+                        );
                     return normalizedQuery.isEmpty ||
                         handle.startsWith(normalizedQuery) ||
-                        user.displayName.toLowerCase().contains(normalizedQuery);
+                        user.displayName.toLowerCase().contains(
+                          normalizedQuery,
+                        );
                   })
                   .take(5)
                   .toList();
@@ -302,8 +319,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
             Widget buildMentionSuggestions() {
               if (activeMentionQuery == null) return const SizedBox.shrink();
               final theme = Theme.of(context);
-              final showFollowers =
-                  'followers'.startsWith(activeMentionQuery!.toLowerCase());
+              final showFollowers = 'followers'.startsWith(
+                activeMentionQuery!.toLowerCase(),
+              );
               if (!showFollowers && filteredMentionUsers.isEmpty) {
                 return const SizedBox.shrink();
               }
@@ -325,21 +343,32 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                         onTap: () => insertMentionHandle('followers'),
                       ),
                     ...filteredMentionUsers.map((user) {
-                      final handle = user.username ??
-                          MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+                      final handle =
+                          user.username ??
+                          MentionUtils.normalizeDisplayNameToHandle(
+                            user.displayName,
+                          );
                       return ListTile(
                         dense: true,
                         leading: CircleAvatar(
                           radius: 14,
                           backgroundImage: user.profileImageUrl != null
-                              ? CachedNetworkImageProvider(user.profileImageUrl!)
+                              ? CachedNetworkImageProvider(
+                                  user.profileImageUrl!,
+                                )
                               : null,
                           child: user.profileImageUrl == null
                               ? const Icon(Icons.person, size: 14)
                               : null,
                         ),
-                        title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
-                        subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
+                        title: Text(
+                          user.displayName,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        subtitle: Text(
+                          '@$handle',
+                          style: const TextStyle(fontSize: 10),
+                        ),
                         onTap: () => insertMentionHandle(handle),
                       );
                     }),
@@ -348,8 +377,31 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               );
             }
 
-            final List<String> _quickEmojis = [
-              '😀', '😁', '😂', '🤣', '😊', '😍', '🥳', '😎', '🤔', '👏', '🔥', '💯', '✨', '🙌', '👍', '🙏', '❤️', '💙', '💚', '🎉', '😢', '😡', '🤝', '💫',
+            final List<String> quickEmojis = [
+              '😀',
+              '😁',
+              '😂',
+              '🤣',
+              '😊',
+              '😍',
+              '🥳',
+              '😎',
+              '🤔',
+              '👏',
+              '🔥',
+              '💯',
+              '✨',
+              '🙌',
+              '👍',
+              '🙏',
+              '❤️',
+              '💙',
+              '💚',
+              '🎉',
+              '😢',
+              '😡',
+              '🤝',
+              '💫',
             ];
 
             return AlertDialog(
@@ -358,7 +410,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                 valueListenable: hasFocus,
                 builder: (context, value, child) {
                   final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-                  final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
+                  final composerBottomInset = showEmojiPanel
+                      ? 0.0
+                      : keyboardInset;
                   return AnimatedPadding(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOut,
@@ -386,7 +440,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                                       'TextInput.hide',
                                     );
                                   } else {
-                                    FocusScope.of(context).requestFocus(focusNode);
+                                    FocusScope.of(
+                                      context,
+                                    ).requestFocus(focusNode);
                                   }
                                 },
                                 icon: Icon(
@@ -401,7 +457,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                                   focusNode: focusNode,
                                   onTap: () {
                                     if (showEmojiPanel) {
-                                      setDialogState(() => showEmojiPanel = false);
+                                      setDialogState(
+                                        () => showEmojiPanel = false,
+                                      );
                                     }
                                   },
                                   decoration: InputDecoration(
@@ -430,27 +488,27 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                                           crossAxisCount: 8,
                                           childAspectRatio: 1.2,
                                         ),
-                                    itemCount: _quickEmojis.length,
+                                    itemCount: quickEmojis.length,
                                     itemBuilder: (context, index) {
-                                      final emoji = _quickEmojis[index];
+                                      final emoji = quickEmojis[index];
                                       return InkWell(
                                         borderRadius: BorderRadius.circular(8),
                                         onTap: () {
-                                          final currentText = textController.text;
+                                          final currentText =
+                                              textController.text;
                                           final currentSelection =
                                               textController.selection;
-                                          final start = currentSelection.start >= 0
+                                          final start =
+                                              currentSelection.start >= 0
                                               ? currentSelection.start
                                               : currentText.length;
                                           final end = currentSelection.end >= 0
                                               ? currentSelection.end
                                               : currentText.length;
-                                          final newText = currentText.replaceRange(
-                                            start,
-                                            end,
-                                            emoji,
-                                          );
-                                          textController.value = TextEditingValue(
+                                          final newText = currentText
+                                              .replaceRange(start, end, emoji);
+                                          textController
+                                              .value = TextEditingValue(
                                             text: newText,
                                             selection: TextSelection.collapsed(
                                               offset: start + emoji.length,
@@ -460,7 +518,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                                         child: Center(
                                           child: Text(
                                             emoji,
-                                            style: const TextStyle(fontSize: 24),
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                            ),
                                           ),
                                         ),
                                       );

@@ -445,4 +445,37 @@ class PostService {
               .toList(),
         );
   }
+
+  // Get muted posts
+  Future<List<PostModel>> getMutedPosts(List<String> mutedIds) async {
+    try {
+      if (mutedIds.isEmpty) return [];
+      
+      final List<PostModel> muted = [];
+      // Firestore 'in' query supports max 10-30 IDs usually. 
+      // If there are many, we might need to fetch individually or in chunks.
+      for (String id in mutedIds) {
+        final p = await getPost(id);
+        if (p != null) muted.add(p);
+      }
+      return muted;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Get liked posts
+  Future<List<PostModel>> getLikedPosts(String userId) async {
+    try {
+      final query = await _firestore
+          .collection('posts')
+          .where('likes', arrayContains: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return query.docs.map((doc) => PostModel.fromJson(doc.data())).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

@@ -8,7 +8,6 @@ import 'package:gal/gal.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../models/post_model.dart';
-import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
 import '../services/chat_service.dart';
 import '../services/user_service.dart';
@@ -307,10 +306,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               tooltip: 'Settings',
               onPressed: () => Navigator.of(context).pushNamed('/settings'),
             ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () => _showLogoutDialog(context),
-            ),
           ] else
             StreamBuilder<DocumentSnapshot>(
               stream: _firestore
@@ -557,9 +552,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 4),
                 Text(
                   'Joined ${DateFormat('MMMM yyyy').format(user.createdAt)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                 ),
               ],
             ),
@@ -576,14 +571,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(width: 4),
                   Text(
                     'Born ${DateFormat('MMMM dd, yyyy').format(user.birthday!)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                   ),
                   if (isOwnProfile) ...[
                     const SizedBox(width: 8),
                     Icon(
-                      user.birthdayPublic ? Icons.visibility : Icons.visibility_off,
+                      user.birthdayPublic
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                       size: 12,
                       color: Colors.grey,
                     ),
@@ -823,8 +820,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         final analytics = analyticsSnapshot.data ?? const {};
         final totalEngagements = analytics['totalEngagements'] ?? 0;
-        final engagementRate =
-            ((analytics['avgEngagementRate'] ?? 0.0) as num).toDouble();
+        final engagementRate = ((analytics['avgEngagementRate'] ?? 0.0) as num)
+            .toDouble();
 
         return Padding(
           padding: const EdgeInsets.only(top: 16),
@@ -1048,33 +1045,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final navigator = Navigator.of(this.context);
-              Navigator.pop(context);
-
-              // Navigate immediately — logout (token cleanup + signOut) runs in background
-              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
-              AuthService().logout().ignore();
-            },
-            child: const Text('Logout'),
-          ),
-        ],
       ),
     );
   }

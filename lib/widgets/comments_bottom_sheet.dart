@@ -14,6 +14,7 @@ class CommentsBottomSheet extends StatefulWidget {
   final String postAuthorId;
   final String currentUserId;
   final String? postContent;
+  final ScrollController? scrollController;
 
   const CommentsBottomSheet({
     super.key,
@@ -21,6 +22,7 @@ class CommentsBottomSheet extends StatefulWidget {
     required this.postAuthorId,
     required this.currentUserId,
     this.postContent,
+    this.scrollController,
   });
 
   @override
@@ -46,17 +48,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     super.initState();
     _loadCurrentUser();
     _controller.addListener(_handleMentionInputChanged);
-    // Automatically focus when sheet opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) {
-            _focusNode.requestFocus();
-            SystemChannels.textInput.invokeMethod('TextInput.show');
-          }
-        });
-      }
-    });
+    // Focus logic removed to allow background viewing without keyboard auto-popup if desired,
+    // though for comments usually you want to type. 
+    // We'll keep it manual or triggered by tapping the field.
   }
 
   Future<void> _loadCurrentUser() async {
@@ -305,6 +299,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   final comments = snapshot.data ?? [];
 
                   return ListView.builder(
+                    controller: widget.scrollController,
                     itemCount:
                         comments.length + (widget.postContent != null ? 1 : 0),
                     padding: const EdgeInsets.symmetric(horizontal: 16),

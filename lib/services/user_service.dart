@@ -450,4 +450,38 @@ class UserService {
       rethrow;
     }
   }
+
+  // Get list of blocked user models
+  Future<List<UserModel>> getBlockedUsers(String userId) async {
+    try {
+      final user = await getUser(userId);
+      if (user == null || user.blockedUsers.isEmpty) return [];
+
+      final List<UserModel> blocked = [];
+      for (String blockedId in user.blockedUsers) {
+        final u = await getUser(blockedId);
+        if (u != null) blocked.add(u);
+      }
+      return blocked;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Get list of muted author models
+  Future<List<UserModel>> getMutedAuthors(String userId) async {
+    try {
+      final user = await getUser(userId);
+      if (user == null || user.mutedAuthors.isEmpty) return [];
+
+      final List<UserModel> muted = [];
+      for (String mutedId in user.mutedAuthors) {
+        final u = await getUser(mutedId);
+        if (u != null) muted.add(u);
+      }
+      return muted;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

@@ -11,7 +11,7 @@ import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'full_screen_comments_page.dart';
+import '../widgets/comments_bottom_sheet.dart';
 
 import '../models/post_model.dart';
 import '../models/user_model.dart';
@@ -351,6 +351,7 @@ class _ReelItemState extends State<_ReelItem>
   late AnimationController _heartAnimationController;
   Timer? _progressTimer;
   bool _isPageVisible = false; // Start false, wait for VisibilityDetector
+  bool _isCommentSheetOpen = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -1004,17 +1005,26 @@ class _ReelItemState extends State<_ReelItem>
 
   Future<void> _openComments() async {
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => FullScreenCommentsPage(
+    setState(() => _isCommentSheetOpen = true);
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => CommentsBottomSheet(
           postId: widget.post.postId,
           postAuthorId: _ownerId,
           currentUserId: _activeUserId,
           postContent: widget.post.content,
+          scrollController: scrollController,
         ),
       ),
     );
+    if (mounted) setState(() => _isCommentSheetOpen = false);
   }
 
   void _showMoreOptions() {
@@ -1376,7 +1386,7 @@ class _ReelItemState extends State<_ReelItem>
     return VisibilityDetector(
       key: ValueKey('reel_vis_${widget.post.postId}_${widget.isActive}'),
       onVisibilityChanged: (info) {
-        if (!mounted) return;
+        if (!mounted || _isCommentSheetOpen) return;
         final visible = info.visibleFraction > 0.8;
         if (visible != _isPageVisible) {
           setState(() => _isPageVisible = visible);

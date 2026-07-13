@@ -58,6 +58,7 @@ class _PostWidgetState extends State<PostWidget>
   bool _isDeleting = false;
   bool _isReposted = false;
   bool _showLikeHeart = false;
+  bool _isCommentSheetOpen = false;
   late AnimationController _heartAnimationController;
 
   final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey =
@@ -1217,16 +1218,26 @@ class _PostWidgetState extends State<PostWidget>
 
   Future<void> _openCommentsSheet({String? postContent}) async {
     if (!mounted) return;
+    setState(() => _isCommentSheetOpen = true);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => CommentsBottomSheet(
-        postId: widget.post.postId,
-        postAuthorId: _ownerId,
-        currentUserId: widget.currentUserId,
-        postContent: postContent,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => CommentsBottomSheet(
+          postId: widget.post.postId,
+          postAuthorId: _ownerId,
+          currentUserId: widget.currentUserId,
+          postContent: postContent,
+          scrollController: scrollController,
+        ),
       ),
     );
+    if (mounted) setState(() => _isCommentSheetOpen = false);
   }
 
   Widget _buildResponsiveFeedInteractions() {
@@ -1588,7 +1599,7 @@ class _PostWidgetState extends State<PostWidget>
                         VisibilityDetector(
                           key: ValueKey('post_audio_${widget.post.postId}'),
                           onVisibilityChanged: (info) {
-                            if (!widget.isTabVisible) return;
+                            if (!widget.isTabVisible || _isCommentSheetOpen) return;
                             if (info.visibleFraction < 0.3) {
                               _audioPlayerKey.currentState?.pause();
                             }
@@ -1606,7 +1617,7 @@ class _PostWidgetState extends State<PostWidget>
                         VisibilityDetector(
                           key: ValueKey('post_video_${widget.post.postId}'),
                           onVisibilityChanged: (info) {
-                            if (!widget.isTabVisible) return;
+                            if (!widget.isTabVisible || _isCommentSheetOpen) return;
                             if (info.visibleFraction > 0.8) {
                               if (widget.autoPlayEnabled) {
                                 _videoPlayerKey.currentState?.play();

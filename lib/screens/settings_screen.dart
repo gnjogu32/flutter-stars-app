@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../models/user_model.dart';
+import 'activity_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -81,16 +82,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
 
+                    _buildSectionHeader(context, 'Activities'),
+                    ListTile(
+                      leading: const Icon(Icons.favorite_outline),
+                      title: const Text('Liked Posts'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ActivityManagementScreen(
+                              initialTabIndex: 0,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.bookmark_outline),
+                      title: const Text('Saved Posts'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ActivityManagementScreen(
+                              initialTabIndex: 1,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.person_off_outlined),
+                      title: const Text('Muted Authors'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ActivityManagementScreen(
+                              initialTabIndex: 2,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.visibility_off_outlined),
+                      title: const Text('Muted Posts'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ActivityManagementScreen(
+                              initialTabIndex: 3,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
                     _buildSectionHeader(context, 'Privacy & Safety'),
                     ListTile(
                       leading: const Icon(Icons.block_flipped),
                       title: const Text('Blocked Users'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Manage blocked users in your profile.'),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ActivityManagementScreen(
+                              initialTabIndex: 4,
+                            ),
                           ),
                         );
                       },

@@ -13,7 +13,7 @@ import 'package:starpage/models/user_model.dart';
 import 'package:starpage/widgets/video_interactions_sidebar.dart';
 import 'package:starpage/widgets/expandable_text.dart';
 import 'package:starpage/screens/profile_screen.dart';
-import 'package:starpage/screens/full_screen_comments_page.dart';
+import 'package:starpage/widgets/comments_bottom_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:starpage/services/notification_service.dart';
@@ -342,6 +342,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
   Timer? _indicatorTimer;
   String? _error;
   bool _isPageVisible = false;
+  bool _isCommentSheetOpen = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -788,18 +789,27 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     ).push(MaterialPageRoute(builder: (_) => ProfileScreen(userId: userId)));
   }
 
-  void _openComments() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => FullScreenCommentsPage(
+  void _openComments() async {
+    setState(() => _isCommentSheetOpen = true);
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => CommentsBottomSheet(
           postId: widget.post.postId,
           postAuthorId: (widget.post.originalAuthorId ?? widget.post.authorId),
           currentUserId: widget.currentUserId ?? '',
           postContent: widget.post.content,
+          scrollController: scrollController,
         ),
       ),
     );
+    if (mounted) setState(() => _isCommentSheetOpen = false);
   }
 
   Future<void> _repostToFeed({String caption = ''}) async {
@@ -1365,7 +1375,7 @@ class _FullScreenVideoItemState extends State<_FullScreenVideoItem>
     return VisibilityDetector(
       key: ValueKey('fs_vis_${widget.post.postId}'),
       onVisibilityChanged: (info) {
-        if (!mounted) return;
+        if (!mounted || _isCommentSheetOpen) return;
         final visible = info.visibleFraction > 0.8;
         if (visible != _isPageVisible) {
           setState(() {
