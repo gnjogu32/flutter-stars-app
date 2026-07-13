@@ -97,7 +97,7 @@ class MainAppState extends State<MainApp> {
             label: 'View stars short videos(Vistas)',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
+            icon: Icon(Icons.search),
             label: 'Discover',
           ),
           BottomNavigationBarItem(

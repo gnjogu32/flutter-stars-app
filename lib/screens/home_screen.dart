@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
-import '../widgets/search_overlay.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
+import 'main_app.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueNotifier<bool>? tabActiveNotifier;
@@ -26,7 +26,6 @@ class HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   bool _hasMore = true;
   DocumentSnapshot? _lastDocument;
-  bool _showSearch = false;
   bool _isTabVisible = true;
 
   @override
@@ -148,13 +147,6 @@ class HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Search',
-            onPressed: () {
-              setState(() => _showSearch = true);
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.add_circle_outline),
             tooltip: 'Create Post',
             onPressed: () {
@@ -257,8 +249,6 @@ class HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
-          if (_showSearch)
-            SearchOverlay(onClose: () => setState(() => _showSearch = false)),
         ],
       ),
     );
