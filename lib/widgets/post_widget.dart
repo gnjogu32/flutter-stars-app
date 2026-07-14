@@ -722,8 +722,10 @@ class _PostWidgetState extends State<PostWidget>
       hasFocus.value = focusNode.hasFocus;
     });
 
-    final result = await showDialog<String?>(
+    final result = await showModalBottomSheet<String?>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         bool listenerAdded = false;
         // Mention state
@@ -734,267 +736,289 @@ class _PostWidgetState extends State<PostWidget>
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-
-          Future<void> ensureMentionableUsersLoaded() async {
-            if (mentionableUsers.isNotEmpty || isLoadingMentionUsers) return;
-            isLoadingMentionUsers = true;
-            try {
-              final users = await UserService().getAllUsers();
-              mentionableUsers = users;
-            } finally {
-              isLoadingMentionUsers = false;
-            }
-          }
-
-          void handleMentionInputChanged() async {
-            final query = MentionUtils.activeMentionQuery(
-              textController.text,
-              textController.selection,
-            );
-
-            if (query == null) {
-              if (activeMentionQuery != null || filteredMentionUsers.isNotEmpty) {
-                setDialogState(() {
-                  activeMentionQuery = null;
-                  filteredMentionUsers = const [];
-                });
+            Future<void> ensureMentionableUsersLoaded() async {
+              if (mentionableUsers.isNotEmpty || isLoadingMentionUsers) return;
+              isLoadingMentionUsers = true;
+              try {
+                final users = await UserService().getAllUsers();
+                mentionableUsers = users;
+              } finally {
+                isLoadingMentionUsers = false;
               }
-              return;
             }
 
-            await ensureMentionableUsersLoaded();
-            final normalizedQuery = query.toLowerCase();
-            final currentUserId = widget.currentUserId;
-            final matchingUsers = mentionableUsers
-                .where((user) {
-                  if (user.uid == currentUserId) return false;
-                  final handle = user.username ??
-                      MentionUtils.normalizeDisplayNameToHandle(user.displayName);
-                  return normalizedQuery.isEmpty ||
-                      handle.startsWith(normalizedQuery) ||
-                      user.displayName.toLowerCase().contains(normalizedQuery);
-                })
-                .take(5)
-                .toList();
+            void handleMentionInputChanged() async {
+              final query = MentionUtils.activeMentionQuery(
+                textController.text,
+                textController.selection,
+              );
 
-            setDialogState(() {
-              activeMentionQuery = query;
-              filteredMentionUsers = matchingUsers;
-            });
-          }
+              if (query == null) {
+                if (activeMentionQuery != null || filteredMentionUsers.isNotEmpty) {
+                  setDialogState(() {
+                    activeMentionQuery = null;
+                    filteredMentionUsers = const [];
+                  });
+                }
+                return;
+              }
 
-          if (!listenerAdded) {
-            textController.addListener(handleMentionInputChanged);
-            listenerAdded = true;
-          }
-
-          void insertMentionHandle(String handle) {
-            final nextValue = MentionUtils.insertMention(
-              text: textController.text,
-              selection: textController.selection,
-              handle: handle,
-            );
-            textController.value = nextValue;
-            setDialogState(() {
-              activeMentionQuery = null;
-              filteredMentionUsers = const [];
-            });
-          }
-
-          Widget buildMentionSuggestions() {
-            if (activeMentionQuery == null) return const SizedBox.shrink();
-            final theme = Theme.of(context);
-            final showFollowers =
-                'followers'.startsWith(activeMentionQuery!.toLowerCase());
-            if (!showFollowers && filteredMentionUsers.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            return Container(
-              margin: const EdgeInsets.only(top: 8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.dividerColor),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (showFollowers)
-                    ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.campaign_outlined),
-                      title: const Text('@followers'),
-                      onTap: () => insertMentionHandle('followers'),
-                    ),
-                  ...filteredMentionUsers.map((user) {
+              await ensureMentionableUsersLoaded();
+              final normalizedQuery = query.toLowerCase();
+              final currentUserId = widget.currentUserId;
+              final matchingUsers = mentionableUsers
+                  .where((user) {
+                    if (user.uid == currentUserId) return false;
                     final handle = user.username ??
                         MentionUtils.normalizeDisplayNameToHandle(user.displayName);
-                    return ListTile(
-                      dense: true,
-                      leading: CircleAvatar(
-                        radius: 14,
-                        backgroundImage: user.profileImageUrl != null
-                            ? CachedNetworkImageProvider(user.profileImageUrl!)
-                            : null,
-                        child: user.profileImageUrl == null
-                            ? const Icon(Icons.person, size: 14)
-                            : null,
-                      ),
-                      title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
-                      subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
-                      onTap: () => insertMentionHandle(handle),
-                    );
-                  }),
-                ],
-              ),
-            );
-          }
+                    return normalizedQuery.isEmpty ||
+                        handle.startsWith(normalizedQuery) ||
+                        user.displayName.toLowerCase().contains(normalizedQuery);
+                  })
+                  .take(5)
+                  .toList();
 
-          return AlertDialog(
-            title: const Text('Repost'),
-            content: ValueListenableBuilder<bool>(
-              valueListenable: hasFocus,
-              builder: (context, value, child) {
-                final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-                final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
-                return AnimatedPadding(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  padding: EdgeInsets.only(bottom: composerBottomInset),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              setDialogState(() {
+                activeMentionQuery = query;
+                filteredMentionUsers = matchingUsers;
+              });
+            }
+
+            if (!listenerAdded) {
+              textController.addListener(handleMentionInputChanged);
+              listenerAdded = true;
+            }
+
+            void insertMentionHandle(String handle) {
+              final nextValue = MentionUtils.insertMention(
+                text: textController.text,
+                selection: textController.selection,
+                handle: handle,
+              );
+              textController.value = nextValue;
+              setDialogState(() {
+                activeMentionQuery = null;
+                filteredMentionUsers = const [];
+              });
+            }
+
+            Widget buildMentionSuggestions() {
+              if (activeMentionQuery == null) return const SizedBox.shrink();
+              final theme = Theme.of(context);
+              final showFollowers =
+                  'followers'.startsWith(activeMentionQuery!.toLowerCase());
+              if (!showFollowers && filteredMentionUsers.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Container(
+                margin: const EdgeInsets.only(top: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.dividerColor),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showFollowers)
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.campaign_outlined),
+                        title: const Text('@followers'),
+                        onTap: () => insertMentionHandle('followers'),
+                      ),
+                    ...filteredMentionUsers.map((user) {
+                      final handle = user.username ??
+                          MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+                      return ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          radius: 14,
+                          backgroundImage: user.profileImageUrl != null
+                              ? CachedNetworkImageProvider(user.profileImageUrl!)
+                              : null,
+                          child: user.profileImageUrl == null
+                              ? const Icon(Icons.person, size: 14)
+                              : null,
+                        ),
+                        title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
+                        subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
+                        onTap: () => insertMentionHandle(handle),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            }
+
+            final theme = Theme.of(context);
+            return Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        KeyboardPromptBanner(
-                          visible: keyboardInset > 0 && !showEmojiPanel,
-                          text: 'Add a repost caption before sharing.',
-                          icon: Icons.repeat_outlined,
+                        Text(
+                          'Repost',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        if (keyboardInset > 0 && !showEmojiPanel)
-                          const SizedBox(height: 12),
-                        const Text(
-                          'Add an optional caption to your repost:',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                setDialogState(
-                                  () => showEmojiPanel = !showEmojiPanel,
-                                );
-                                if (showEmojiPanel) {
-                                  focusNode.unfocus();
-                                  SystemChannels.textInput.invokeMethod(
-                                    'TextInput.hide',
-                                  );
-                                } else {
-                                  FocusScope.of(context).requestFocus(focusNode);
-                                }
-                              },
-                              icon: Icon(
-                                showEmojiPanel
-                                    ? Icons.keyboard_outlined
-                                    : Icons.emoji_emotions_outlined,
-                              ),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: textController,
-                                focusNode: focusNode,
-                                onTap: () {
-                                  if (showEmojiPanel) {
-                                    setDialogState(() => showEmojiPanel = false);
-                                  }
-                                },
-                                decoration: InputDecoration(
-                                  hintText: 'Write something...',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: const EdgeInsets.all(12),
-                                ),
-                                maxLines: 3,
-                                maxLength: 280,
-                              ),
-                            ),
-                          ],
-                        ),
-                        buildMentionSuggestions(),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOut,
-                          height: showEmojiPanel ? 180 : 0,
-                          child: showEmojiPanel
-                              ? GridView.builder(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 8,
-                                        childAspectRatio: 1.2,
-                                      ),
-                                  itemCount: _quickEmojis.length,
-                                  itemBuilder: (context, index) {
-                                    final emoji = _quickEmojis[index];
-                                    return InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () {
-                                        final currentText = textController.text;
-                                        final currentSelection =
-                                            textController.selection;
-                                        final start = currentSelection.start >= 0
-                                            ? currentSelection.start
-                                            : currentText.length;
-                                        final end = currentSelection.end >= 0
-                                            ? currentSelection.end
-                                            : currentText.length;
-                                        final newText = currentText.replaceRange(
-                                          start,
-                                          end,
-                                          emoji,
-                                        );
-                                        textController.value = TextEditingValue(
-                                          text: newText,
-                                          selection: TextSelection.collapsed(
-                                            offset: start + emoji.length,
-                                          ),
-                                        );
-                                      },
-                                      child: Center(
-                                        child: Text(
-                                          emoji,
-                                          style: const TextStyle(fontSize: 24),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : const SizedBox.shrink(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
                         ),
                       ],
                     ),
-                  ),
-                );
-              },
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                    const SizedBox(height: 16),
+                    const KeyboardPromptBanner(
+                      visible: true,
+                      text: 'Add a repost caption before sharing.',
+                      icon: Icons.repeat_outlined,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Add an optional caption to your repost:',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setDialogState(
+                              () => showEmojiPanel = !showEmojiPanel,
+                            );
+                            if (showEmojiPanel) {
+                              focusNode.unfocus();
+                              SystemChannels.textInput.invokeMethod(
+                                'TextInput.hide',
+                              );
+                            } else {
+                              FocusScope.of(context).requestFocus(focusNode);
+                            }
+                          },
+                          icon: Icon(
+                            showEmojiPanel
+                                ? Icons.keyboard_outlined
+                                : Icons.emoji_emotions_outlined,
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: textController,
+                            focusNode: focusNode,
+                            autofocus: true,
+                            onTap: () {
+                              if (showEmojiPanel) {
+                                setDialogState(() => showEmojiPanel = false);
+                              }
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Write something...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.all(12),
+                            ),
+                            maxLines: 3,
+                            maxLength: 280,
+                          ),
+                        ),
+                      ],
+                    ),
+                    buildMentionSuggestions(),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      height: showEmojiPanel ? 180 : 0,
+                      child: showEmojiPanel
+                          ? GridView.builder(
+                              padding: const EdgeInsets.only(top: 8),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 8,
+                                    childAspectRatio: 1.2,
+                                  ),
+                              itemCount: _quickEmojis.length,
+                              itemBuilder: (context, index) {
+                                final emoji = _quickEmojis[index];
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () {
+                                    final currentText = textController.text;
+                                    final currentSelection =
+                                        textController.selection;
+                                    final start = currentSelection.start >= 0
+                                        ? currentSelection.start
+                                        : currentText.length;
+                                    final end = currentSelection.end >= 0
+                                        ? currentSelection.end
+                                        : currentText.length;
+                                    final newText = currentText.replaceRange(
+                                      start,
+                                      end,
+                                      emoji,
+                                    );
+                                    textController.value = TextEditingValue(
+                                      text: newText,
+                                      selection: TextSelection.collapsed(
+                                        offset: start + emoji.length,
+                                      ),
+                                    );
+                                  },
+                                  child: Center(
+                                    child: Text(
+                                      emoji,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context, textController.text),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Repost Now',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, textController.text),
-                style: TextButton.styleFrom(foregroundColor: Colors.blue),
-                child: const Text('Repost'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
+            );
+          },
+        );
+      },
+    );
 
     if (result != null && mounted) {
       await _repostToFeed(caption: result.trim());

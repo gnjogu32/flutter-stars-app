@@ -17,7 +17,6 @@ import 'screens/settings_screen.dart';
 import 'models/post_model.dart';
 import 'firebase_options.dart';
 import 'utils/time_utils.dart';
-import 'package:audio_session/audio_session.dart';
 
 /// Global navigator key so PushNotificationService can route from background.
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -48,10 +47,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeAppServices();
   
-  // Configure Global Audio Session for consistent background playback prevention
-  final session = await AudioSession.instance;
-  await session.configure(const AudioSessionConfiguration.music());
-
   TimeUtils.init();
   runApp(const MyApp());
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart' as fp;
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/auth_service.dart';
@@ -109,7 +111,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickProfileImageFromGallery() async {
-    await _pickProfileImageFromSource(ImageSource.gallery);
+    try {
+      final file = await fp.FilePicker.pickFile(
+        type: fp.FileType.image,
+      );
+
+      if (file != null && file.path != null) {
+        final path = file.path!;
+        final bytes = await File(path).readAsBytes();
+        
+        setState(() {
+          _selectedProfileImage = XFile(path);
+          _selectedProfileImageBytes = bytes;
+          _shouldDeletePhoto = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error picking image: $e';
+        });
+      }
+    }
   }
 
   Future<void> _pickProfileImageFromCamera() async {

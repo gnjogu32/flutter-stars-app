@@ -23,7 +23,7 @@ This checklist ensures Firebase App Distribution is fully configured for automat
 - [ ] Go to [Firebase Console](https://console.firebase.google.com)
 - [ ] Select project: **starpage-ed409**
 - [ ] Enable **App Distribution** (left menu)
-- [ ] Note your **Android App ID** (format: `1:246255479274:android:341fbd17995cbd2e862a93`)
+- [ ] Note your **Android App ID** (format: `1:246255479274:android:177b790682bb5b59862a93`)
 
 #### Create Tester Groups
 - [ ] Go to **App Distribution** → **Testers & Groups**
@@ -55,7 +55,7 @@ Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/secrets/actions`
 #### Secret 1: FIREBASE_APP_ID
 ```
 Name:  FIREBASE_APP_ID
-Value: 1:246255479274:android:341fbd17995cbd2e862a93
+Value: 1:246255479274:android:177b790682bb5b59862a93
        (from Firebase Console → Your Apps → Android App)
 ```
 

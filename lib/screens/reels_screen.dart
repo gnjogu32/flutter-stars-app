@@ -229,36 +229,64 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
 
           final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-          return PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            onPageChanged: (index) {
-              setState(() => _activeIndex = index);
-              _preloadAdjacent(index, reels);
-            },
-            itemBuilder: (context, index) {
-              final reel = _getReelAtGlobalIndex(index, reels);
-              return _ReelItem(
-                key: ValueKey('reel_${reel.postId}_$index'),
-                post: reel,
-                isActive: _tabVisible && index == _activeIndex,
-                currentUserId: currentUserId,
-                preloadedController: _preloadedControllers[index],
-                onOpenProfile: () {
-                  final userId = (reel.originalAuthorId ?? reel.authorId)
-                      .trim();
-                  if (userId.isEmpty) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ProfileScreen(userId: userId),
-                    ),
+          return Stack(
+            children: [
+              PageView.builder(
+                controller: _pageController,
+                scrollDirection: Axis.vertical,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                onPageChanged: (index) {
+                  setState(() => _activeIndex = index);
+                  _preloadAdjacent(index, reels);
+                },
+                itemBuilder: (context, index) {
+                  final reel = _getReelAtGlobalIndex(index, reels);
+                  return _ReelItem(
+                    key: ValueKey('reel_${reel.postId}_$index'),
+                    post: reel,
+                    isActive: _tabVisible && index == _activeIndex,
+                    currentUserId: currentUserId,
+                    preloadedController: _preloadedControllers[index],
+                    onOpenProfile: () {
+                      final userId = (reel.originalAuthorId ?? reel.authorId)
+                          .trim();
+                      if (userId.isEmpty) return;
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProfileScreen(userId: userId),
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            },
+              ),
+              // Transparent 'Vistas' label at the top
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 12,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Text(
+                    'Vistas',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      shadows: [
+                        Shadow(
+                          offset: const Offset(0, 1),
+                          blurRadius: 4,
+                          color: Colors.black.withValues(alpha: 0.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -732,8 +760,10 @@ class _ReelItemState extends State<_ReelItem>
       hasFocus.value = focusNode.hasFocus;
     });
 
-    final result = await showDialog<String?>(
+    final result = await showModalBottomSheet<String?>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           Future<void> ensureMentionableUsersLoaded() async {
@@ -850,146 +880,169 @@ class _ReelItemState extends State<_ReelItem>
             );
           }
 
-          return AlertDialog(
-            title: const Text('Repost'),
-            content: ValueListenableBuilder<bool>(
-              valueListenable: hasFocus,
-              builder: (context, value, child) {
-                final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-                final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
-                return AnimatedPadding(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  padding: EdgeInsets.only(bottom: composerBottomInset),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        KeyboardPromptBanner(
-                          visible: keyboardInset > 0 && !showEmojiPanel,
-                          text: 'Add a repost caption before sharing.',
-                          icon: Icons.repeat_outlined,
+          final theme = Theme.of(context);
+          return Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Repost',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                        if (keyboardInset > 0 && !showEmojiPanel)
-                          const SizedBox(height: 12),
-                        const Text(
-                          'Add an optional caption to your repost:',
-                          style: TextStyle(fontSize: 14),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const KeyboardPromptBanner(
+                    visible: true,
+                    text: 'Add a repost caption before sharing.',
+                    icon: Icons.repeat_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Add an optional caption to your repost:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          setDialogState(
+                            () => showEmojiPanel = !showEmojiPanel,
+                          );
+                          if (showEmojiPanel) {
+                            focusNode.unfocus();
+                            SystemChannels.textInput.invokeMethod(
+                              'TextInput.hide',
+                            );
+                          } else {
+                            FocusScope.of(context).requestFocus(focusNode);
+                          }
+                        },
+                        icon: Icon(
+                          showEmojiPanel
+                              ? Icons.keyboard_outlined
+                              : Icons.emoji_emotions_outlined,
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                setDialogState(
-                                  () => showEmojiPanel = !showEmojiPanel,
-                                );
-                                if (showEmojiPanel) {
-                                  focusNode.unfocus();
-                                  SystemChannels.textInput.invokeMethod(
-                                    'TextInput.hide',
-                                  );
-                                } else {
-                                  FocusScope.of(context).requestFocus(focusNode);
-                                }
-                              },
-                              icon: Icon(
-                                showEmojiPanel
-                                    ? Icons.keyboard_outlined
-                                    : Icons.emoji_emotions_outlined,
-                              ),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: textController,
+                          focusNode: focusNode,
+                          autofocus: true,
+                          onTap: () {
+                            if (showEmojiPanel) {
+                              setDialogState(() => showEmojiPanel = false);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Write something...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            Expanded(
-                              child: TextField(
-                                controller: textController,
-                                focusNode: focusNode,
-                                onTap: () {
-                                  if (showEmojiPanel) {
-                                    setDialogState(() => showEmojiPanel = false);
-                                  }
-                                },
-                                decoration: InputDecoration(
-                                  hintText: 'Write something...',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: const EdgeInsets.all(12),
+                            contentPadding: const EdgeInsets.all(12),
+                          ),
+                          maxLines: 3,
+                          maxLength: 280,
+                        ),
+                      ),
+                    ],
+                  ),
+                  buildMentionSuggestions(),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    height: showEmojiPanel ? 180 : 0,
+                    child: showEmojiPanel
+                        ? GridView.builder(
+                            padding: const EdgeInsets.only(top: 8),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 8,
+                                  childAspectRatio: 1.2,
                                 ),
-                                maxLines: 3,
-                                maxLength: 280,
-                              ),
-                            ),
-                          ],
+                            itemCount: _quickEmojis.length,
+                            itemBuilder: (context, index) {
+                              final emoji = _quickEmojis[index];
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () {
+                                  final currentText = textController.text;
+                                  final currentSelection =
+                                      textController.selection;
+                                  final start = currentSelection.start >= 0
+                                      ? currentSelection.start
+                                      : currentText.length;
+                                  final end = currentSelection.end >= 0
+                                      ? currentSelection.end
+                                      : currentText.length;
+                                  final newText = currentText.replaceRange(
+                                    start,
+                                    end,
+                                    emoji,
+                                  );
+                                  textController.value = TextEditingValue(
+                                    text: newText,
+                                    selection: TextSelection.collapsed(
+                                      offset: start + emoji.length,
+                                    ),
+                                  );
+                                },
+                                child: Center(
+                                  child: Text(
+                                    emoji,
+                                    style: const TextStyle(fontSize: 24),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, textController.text),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        buildMentionSuggestions(),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOut,
-                          height: showEmojiPanel ? 180 : 0,
-                          child: showEmojiPanel
-                              ? GridView.builder(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 8,
-                                        childAspectRatio: 1.2,
-                                      ),
-                                  itemCount: _quickEmojis.length,
-                                  itemBuilder: (context, index) {
-                                    final emoji = _quickEmojis[index];
-                                    return InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () {
-                                        final currentText = textController.text;
-                                        final currentSelection =
-                                            textController.selection;
-                                        final start = currentSelection.start >= 0
-                                            ? currentSelection.start
-                                            : currentText.length;
-                                        final end = currentSelection.end >= 0
-                                            ? currentSelection.end
-                                            : currentText.length;
-                                        final newText = currentText.replaceRange(
-                                          start,
-                                          end,
-                                          emoji,
-                                        );
-                                        textController.value = TextEditingValue(
-                                          text: newText,
-                                          selection: TextSelection.collapsed(
-                                            offset: start + emoji.length,
-                                          ),
-                                        );
-                                      },
-                                      child: Center(
-                                        child: Text(
-                                          emoji,
-                                          style: const TextStyle(fontSize: 24),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : const SizedBox.shrink(),
+                      ),
+                      child: const Text(
+                        'Repost Now',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, textController.text),
-                style: TextButton.styleFrom(foregroundColor: Colors.blue),
-                child: const Text('Repost'),
-              ),
-            ],
           );
         },
       ),

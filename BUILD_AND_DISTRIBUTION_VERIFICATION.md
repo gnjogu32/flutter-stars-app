@@ -88,14 +88,14 @@
 |-----------|--------|---------|
 | **APK Build** | ✅ Complete | 63.13 MB ready |
 | **Firebase Project** | ✅ Created | starpage-ed409 |
-| **Firebase App ID** | ✅ Configured | `1:246255479274:android:341fbd17995cbd2e862a93` |
+| **Firebase App ID** | ✅ Configured | `1:246255479274:android:177b790682bb5b59862a93` |
 | **App Onboarding** | ⏳ Pending | Requires Firebase Console action |
 | **Tester Groups** | ⏳ Pending | Need to create/verify alpha, beta groups |
 
 ### Distribution Error
 ```
 Error: App Distribution could not find your app 
-projects/246255479274/apps/1:246255479274:android:341fbd17995cbd2e862a93
+projects/246255479274/apps/1:246255479274:android:177b790682bb5b59862a93
 
 Solution: Onboard your app by pressing the "Get started" button on the 
 App Distribution page in the Firebase console
@@ -132,7 +132,7 @@ powershell -ExecutionPolicy Bypass -File .\build_and_distribute.ps1
 
 # Option B: Distribute existing APK
 firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk `
-  --app "1:246255479274:android:341fbd17995cbd2e862a93" `
+   --app "1:246255479274:android:177b790682bb5b59862a93" `
   --groups "alpha,beta" `
   --release-notes "Release with dependency updates and Kotlin 2.2.20 upgrade"
 ```
@@ -145,7 +145,7 @@ firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.ap
 
 **Updated Configuration:**
 ```powershell
-$APP_ID = "1:246255479274:android:341fbd17995cbd2e862a93"
+$APP_ID = "1:246255479274:android:177b790682bb5b59862a93"
 $TESTER_GROUP = "alpha,beta"
 $APK_PATH = "build/app/outputs/flutter-apk/app-release.apk"
 $RELEASE_NOTES = "Automated build upload via script."

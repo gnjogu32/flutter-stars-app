@@ -64,7 +64,7 @@ git push origin main --tags
 
 **Required GitHub Secrets:**
 ```
-FIREBASE_APP_ID           → 1:246255479274:android:341fbd17995cbd2e862a93
+FIREBASE_APP_ID           → 1:246255479274:android:177b790682bb5b59862a93
 FIREBASE_SERVICE_ACCOUNT  → [Your service account JSON]
 FIREBASE_GROUPS           → Alpha Testers,Beta Testers
 ```
@@ -101,7 +101,7 @@ flutter build apk --release
 
 # Upload to Firebase App Distribution
 firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk `
-  --app 1:246255479274:android:341fbd17995cbd2e862a93 `
+  --app 1:246255479274:android:177b790682bb5b59862a93 `
   --groups "Alpha Testers,Beta Testers" `
   --release-notes "Version 1.0.1: Bug fixes and improvements"
 ```
@@ -411,7 +411,7 @@ firebase deploy --only hosting
 
 | Secret | Value | Where to Get |
 |--------|-------|--------------|
-| `FIREBASE_APP_ID` | `1:246255479274:android:341fbd17995cbd2e862a93` | Firebase Console → Your Apps |
+| `FIREBASE_APP_ID` | `1:246255479274:android:177b790682bb5b59862a93` | Firebase Console → Your Apps |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON from service account key | Firebase Console → Service Accounts |
 | `FIREBASE_GROUPS` | `Alpha Testers,Beta Testers` | Firebase Console → Tester Groups |
 
@@ -494,7 +494,7 @@ firebase login
 # Test distribution
 firebase appdistribution:distribute \
   build/app/outputs/flutter-apk/app-release.apk \
-  --app 1:246255479274:android:341fbd17995cbd2e862a93
+  --app 1:246255479274:android:177b790682bb5b59862a93
 ```
 
 ### Play Store Upload Fails

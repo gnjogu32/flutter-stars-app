@@ -201,19 +201,28 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final List<XFile> pickedFiles = await _imagePicker.pickMultiImage();
+      final result = await fp.FilePicker.pickFiles(
+        type: fp.FileType.image,
+      );
 
-      if (pickedFiles.isNotEmpty) {
+      if (result != null && result.files.isNotEmpty) {
         final Map<String, Uint8List> newBytes = {};
-        for (final file in pickedFiles) {
-          if (_imageBytes.containsKey(file.path)) continue; // avoid duplicates
-          newBytes[file.path] = await file.readAsBytes();
+        final List<XFile> pickedFiles = [];
+
+        for (final file in result.files) {
+          final path = file.path;
+          if (path == null) continue;
+          if (_imageBytes.containsKey(path)) continue; // avoid duplicates
+
+          final xFile = XFile(path);
+          pickedFiles.add(xFile);
+          
+          final bytes = await xFile.readAsBytes();
+          newBytes[path] = bytes;
         }
 
         setState(() {
-          _selectedImages.addAll(
-            pickedFiles.where((file) => !_imageBytes.containsKey(file.path)),
-          );
+          _selectedImages.addAll(pickedFiles);
           _imageBytes.addAll(newBytes);
         });
       }
@@ -255,11 +264,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _pickVideo() async {
     try {
-      final result = await fp.FilePicker.pickFiles(type: fp.FileType.video);
-      if (result != null) {
-        final file = result.files.single;
-        if (file.path == null) return;
-
+      final file = await fp.FilePicker.pickFile(
+        type: fp.FileType.video,
+      );
+      if (file != null && file.path != null) {
         setState(() {
           _selectedVideo = XFile(file.path!);
           _errorMessage = null;
@@ -278,9 +286,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.4,
-        minChildSize: 0.2,
-        maxChildSize: 0.6,
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
         builder: (context, scrollController) => Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
