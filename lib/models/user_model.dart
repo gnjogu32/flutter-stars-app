@@ -6,6 +6,7 @@ class UserModel {
   final String displayName;
   final String? username;
   final String? profileImageUrl;
+  final String? coverImageUrl;
   final String? bio;
   final String?
   talent; // Category of talent (e.g., Art, Music, Writing, Dance, etc.)
@@ -29,6 +30,7 @@ class UserModel {
     required this.displayName,
     this.username,
     this.profileImageUrl,
+    this.coverImageUrl,
     this.bio,
     this.talent,
     this.followers = const [],
@@ -54,6 +56,7 @@ class UserModel {
       'displayName': displayName,
       'username': username,
       'profileImageUrl': profileImageUrl,
+      'coverImageUrl': coverImageUrl,
       'bio': bio,
       'talent': talent,
       'followers': followers,
@@ -80,6 +83,7 @@ class UserModel {
       displayName: json['displayName'] ?? '',
       username: json['username'],
       profileImageUrl: json['profileImageUrl'],
+      coverImageUrl: json['coverImageUrl'],
       bio: json['bio'],
       talent: json['talent'],
       followers: List<String>.from(json['followers'] ?? []),
@@ -119,6 +123,7 @@ class UserModel {
       displayName: data['displayName'] ?? '',
       username: data['username'],
       profileImageUrl: data['profileImageUrl'],
+      coverImageUrl: data['coverImageUrl'],
       bio: data['bio'],
       talent: data['talent'],
       followers: List<String>.from(data['followers'] ?? []),
@@ -152,6 +157,7 @@ class UserModel {
     String? displayName,
     String? username,
     String? profileImageUrl,
+    String? coverImageUrl,
     String? bio,
     String? talent,
     List<String>? followers,
@@ -174,6 +180,7 @@ class UserModel {
       displayName: displayName ?? this.displayName,
       username: username ?? this.username,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
       bio: bio ?? this.bio,
       talent: talent ?? this.talent,
       followers: followers ?? this.followers,

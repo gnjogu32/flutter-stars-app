@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -40,6 +41,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoadingBlock = false;
   _ProfileMediaFolder _selectedFolder = _ProfileMediaFolder.all;
   bool _isGridView = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   // Cached futures/streams to prevent jumpy UI during rebuilds
   Stream<Map<String, dynamic>>? _analyticsStream;
@@ -262,6 +265,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showShareOptions(String userId) {
+    final theme = Theme.of(context);
+    final profileUrl = 'https://starpage.app/profile/$userId';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Share Profile',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Copy Profile Link'),
+              onTap: () {
+                Navigator.pop(context);
+                Clipboard.setData(ClipboardData(text: profileUrl));
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Profile link copied ✓')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy_all),
+              title: const Text('Copy Formatted Invite'),
+              onTap: () {
+                Navigator.pop(context);
+                final shareText = 'Check out this talented star on Starpage! ⭐\n\nProfile: $profileUrl';
+                Clipboard.setData(ClipboardData(text: shareText));
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Invite copied ✓')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.qr_code_2),
+              title: const Text('Show Profile QR'),
+              onTap: () {
+                Navigator.pop(context);
+                // Placeholder for QR feature
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('QR feature coming soon!')),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final effectiveUserId = widget.userId.isEmpty
@@ -291,10 +367,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(isOwnProfile ? 'My Profile' : 'Profile'),
         centerTitle: true,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Share Profile',
+            onPressed: () => _showShareOptions(effectiveUserId),
+          ),
           if (isOwnProfile) ...[
             IconButton(
               icon: const Icon(Icons.bar_chart),
@@ -404,6 +485,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   .where(
                     (post) => _matchesSelectedFolder(post, user.savedPosts),
                   )
+                  .where((post) => _searchQuery.isEmpty || 
+                         post.content.toLowerCase().contains(_searchQuery.toLowerCase()))
                   .toList();
 
               return CustomScrollView(
@@ -487,235 +570,286 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader(UserModel user, bool isOwnProfile) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          // Profile Image
-          GestureDetector(
-            onTap: user.profileImageUrl == null || user.profileImageUrl!.isEmpty
-                ? null
-                : () => _openProfilePhotoViewer(
-                    user.profileImageUrl,
-                    user.displayName,
+    return Column(
+      children: [
+        // Cover Photo
+        GestureDetector(
+          onTap: user.coverImageUrl == null || user.coverImageUrl!.isEmpty
+              ? null
+              : () => _openProfilePhotoViewer(
+                    user.coverImageUrl,
+                    '${user.displayName}\'s Cover',
                     isOwnProfile,
                   ),
-            child: CircleAvatar(
-              radius: 50,
-              backgroundImage: user.profileImageUrl != null
-                  ? CachedNetworkImageProvider(user.profileImageUrl!)
+          child: Container(
+            width: double.infinity,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              image: user.coverImageUrl != null && user.coverImageUrl!.isNotEmpty
+                  ? DecorationImage(
+                      image: CachedNetworkImageProvider(user.coverImageUrl!),
+                      fit: BoxFit.cover,
+                    )
                   : null,
-              child: user.profileImageUrl == null
-                  ? const Icon(Icons.person, size: 50)
-                  : null,
             ),
+            child: user.coverImageUrl == null || user.coverImageUrl!.isEmpty
+                ? Center(
+                    child: Icon(
+                      Icons.add_a_photo_outlined,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.3),
+                      size: 40,
+                    ),
+                  )
+                : null,
           ),
-          const SizedBox(height: 16),
-          // Name
-          Text(
-            user.displayName,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          // Username
-          if (user.username != null)
-            Text(
-              '@${user.username}',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.grey),
-            ),
-          // Talent
-          if (user.talent != null)
-            Text(
-              user.talent!,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          // Bio
-          if (user.bio != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                user.bio!,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
-          // Joining Date
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+        ),
+        Transform.translate(
+          offset: const Offset(0, -50),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
               children: [
-                const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  'Joined ${DateFormat('MMMM yyyy').format(user.createdAt)}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-
-          // Birthday
-          if (user.birthday != null && (user.birthdayPublic || isOwnProfile))
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.cake, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Born ${DateFormat('MMMM dd, yyyy').format(user.birthday!)}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                // Profile Image
+                GestureDetector(
+                  onTap: user.profileImageUrl == null || user.profileImageUrl!.isEmpty
+                      ? null
+                      : () => _openProfilePhotoViewer(
+                          user.profileImageUrl,
+                          user.displayName,
+                          isOwnProfile,
+                        ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        width: 4,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundImage: user.profileImageUrl != null
+                          ? CachedNetworkImageProvider(user.profileImageUrl!)
+                          : null,
+                      child: user.profileImageUrl == null
+                          ? const Icon(Icons.person, size: 50)
+                          : null,
+                    ),
                   ),
-                  if (isOwnProfile) ...[
-                    const SizedBox(width: 8),
-                    Icon(
-                      user.birthdayPublic
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      size: 12,
+                ),
+                const SizedBox(height: 8),
+                // Name
+                Text(
+                  user.displayName,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                // Username
+                if (user.username != null)
+                  Text(
+                    '@${user.username}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Colors.grey,
                     ),
-                  ],
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-          // Stats row
-          StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('posts')
-                .where('authorId', isEqualTo: user.uid)
-                .snapshots(),
-            builder: (context, postSnapshot) {
-              final postCount = postSnapshot.hasData
-                  ? postSnapshot.data!.docs.length
-                  : 0;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStat(
-                    'Posts',
-                    postCount,
-                    onTap: () {
-                      setState(() {
-                        _isGridView = false;
-                        _selectedFolder = _ProfileMediaFolder.all;
-                      });
-                    },
                   ),
-                  _buildStat(
-                    'Followers',
-                    user.followerCount,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => FollowersFollowingScreen(
-                            userId: user.uid,
-                            initialTabIndex: 0,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildStat(
-                    'Following',
-                    user.followingCount,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => FollowersFollowingScreen(
-                            userId: user.uid,
-                            initialTabIndex: 1,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-          if (isOwnProfile) _buildQuickSummaryCards(user.uid),
-          const SizedBox(height: 20),
-          // Action buttons
-          if (isOwnProfile)
-            SizedBox(
-              width: double.infinity,
-              height: 45,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamed('/edit-profile');
-                },
-                child: const Text(
-                  'Edit Profile',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            )
-          else
-            Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 45,
-                  child: ElevatedButton(
-                    onPressed: _isLoadingFollow
-                        ? null
-                        : () => _toggleFollow(user),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isFollowing
-                          ? (Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey[800]
-                                : Colors.grey[300])
-                          : Theme.of(context).colorScheme.primary,
-                    ),
-                    child: _isLoadingFollow
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            _isFollowing ? 'Following' : 'Follow',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: _isFollowing
-                                  ? (Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white70
-                                        : Colors.black87)
-                                  : Colors.white,
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 45,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _navigateToChat(user),
-                    icon: const Icon(Icons.mail),
-                    label: const Text(
-                      'Message',
-                      style: TextStyle(fontSize: 16),
+                // Talent
+                if (user.talent != null)
+                  Text(
+                    user.talent!,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
+                // Bio
+                if (user.bio != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      user.bio!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                // Joining Date
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Joined ${DateFormat('MMMM yyyy').format(user.createdAt)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                // Birthday
+                if (user.birthday != null && (user.birthdayPublic || isOwnProfile))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.cake, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Born ${DateFormat('MMMM dd, yyyy').format(user.birthday!)}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey,
+                          ),
+                        ),
+                        if (isOwnProfile) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            user.birthdayPublic ? Icons.visibility : Icons.visibility_off,
+                            size: 12,
+                            color: Colors.grey,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                // Stats row
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                      .collection('posts')
+                      .where('authorId', isEqualTo: user.uid)
+                      .snapshots(),
+                  builder: (context, postSnapshot) {
+                    final postCount = postSnapshot.hasData
+                        ? postSnapshot.data!.docs.length
+                        : 0;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStat(
+                          'Posts',
+                          postCount,
+                          onTap: () {
+                            setState(() {
+                              _isGridView = false;
+                              _selectedFolder = _ProfileMediaFolder.all;
+                            });
+                          },
+                        ),
+                        _buildStat(
+                          'Followers',
+                          user.followerCount,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => FollowersFollowingScreen(
+                                  userId: user.uid,
+                                  initialTabIndex: 0,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildStat(
+                          'Following',
+                          user.followingCount,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => FollowersFollowingScreen(
+                                  userId: user.uid,
+                                  initialTabIndex: 1,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                if (isOwnProfile) _buildQuickSummaryCards(user.uid),
+                const SizedBox(height: 20),
+                // Action buttons
+                if (isOwnProfile)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushNamed('/edit-profile');
+                      },
+                      child: const Text(
+                        'Edit Profile',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  )
+                else
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: ElevatedButton(
+                          onPressed: _isLoadingFollow
+                              ? null
+                              : () => _toggleFollow(user),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isFollowing
+                                ? (Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[800]
+                                      : Colors.grey[300])
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                          child: _isLoadingFollow
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(
+                                  _isFollowing ? 'Following' : 'Follow',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: _isFollowing
+                                        ? (Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white70
+                                              : Colors.black87)
+                                        : Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _navigateToChat(user),
+                          icon: const Icon(Icons.mail),
+                          label: const Text(
+                            'Message',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -726,6 +860,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.trim();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search posts...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest,
+              ),
+            ),
+          ),
           Text(
             isOwnProfile ? 'Author Media Folders' : 'Media',
             style: theme.textTheme.titleMedium,

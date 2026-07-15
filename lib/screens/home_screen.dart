@@ -5,6 +5,7 @@ import '../models/post_model.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
+import '../widgets/quick_composer_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueNotifier<bool>? tabActiveNotifier;
@@ -149,7 +150,12 @@ class HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.add_circle_outline),
             tooltip: 'Create Post',
             onPressed: () {
-              Navigator.of(context).pushNamed('/create-post');
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const QuickComposerSheet(),
+              );
             },
           ),
         ],

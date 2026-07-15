@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as fp;
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import '../services/post_service.dart';
@@ -13,14 +14,15 @@ import '../models/user_model.dart';
 import '../widgets/keyboard_prompt_banner.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  final String? initialContent;
+  const CreatePostScreen({super.key, this.initialContent});
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  final _contentController = TextEditingController();
+  late final TextEditingController _contentController;
   final FocusNode _contentFocusNode = FocusNode();
   final _imagePicker = ImagePicker();
   final PostService _postService = PostService();
@@ -56,6 +58,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   void initState() {
     super.initState();
+    _contentController = TextEditingController(text: widget.initialContent);
     _contentController.addListener(_handleMentionInputChanged);
     _contentFocusNode.addListener(_handleComposerFocusChanged);
   }
@@ -183,7 +186,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               dense: true,
               leading: CircleAvatar(
                 backgroundImage: user.profileImageUrl != null
-                    ? NetworkImage(user.profileImageUrl!)
+                    ? CachedNetworkImageProvider(user.profileImageUrl!)
                     : null,
                 child: user.profileImageUrl == null
                     ? const Icon(Icons.person, size: 18)
@@ -593,6 +596,34 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Author row with Avatar
+            FutureBuilder<UserModel?>(
+              future: _userService.getUser(_authService.currentUser?.uid ?? ''),
+              builder: (context, snapshot) {
+                final user = snapshot.data;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundImage: user?.profileImageUrl != null
+                            ? CachedNetworkImageProvider(user!.profileImageUrl!)
+                            : null,
+                        child: user?.profileImageUrl == null
+                            ? const Icon(Icons.person)
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        user?.displayName ?? 'Your Post',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
             // Content text field
             TextField(
               controller: _contentController,

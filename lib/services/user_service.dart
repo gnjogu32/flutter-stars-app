@@ -197,15 +197,53 @@ class UserService {
     }
   }
 
-  // Update user profile with image URL
+  // Upload cover image from pre-loaded bytes
+  Future<String?> uploadCoverImageFromBytes(
+    String userId,
+    XFile imageFile,
+    Uint8List imageBytes,
+  ) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final imageRef = storageRef.child(
+        'covers/$userId/${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}',
+      );
+
+      final uploadTask = imageRef.putData(imageBytes);
+      final snapshot = await uploadTask.whenComplete(() {});
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Error uploading cover image: $e');
+      rethrow;
+    }
+  }
+
+  // Delete old cover image from Firebase Storage
+  Future<void> deleteOldCoverImage(String userId) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final folderRef = storageRef.child('covers/$userId');
+
+      final listResult = await folderRef.listAll();
+      for (final item in listResult.items) {
+        await item.delete();
+      }
+    } catch (e) {
+      debugPrint('Error deleting old cover image: $e');
+    }
+  }
+
+  // Update user profile with image URLs
   Future<void> updateUserProfile({
     required String uid,
     String? displayName,
     String? username,
     String? bio,
     String? profileImageUrl,
+    String? coverImageUrl,
     String? talent,
     bool clearProfileImage = false,
+    bool clearCoverImage = false,
     DateTime? birthday,
     bool? birthdayPublic,
   }) async {
@@ -215,11 +253,19 @@ class UserService {
       if (displayName != null) updateData['displayName'] = displayName;
       if (username != null) updateData['username'] = username.toLowerCase();
       if (bio != null) updateData['bio'] = bio;
+      
       if (clearProfileImage) {
         updateData['profileImageUrl'] = FieldValue.delete();
       } else if (profileImageUrl != null) {
         updateData['profileImageUrl'] = profileImageUrl;
       }
+
+      if (clearCoverImage) {
+        updateData['coverImageUrl'] = FieldValue.delete();
+      } else if (coverImageUrl != null) {
+        updateData['coverImageUrl'] = coverImageUrl;
+      }
+
       if (talent != null) updateData['talent'] = talent;
       if (birthday != null) updateData['birthday'] = birthday.toIso8601String();
       if (birthdayPublic != null) updateData['birthdayPublic'] = birthdayPublic;

@@ -145,7 +145,6 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignUpScreen(),
-          '/create-post': (context) => const CreatePostScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
           '/trending': (context) => const TrendingScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
@@ -155,6 +154,12 @@ class MyApp extends StatelessWidget {
           '/settings': (context) => const SettingsScreen(),
         },
         onGenerateRoute: (settings) {
+          if (settings.name == '/create-post') {
+            final String? initialContent = settings.arguments as String?;
+            return MaterialPageRoute(
+              builder: (context) => CreatePostScreen(initialContent: initialContent),
+            );
+          }
           if (settings.name == '/edit-post') {
             if (settings.arguments == null) {
               debugPrint('ERROR: /edit-post called with null arguments');

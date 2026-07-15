@@ -31,12 +31,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedTalent;
   XFile? _selectedProfileImage;
   Uint8List? _selectedProfileImageBytes;
+  XFile? _selectedCoverImage;
+  Uint8List? _selectedCoverImageBytes;
   DateTime? _birthday;
   bool _birthdayPublic = false;
   bool _isLoading = false;
   String? _errorMessage;
   UserModel? _currentUser;
-  bool _shouldDeletePhoto = false; // Track if user wants to delete photo
+  bool _shouldDeletePhoto = false; // Track if user wants to delete profile photo
+  bool _shouldDeleteCover = false; // Track if user wants to delete cover photo
 
   final List<String> talents = [
     'Art',
@@ -185,6 +188,133 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _selectedProfileImageBytes = null;
       _shouldDeletePhoto = true; // Mark that we want to delete the photo
     });
+  }
+
+  void _removeCoverImage() {
+    setState(() {
+      _selectedCoverImage = null;
+      _selectedCoverImageBytes = null;
+      _shouldDeleteCover = true;
+    });
+  }
+
+  Future<void> _pickCoverImageFromGallery() async {
+    try {
+      final file = await fp.FilePicker.pickFile(
+        type: fp.FileType.image,
+      );
+
+      if (file != null && file.path != null) {
+        final path = file.path!;
+        final bytes = await File(path).readAsBytes();
+
+        setState(() {
+          _selectedCoverImage = XFile(path);
+          _selectedCoverImageBytes = bytes;
+          _shouldDeleteCover = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error picking cover image: $e';
+        });
+      }
+    }
+  }
+
+  void _showCoverPhotoPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.35,
+        minChildSize: 0.2,
+        maxChildSize: 0.5,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'Change Cover Photo',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.photo_library,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      title: const Text(
+                        'Choose from Gallery',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickCoverImageFromGallery();
+                      },
+                    ),
+                    if (_selectedCoverImageBytes != null ||
+                        (_currentUser?.coverImageUrl != null &&
+                            !_shouldDeleteCover))
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                        ),
+                        title: const Text(
+                          'Remove Current Cover',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _removeCoverImage();
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showProfilePhotoPicker() {
@@ -347,6 +477,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       String? profileImageUrl = _currentUser?.profileImageUrl;
+      String? coverImageUrl = _currentUser?.coverImageUrl;
 
       // Upload new profile image to Firebase Storage if selected
       if (_selectedProfileImage != null && _selectedProfileImageBytes != null) {
@@ -369,6 +500,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
 
+      // Upload new cover image to Firebase Storage if selected
+      if (_selectedCoverImage != null && _selectedCoverImageBytes != null) {
+        coverImageUrl = await _userService.uploadCoverImageFromBytes(
+          userId,
+          _selectedCoverImage!,
+          _selectedCoverImageBytes!,
+        );
+        _shouldDeleteCover = false;
+      }
+      // If user wants to delete the cover photo
+      else if (_shouldDeleteCover && _currentUser?.coverImageUrl != null) {
+        coverImageUrl = null;
+
+        // Delete old cover image from storage
+        try {
+          await _userService.deleteOldCoverImage(userId);
+        } catch (e) {
+          if (kDebugMode) print('Error deleting old cover: $e');
+        }
+      }
+
       // Update user profile with new data
       await _userService.updateUserProfile(
         uid: userId,
@@ -376,9 +528,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         username: username.isEmpty ? null : username,
         bio: _bioController.text.trim(),
         profileImageUrl: profileImageUrl,
+        coverImageUrl: coverImageUrl,
         talent: _selectedTalent,
         clearProfileImage:
             _shouldDeletePhoto && _currentUser?.profileImageUrl != null,
+        clearCoverImage:
+            _shouldDeleteCover && _currentUser?.coverImageUrl != null,
         birthday: _birthday,
         birthdayPublic: _birthdayPublic,
       );
@@ -438,6 +593,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Cover Photo
+            GestureDetector(
+              onTap: _showCoverPhotoPicker,
+              child: Container(
+                width: double.infinity,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(12),
+                  image: _selectedCoverImageBytes != null
+                      ? DecorationImage(
+                          image: MemoryImage(_selectedCoverImageBytes!),
+                          fit: BoxFit.cover,
+                        )
+                      : (!_shouldDeleteCover && _currentUser?.coverImageUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(_currentUser!.coverImageUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null),
+                ),
+                child: Stack(
+                  children: [
+                    if (_selectedCoverImageBytes == null &&
+                        (_shouldDeleteCover ||
+                            _currentUser?.coverImageUrl == null))
+                      const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
+                            SizedBox(height: 8),
+                            Text('Add Cover Photo',
+                                style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Icon(Icons.camera_alt,
+                            color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             // Profile Image
             Center(
               child: SizedBox(
