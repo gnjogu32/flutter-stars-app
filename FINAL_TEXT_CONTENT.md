@@ -71,8 +71,8 @@ Our mission: Create a space where creativity meets community, where your voice m
 
 📞 SUPPORT & FEEDBACK
 Have feedback or issues? We'd love to hear from you!
-Email: support@starpage.app
-Privacy: privacy@starpage.app
+Email: support@starpage.me
+Privacy: privacy@starpage.me
 
 VERSION: 1.0.0
 Last Updated: January 2026
@@ -123,7 +123,7 @@ Express yourself, discover trends, and connect with creators worldwide.
 ✓ Regular updates and improvements
 
 🙏 THANK YOU
-Thank you for being part of our launch! We're excited to build this community with you. Your feedback helps us improve—send suggestions to feedback@starpage.app
+Thank you for being part of our launch! We're excited to build this community with you. Your feedback helps us improve—send suggestions to feedback@starpage.me
 
 👋 LET'S GO
 Download Starpage now and start creating, discovering, and connecting!
@@ -272,7 +272,7 @@ We implement industry-standard security measures:
 ✓ Restricted access to personal data
 ✓ Secure storage of sensitive information
 
-However, no security measure is 100% secure. Report security concerns to: security@starpage.app
+However, no security measure is 100% secure. Report security concerns to: security@starpage.me
 
 ---
 
@@ -308,7 +308,7 @@ You can:
 
 ### 7.2 How to Exercise Rights:
 
-Email: privacy@starpage.app
+Email: privacy@starpage.me
 Include: Account email and specific request
 
 Response time: 30 days
@@ -338,7 +338,7 @@ Response time: 30 days
 
 **If Child Data Collected:**
 - We delete it immediately upon discovery
-- Contact privacy@starpage.app to report
+- Contact privacy@starpage.me to report
 
 ---
 
@@ -406,7 +406,7 @@ We may update this Privacy Policy occasionally. We'll notify you of significant 
 
 **Questions or Concerns?**
 
-Email: privacy@starpage.app
+Email: privacy@starpage.me
 
 Mailing Address:
 Starpage Inc.

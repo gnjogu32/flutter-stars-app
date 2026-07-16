@@ -236,27 +236,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  Future<void> _takePhoto() async {
-    try {
-      final XFile? pickedFile = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-      );
-
-      if (pickedFile != null) {
-        // Read bytes immediately to prevent cache deletion issues
-        final bytes = await pickedFile.readAsBytes();
-        setState(() {
-          _selectedImages.add(pickedFile);
-          _imageBytes[pickedFile.path] = bytes;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error taking photo: $e';
-      });
-    }
-  }
-
   void _removeImage(int index) {
     setState(() {
       final imagePath = _selectedImages[index].path;
@@ -281,100 +260,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         _errorMessage = 'Error picking video: $e';
       });
     }
-  }
-
-  void _showMediaPicker() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'Add Media',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  children: [
-                    _buildPickerOption(
-                      icon: Icons.photo_library,
-                      label: 'Gallery (Multi)',
-                      subtitle: 'Choose from your photos',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage();
-                      },
-                    ),
-                    _buildPickerOption(
-                      icon: Icons.camera_alt,
-                      label: 'Camera',
-                      subtitle: 'Take a new photo',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _takePhoto();
-                      },
-                    ),
-                    _buildPickerOption(
-                      icon: Icons.videocam,
-                      label: 'Video',
-                      subtitle: 'Select a video file',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickVideo();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPickerOption({
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      ),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      onTap: onTap,
-    );
   }
 
   Widget _buildRemoveButton() {
@@ -516,314 +401,279 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final hasKeyboard = bottomInset > 0;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Post'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('New Post'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Center(
+              child: FilledButton(
+                onPressed: _isLoading ? null : _createPost,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(80, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Post', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ),
+        ],
         centerTitle: true,
         elevation: 0,
       ),
-      bottomNavigationBar: showKeyboardPrompt
-          ? SafeArea(
-              top: false,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Media Toolbar for easy access while typing
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      border: Border(
-                        top: BorderSide(color: Theme.of(context).dividerColor),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: _showMediaPicker,
-                          icon: Icon(
-                            Icons.add_circle_outline,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          tooltip: 'Add Media',
-                        ),
-                        IconButton(
-                          onPressed: _pickImage,
-                          icon: const Icon(Icons.image_outlined),
-                          tooltip: 'Gallery',
-                        ),
-                        IconButton(
-                          onPressed: _takePhoto,
-                          icon: const Icon(Icons.camera_alt_outlined),
-                          tooltip: 'Camera',
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: _isLoading ? null : _createPost,
-                          child: const Text(
-                            'Post',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      0,
-                      16,
-                      MediaQuery.viewInsetsOf(context).bottom + 12,
-                    ),
-                    child: const KeyboardPromptBanner(
-                      visible: true,
-                      text:
-                          'Sharing your post. Add the final details before publishing.',
-                      icon: Icons.edit_note_outlined,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Author row with Avatar
-            FutureBuilder<UserModel?>(
-              future: _userService.getUser(_authService.currentUser?.uid ?? ''),
-              builder: (context, snapshot) {
-                final user = snapshot.data;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundImage: user?.profileImageUrl != null
-                            ? CachedNetworkImageProvider(user!.profileImageUrl!)
-                            : null,
-                        child: user?.profileImageUrl == null
-                            ? const Icon(Icons.person)
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        user?.displayName ?? 'Your Post',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            // Content text field
-            TextField(
-              controller: _contentController,
-              focusNode: _contentFocusNode,
-              maxLines: 6,
-              minLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Share your creativity...',
-                helperText: 'Tip: Type @ to mention people or use @followers.',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.all(12),
-              ),
-            ),
-            _buildMentionSuggestions(context),
-            const SizedBox(height: 16),
-
-            // Talent selection
-            Text(
-              'Select Your Talent Category',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedTalent,
-              items: talents.map((String talent) {
-                return DropdownMenuItem<String>(
-                  value: talent,
-                  child: Text(talent),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedTalent = newValue;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Select a talent',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Media Selection Trigger
-            Text('Add Media', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: _showMediaPicker,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.add_a_photo_outlined,
-                      size: 32,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap to add photos or video',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Selected media preview
-            if (_selectedImages.isNotEmpty || _selectedVideo != null)
-              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Attachments',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 120,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount:
-                          _selectedImages.length +
-                          (_selectedVideo != null ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (_selectedVideo != null && index == 0) {
-                          // Video Preview
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: Stack(
+                  // Author row with Avatar
+                  FutureBuilder<UserModel?>(
+                    future: _userService.getUser(_authService.currentUser?.uid ?? ''),
+                    builder: (context, snapshot) {
+                      final user = snapshot.data;
+                      return Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundImage: user?.profileImageUrl != null
+                                ? CachedNetworkImageProvider(user!.profileImageUrl!)
+                                : null,
+                            child: user?.profileImageUrl == null
+                                ? const Icon(Icons.person, size: 28)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.circular(8),
+                                Text(
+                                  user?.displayName ?? 'Your Name',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.videocam,
-                                      color: Colors.white,
-                                      size: 40,
+                                ),
+                                if (_selectedTalent != null)
+                                  Text(
+                                    _selectedTalent!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    'Choose a talent category',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey,
                                     ),
                                   ),
-                                ),
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: GestureDetector(
-                                    onTap: () =>
-                                        setState(() => _selectedVideo = null),
-                                    child: _buildRemoveButton(),
-                                  ),
-                                ),
                               ],
                             ),
-                          );
-                        }
-
-                        final imageIndex = _selectedVideo != null
-                            ? index - 1
-                            : index;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: kIsWeb
-                                    ? Image.network(
-                                        _selectedImages[imageIndex].path,
-                                        width: 120,
-                                        height: 120,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Image.file(
-                                        File(_selectedImages[imageIndex].path),
-                                        width: 120,
-                                        height: 120,
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: GestureDetector(
-                                  onTap: () => _removeImage(imageIndex),
-                                  child: _buildRemoveButton(),
-                                ),
-                              ),
-                            ],
                           ),
-                        );
-                      },
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  // Content text field - Borderless for "Composer" feel
+                  TextField(
+                    controller: _contentController,
+                    focusNode: _contentFocusNode,
+                    maxLines: null, // Auto-expanding
+                    autofocus: widget.initialContent == null,
+                    style: const TextStyle(fontSize: 18),
+                    decoration: const InputDecoration(
+                      hintText: 'Share your creativity...',
+                      hintStyle: TextStyle(fontSize: 18, color: Colors.grey),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
+                  _buildMentionSuggestions(context),
                   const SizedBox(height: 16),
+
+                  // Selected media preview
+                  if (_selectedImages.isNotEmpty || _selectedVideo != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: SizedBox(
+                        height: 160,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _selectedImages.length + (_selectedVideo != null ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (_selectedVideo != null && index == 0) {
+                              return _buildVideoPreview();
+                            }
+                            final imageIndex = _selectedVideo != null ? index - 1 : index;
+                            return _buildImagePreview(imageIndex);
+                          },
+                        ),
+                      ),
+                    ),
+                  // Error message
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
                 ],
               ),
-
-            // Error message
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+            ),
+          ),
+          // Composer Toolbar - Always pinned to keyboard or bottom
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
+            ),
+            padding: EdgeInsets.only(bottom: bottomInset > 0 ? 0 : MediaQuery.paddingOf(context).bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!hasKeyboard) const KeyboardPromptBanner(visible: true, text: 'Finalize your masterpiece.'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.image_outlined, color: theme.colorScheme.primary),
+                        onPressed: _pickImage,
+                        tooltip: 'Add Images',
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.videocam_outlined, color: theme.colorScheme.primary),
+                        onPressed: _pickVideo,
+                        tooltip: 'Add Video',
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.star_outline, color: theme.colorScheme.primary),
+                        onPressed: _showTalentPicker,
+                        tooltip: 'Set Talent',
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${_contentController.text.length}/280',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: _contentController.text.length > 280 ? Colors.red : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
                 ),
-              ),
-            const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Post button
+  Widget _buildVideoPreview() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: Stack(
+        children: [
+          Container(
+            width: 140,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Center(
+              child: Icon(Icons.videocam, color: Colors.white, size: 48),
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedVideo = null),
+              child: _buildRemoveButton(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePreview(int index) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: kIsWeb
+                ? Image.network(_selectedImages[index].path, width: 140, height: 160, fit: BoxFit.cover)
+                : Image.file(File(_selectedImages[index].path), width: 140, height: 160, fit: BoxFit.cover),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => _removeImage(index),
+              child: _buildRemoveButton(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTalentPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Select Talent Category', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
             SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _createPost,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Post'),
+              height: 250,
+              child: ListView.builder(
+                itemCount: talents.length,
+                itemBuilder: (context, index) => ListTile(
+                  title: Text(talents[index]),
+                  trailing: _selectedTalent == talents[index] ? const Icon(Icons.check, color: Colors.green) : null,
+                  onTap: () {
+                    setState(() => _selectedTalent = talents[index]);
+                    Navigator.pop(context);
+                  },
+                ),
               ),
             ),
           ],

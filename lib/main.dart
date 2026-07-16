@@ -45,7 +45,18 @@ Future<void> _initializeAppServices() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _initializeAppServices();
+  
+  // Set up error handling to catch late initialization errors
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('CRITICAL FLUTTER ERROR: ${details.exception}');
+  };
+
+  try {
+    await _initializeAppServices().timeout(const Duration(seconds: 15));
+  } catch (e) {
+    debugPrint('Initialization error or timeout: $e');
+  }
   
   TimeUtils.init();
   runApp(const MyApp());

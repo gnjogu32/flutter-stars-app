@@ -1,59 +1,54 @@
+import 'package:flutter/services.dart';
 import '../models/post_model.dart';
+import '../utils/constants.dart';
 
 class ShareService {
   /// Share post via native share dialog
   static Future<void> sharePost(PostModel post) async {
-    // final text removed for AGP 9+ compatibility
-    '''
+    final postUrl = AppConstants.postUrl(post.postId);
+    final text = '''
 Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
 
 "${post.content}"
 
-Shared from Starpage ⭐''';
+View on ${AppConstants.appName}: $postUrl''';
 
-    // Share.share removed for AGP 9+ compatibility
+    // Fallback to clipboard since share_plus is removed
+    await Clipboard.setData(ClipboardData(text: text));
   }
 
   /// Share post via WhatsApp
   static Future<void> shareViaWhatsApp(PostModel post) async {
-    // final text removed for AGP 9+ compatibility
-    '''
+    final postUrl = AppConstants.postUrl(post.postId);
+    final text = '''
 Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
 
 "${post.content}"
 
-Shared from Starpage ⭐''';
+View on ${AppConstants.appName}: $postUrl''';
 
-    try {
-      // Share.share removed for AGP 9+ compatibility
-    } catch (e) {
-      throw Exception('Failed to share via WhatsApp: $e');
-    }
+    await Clipboard.setData(ClipboardData(text: text));
   }
 
   /// Share post via Twitter/X
   static Future<void> shareViaTwitter(PostModel post) async {
-    // final text removed for AGP 9+ compatibility
-    'Check out this post by ${post.authorName}: "${post.content}" #Starpage ⭐';
+    final postUrl = AppConstants.postUrl(post.postId);
+    final text = 'Check out this post by ${post.authorName}: "${post.content}" on #${AppConstants.appName} ⭐ $postUrl';
 
-    try {
-      // Share.share removed for AGP 9+ compatibility
-    } catch (e) {
-      throw Exception('Failed to share via Twitter: $e');
-    }
+    await Clipboard.setData(ClipboardData(text: text));
   }
 
   /// Copy post to clipboard
   static Future<void> copyToClipboard(PostModel post) async {
-    // final text removed for AGP 9+ compatibility
-    '''
+    final postUrl = AppConstants.postUrl(post.postId);
+    final text = '''
 ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}
 
 ${post.content}
 
-Shared from Starpage ⭐''';
+View on ${AppConstants.appName}: $postUrl''';
 
-    // Share.share removed for AGP 9+ compatibility
+    await Clipboard.setData(ClipboardData(text: text));
   }
 
   /// Get share statistics

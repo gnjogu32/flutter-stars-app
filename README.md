@@ -30,7 +30,7 @@ This project has been updated with a complete branding suite and optimized disco
 - **Professional Branding**: Custom launcher icons and a high-performance native splash screen.
 - **Automated Discovery**: Session-stable "Automatic Shuffle" for video content (Reels), ensuring diverse talent exposure.
 - **Unified Interactions**: A standardized interaction model across all video playback modes (Feed, Reels, and Fullscreen).
-- **Social Connectivity**: Real-time unread badges for messages/notifications and deep-linked notification navigation.
+- **Social Connectivity**: Real-time unread badges, deep-linked notifications, and multi-domain sharing support (`starpage.me` and `starpage.org`).
 
 ## Getting Started
 

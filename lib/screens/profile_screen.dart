@@ -17,6 +17,7 @@ import '../widgets/post_details_sheet.dart';
 import 'analytics_dashboard_screen.dart';
 import 'chat_screen.dart';
 import 'followers_following_screen.dart';
+import '../utils/constants.dart';
 
 enum _ProfileMediaFolder { all, photos, videos, saved }
 
@@ -267,7 +268,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showShareOptions(String userId) {
     final theme = Theme.of(context);
-    final profileUrl = 'https://starpage.app/profile/$userId';
+    final profileUrl = AppConstants.profileUrl(userId);
+    final alternativeUrl = 'https://${AppConstants.secondaryDomain}/profile/$userId';
 
     showModalBottomSheet(
       context: context,
@@ -299,7 +301,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.link),
-              title: const Text('Copy Profile Link'),
+              title: const Text('Copy Profile Link (.me)'),
+              subtitle: Text(profileUrl, style: const TextStyle(fontSize: 10)),
               onTap: () {
                 Navigator.pop(context);
                 Clipboard.setData(ClipboardData(text: profileUrl));
@@ -309,11 +312,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.link_rounded),
+              title: const Text('Copy Profile Link (.org)'),
+              subtitle: Text(alternativeUrl, style: const TextStyle(fontSize: 10)),
+              onTap: () {
+                Navigator.pop(context);
+                Clipboard.setData(ClipboardData(text: alternativeUrl));
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Alternative link copied ✓')),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.copy_all),
               title: const Text('Copy Formatted Invite'),
               onTap: () {
                 Navigator.pop(context);
-                final shareText = 'Check out this talented star on Starpage! ⭐\n\nProfile: $profileUrl';
+                final shareText = 'Check out this talented star on ${AppConstants.appName}! ⭐\n\nProfile: $profileUrl';
                 Clipboard.setData(ClipboardData(text: shareText));
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(content: Text('Invite copied ✓')),

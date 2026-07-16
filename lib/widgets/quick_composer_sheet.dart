@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
+import '../services/post_service.dart';
 import '../utils/mention_utils.dart';
 import 'keyboard_prompt_banner.dart';
 
@@ -17,9 +18,11 @@ class _QuickComposerSheetState extends State<QuickComposerSheet> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final UserService _userService = UserService();
+  final PostService _postService = PostService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   UserModel? _currentUser;
   bool _isLoadingUser = true;
+  bool _isPosting = false;
 
   List<UserModel> _mentionableUsers = const [];
   List<UserModel> _filteredMentionUsers = const [];
@@ -49,6 +52,43 @@ class _QuickComposerSheetState extends State<QuickComposerSheet> {
       }
     } else {
       if (mounted) setState(() => _isLoadingUser = false);
+    }
+  }
+
+  Future<void> _createPost() async {
+    final trimmedContent = _controller.text.trim();
+    if (trimmedContent.isEmpty) return;
+
+    setState(() => _isPosting = true);
+
+    try {
+      final user = _currentUser;
+      if (user == null) throw Exception('User profile not found');
+
+      await _postService.createPost(
+        authorId: user.uid,
+        authorName: user.displayName,
+        authorUsername: user.username,
+        authorImageUrl: user.profileImageUrl,
+        content: trimmedContent,
+        imageFiles: [],
+        imageBytes: {},
+        talent: user.talent,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post shared successfully! ⭐')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isPosting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing post: $e')),
+        );
+      }
     }
   }
 
@@ -240,7 +280,7 @@ class _QuickComposerSheetState extends State<QuickComposerSheet> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {
+                  onPressed: _isPosting ? null : () {
                     // Navigate to full create post screen with current text
                     Navigator.pop(context);
                     Navigator.of(context).pushNamed(
@@ -248,7 +288,19 @@ class _QuickComposerSheetState extends State<QuickComposerSheet> {
                       arguments: _controller.text,
                     );
                   },
-                  child: const Text('Next'),
+                  child: const Text('Edit Full'),
+                ),
+                ElevatedButton(
+                  onPressed: _isPosting || _controller.text.trim().isEmpty 
+                    ? null 
+                    : _createPost,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    minimumSize: const Size(0, 36),
+                  ),
+                  child: _isPosting 
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Share Now'),
                 ),
               ],
             ),

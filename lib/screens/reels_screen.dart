@@ -20,8 +20,8 @@ import '../services/post_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
+import '../utils/constants.dart';
 import '../utils/mention_utils.dart';
-import '../services/share_service.dart';
 import '../services/user_service.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/keyboard_prompt_banner.dart';
@@ -1135,6 +1135,18 @@ class _ReelItemState extends State<_ReelItem>
                 },
               ),
             ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: const Text('Share post link'),
+              onTap: () {
+                Navigator.pop(context);
+                final postUrl = AppConstants.postUrl(widget.post.postId);
+                Clipboard.setData(ClipboardData(text: postUrl));
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Post link copied ✓')),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
               title: const Text('Mute this post'),
               onTap: () async {
@@ -1258,15 +1270,6 @@ class _ReelItemState extends State<_ReelItem>
     );
   }
 
-  void _sharePost() {
-    ShareService.sharePost(widget.post);
-    // Track share in analytics
-    final analyticsService = AnalyticsService();
-    if (_activeUserId.isNotEmpty) {
-      analyticsService.trackShare(widget.post.postId, _ownerId, _activeUserId);
-    }
-  }
-
   void _showShareOptions() {
     final theme = Theme.of(context);
 
@@ -1300,12 +1303,13 @@ class _ReelItemState extends State<_ReelItem>
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.link),
-              title: const Text('Copy Link'),
+              title: const Text('Copy Post Link'),
               onTap: () {
                 Navigator.pop(context);
-                ShareService.copyToClipboard(widget.post);
+                final postUrl = AppConstants.postUrl(widget.post.postId);
+                Clipboard.setData(ClipboardData(text: postUrl));
                 ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(content: Text('Link copied to clipboard ✓')),
+                  const SnackBar(content: Text('Post link copied ✓')),
                 );
               },
             ),
@@ -1314,12 +1318,18 @@ class _ReelItemState extends State<_ReelItem>
               title: const Text('Share to...'),
               onTap: () {
                 Navigator.pop(context);
-                _sharePost();
+                final postUrl = AppConstants.postUrl(widget.post.postId);
+                Clipboard.setData(ClipboardData(text: postUrl));
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Link copied for sharing ✓')),
+                );
+                // Track share in analytics
+                AnalyticsService().trackShare(widget.post.postId, _ownerId, _activeUserId);
               },
             ),
             ListTile(
               leading: const Icon(Icons.repeat),
-              title: const Text('Repost'),
+              title: const Text('Repost to Feed'),
               onTap: () {
                 Navigator.pop(context);
                 _confirmRepost();
