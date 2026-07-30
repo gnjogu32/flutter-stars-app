@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../models/user_model.dart';
 import 'activity_management_screen.dart';
+import 'analytics_dashboard_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -65,6 +66,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () =>
                           Navigator.of(context).pushNamed('/change-password'),
+                    ),
+
+                    _buildSectionHeader(context, 'Creator Tools'),
+                    ListTile(
+                      leading: const Icon(Icons.bar_chart_outlined),
+                      title: const Text('Content Analytics'),
+                      subtitle: const Text('Track your performance and engagement'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AnalyticsDashboardScreen(),
+                          ),
+                        );
+                      },
                     ),
 
                     _buildSectionHeader(context, 'Notifications'),

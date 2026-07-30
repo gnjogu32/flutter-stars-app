@@ -14,6 +14,7 @@ class VideoPlayerWidget extends StatefulWidget {
   final double? aspectRatio;
   final VoidCallback? onVideoEnd;
   final VoidCallback? onPlay;
+  final VoidCallback? onDoubleTap;
   final bool muted;
   final PostModel? post;
   final String? currentUserId;
@@ -28,6 +29,7 @@ class VideoPlayerWidget extends StatefulWidget {
     this.aspectRatio,
     this.onVideoEnd,
     this.onPlay,
+    this.onDoubleTap,
     this.muted = false,
     this.post,
     this.currentUserId,
@@ -47,8 +49,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   Timer? _indicatorTimer;
   bool _playEventDispatched = false;
   String? _error;
-  bool _ignoreVisibilityPause =
-      false; // Flag to allow seamless portal transitions
+  bool _ignoreVisibilityPause = false;
+  bool _isHoldingWakelock = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -61,10 +63,22 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     _initializeController();
   }
 
+  void _acquireWakelock() {
+    if (!_isHoldingWakelock) {
+      ScreenAwakeController.acquire();
+      _isHoldingWakelock = true;
+    }
+  }
+
+  void _releaseWakelock() {
+    if (_isHoldingWakelock) {
+      ScreenAwakeController.release();
+      _isHoldingWakelock = false;
+    }
+  }
+
   Future<void> _initializeController() async {
-    _controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.videoUrl),
-    );
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
     try {
       await _controller.initialize();
       if (mounted) {
@@ -76,7 +90,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
             _controller.play();
             _showOverlay = false;
             _dispatchPlayEvent();
-            ScreenAwakeController.acquire();
+            _acquireWakelock();
           }
         });
 
@@ -85,16 +99,12 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
               !_controller.value.isLooping &&
               _controller.value.isPlaying == false) {
             widget.onVideoEnd?.call();
-            ScreenAwakeController.release();
+            _releaseWakelock();
           }
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Error loading video';
-        });
-      }
+      if (mounted) setState(() => _error = 'Error loading video');
     }
   }
 
@@ -102,13 +112,10 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   void didUpdateWidget(VideoPlayerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.videoUrl != widget.videoUrl) {
+      _releaseWakelock();
       _controller.dispose();
       _isInitialized = false;
       _initializeController();
-    } else if (widget.autoPlay && !oldWidget.autoPlay) {
-      // If autoPlay was just enabled and we are initialized, we might want to play.
-      // But we usually wait for VisibilityDetector to trigger it for feeds.
-      // For now, if autoPlay is true, we ensure it can play.
     }
   }
 
@@ -116,10 +123,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _indicatorTimer?.cancel();
-    if (_isInitialized && _controller.value.isPlaying) {
-      ScreenAwakeController.release();
-    }
-    // Only dispose if not currently being borrowed by immersive screen
+    _releaseWakelock();
     if (!_ignoreVisibilityPause) {
       _controller.dispose();
     }
@@ -129,18 +133,11 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_isInitialized) return;
-
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.detached) {
       if (!_ignoreVisibilityPause && _controller.value.isPlaying) {
         _controller.pause();
-        ScreenAwakeController.release();
+        _releaseWakelock();
       }
-    } else if (state == AppLifecycleState.resumed) {
-      // Inline videos only autostart if they were playing before or if they are "active"
-      // But for feeds, VisibilityDetector usually handles this.
-      // We'll leave it to VisibilityDetector to avoid playing all videos at once.
     }
   }
 
@@ -150,86 +147,69 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
       if (_controller.value.isPlaying) {
         _controller.pause();
         _showOverlay = true;
-        ScreenAwakeController.release();
+        _releaseWakelock();
       } else {
         _controller.play();
         _showOverlay = false;
         _dispatchPlayEvent();
-        ScreenAwakeController.acquire();
+        _acquireWakelock();
       }
       _showPlayPauseIndicator = true;
     });
 
     _indicatorTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        setState(() => _showPlayPauseIndicator = false);
-      }
+      if (mounted) setState(() => _showPlayPauseIndicator = false);
     });
   }
 
   Future<void> _handleTap() async {
     if (widget.post != null) {
-      // One-Tap Immersion: Instant un-mute and jump to full-screen
       _ignoreVisibilityPause = true;
-
-      // Force un-mute and start playback IMMEDIATELY before navigation
       _controller.setVolume(1.0);
       _controller.play();
       _dispatchPlayEvent();
-      ScreenAwakeController.acquire();
+      _acquireWakelock();
 
       final currentPosition = _controller.value.position;
+      if (mounted) setState(() { _isMuted = false; _showOverlay = false; });
 
-      if (mounted) {
-        setState(() {
-          _isMuted = false;
-          _showOverlay = false;
-        });
-      }
-
-      if (!mounted) return;
-      // High-speed transition to immersive view
+      if (!mounted || widget.post == null) return;
       Navigator.of(context).push(
         PageRouteBuilder(
           opaque: false,
           barrierColor: Colors.black.withValues(alpha: 0.1),
-          pageBuilder: (context, animation, secondaryAnimation) =>
-            FullScreenVideoPlayer(
-              videoUrl: widget.videoUrl,
-              startPosition: currentPosition,
-              post: widget.post,
-              currentUserId: widget.currentUserId,
-              manualController: _controller,
-            ),
+          pageBuilder: (context, animation, secondaryAnimation) => FullScreenVideoPlayer(
+            post: widget.post!,
+            currentUserId: widget.currentUserId,
+            startPosition: currentPosition,
+            inheritedController: _controller,
+          ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-            return FadeTransition(
-              opacity: curve,
-              child: child,
-            );
+            return FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic), child: child);
           },
           transitionDuration: const Duration(milliseconds: 300),
         ),
       ).then((_) {
-        // Ghost Audio Prevention: Restore feed state when returning
         if (mounted) {
-          // Absolute silence and pause on return to feed
           _controller.setVolume(0.0);
           _controller.pause();
-
-          // Delay reset slightly to allow VisibilityDetector to settle
+          _releaseWakelock();
           Future.delayed(const Duration(milliseconds: 400), () {
             if (mounted) {
               _ignoreVisibilityPause = false;
               _isMuted = true;
-              // Double check pause state after flag reset
               if (_controller.value.isPlaying) {
                 _controller.pause();
                 _controller.setVolume(0.0);
+                _releaseWakelock();
               }
               setState(() {});
             }
           });
+        } else {
+          // The background widget was disposed while FullScreen was open!
+          // We must dispose the controller now as we are the last ones with a reference.
+          _controller.dispose();
         }
       });
     } else {
@@ -238,31 +218,20 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   }
 
   void pause() {
-    if (_ignoreVisibilityPause) {
-      return; // Prevent autopause during portal handoff
-    }
-
+    if (_ignoreVisibilityPause) return;
     if (_isInitialized && _controller.value.isPlaying) {
       _controller.pause();
-      if (mounted) {
-        setState(() {
-          _showOverlay = true;
-        });
-      }
-      ScreenAwakeController.release();
+      if (mounted) setState(() => _showOverlay = true);
+      _releaseWakelock();
     }
   }
 
   void play() {
     if (_isInitialized && !_controller.value.isPlaying) {
       _controller.play();
-      if (mounted) {
-        setState(() {
-          _showOverlay = false;
-        });
-      }
+      if (mounted) setState(() => _showOverlay = false);
       _dispatchPlayEvent();
-      ScreenAwakeController.acquire();
+      _acquireWakelock();
     }
   }
 
@@ -275,43 +244,16 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
 
   void setMuted(bool mute) {
     if (_isInitialized) {
-      setState(() {
-        _isMuted = mute;
-        _controller.setVolume(mute ? 0 : 1);
-      });
+      setState(() { _isMuted = mute; _controller.setVolume(mute ? 0 : 1); });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_error != null) {
-      return Container(
-        height: 200,
-        color: Colors.black,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white, size: 40),
-              const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: Colors.white)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (!_isInitialized) {
-      return Container(
-        height: 200,
-        color: Colors.black12,
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
+    if (_error != null) return Container(height: 200, color: Colors.black, child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.error_outline, color: Colors.white, size: 40), const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Colors.white))])));
+    if (!_isInitialized) return Container(height: 200, color: Colors.black12, child: const Center(child: CircularProgressIndicator()));
     final double ratio = widget.aspectRatio ?? _controller.value.aspectRatio;
-
     return AspectRatio(
       aspectRatio: ratio,
       child: Stack(
@@ -320,129 +262,15 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _handleTap,
+            onDoubleTap: widget.onDoubleTap,
             onLongPress: _togglePlay,
-            child: RepaintBoundary(
-              child: VideoPlayer(_controller),
-            ),
+            child: RepaintBoundary(child: VideoPlayer(_controller)),
           ),
-
-          // Buffering Indicator
-          ValueListenableBuilder(
-            valueListenable: _controller,
-            builder: (context, VideoPlayerValue value, child) {
-              if (value.isBuffering) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.white70),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-
-          // Play/Pause Indicator (Brief popup)
-          if (_showPlayPauseIndicator)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
-            ),
-
-          // Persistent Center Play Button (When paused or autoplay off)
-          if (widget.showControls && _showOverlay && !_controller.value.isPlaying)
-            Center(
-              child: IconButton(
-                icon: const Icon(
-                  Icons.play_circle_outline,
-                  color: Colors.white70,
-                  size: 60,
-                ),
-                onPressed: _handleTap,
-              ),
-            ),
-
-          if (widget.showControls && _showOverlay)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  VideoProgressIndicator(
-                    _controller,
-                    allowScrubbing: true,
-                    colors: const VideoProgressColors(
-                      playedColor: Colors.red,
-                      bufferedColor: Colors.white24,
-                      backgroundColor: Colors.white12,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    child: Row(
-                      children: [
-                        ValueListenableBuilder(
-                          valueListenable: _controller,
-                          builder: (context, VideoPlayerValue value, child) {
-                            return Text(
-                              _formatDuration(value.position),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                              ),
-                            );
-                          },
-                        ),
-                        const Text(
-                          ' / ',
-                          style: TextStyle(color: Colors.white30, fontSize: 10),
-                        ),
-                        Text(
-                          _formatDuration(_controller.value.duration),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                          ),
-                        ),
-                        const Spacer(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          // Standalone Mute Button for feed visibility
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: GestureDetector(
-              onTap: () => setMuted(!_isMuted),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _isMuted ? Icons.volume_off : Icons.volume_up,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
+          ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { if (value.isBuffering) return const Center(child: CircularProgressIndicator(color: Colors.white70)); return const SizedBox.shrink(); }),
+          if (_showPlayPauseIndicator) Center(child: Container(padding: const EdgeInsets.all(16), decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: Icon(_controller.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 40))),
+          if (widget.showControls && _showOverlay && !_controller.value.isPlaying) Center(child: IconButton(icon: const Icon(Icons.play_circle_outline, color: Colors.white70, size: 60), onPressed: _handleTap)),
+          if (widget.showControls && _showOverlay) Positioned(bottom: 0, left: 0, right: 0, child: Column(mainAxisSize: MainAxisSize.min, children: [VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: Colors.red, bufferedColor: Colors.white24, backgroundColor: Colors.white12)), Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), child: Row(children: [ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) => Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 10))), const Text(' / ', style: TextStyle(color: Colors.white30, fontSize: 10)), Text(_formatDuration(_controller.value.duration), style: const TextStyle(color: Colors.white, fontSize: 10)), const Spacer()]))])),
+          Positioned(bottom: 8, right: 8, child: GestureDetector(onTap: () => setMuted(!_isMuted), child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: Icon(_isMuted ? Icons.volume_off : Icons.volume_up, color: Colors.white, size: 20)))),
         ],
       ),
     );
@@ -450,8 +278,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$minutes:$seconds";
+    return "${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}";
   }
 }

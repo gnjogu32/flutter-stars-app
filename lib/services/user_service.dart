@@ -347,6 +347,21 @@ class UserService {
     }
   }
 
+  // Check if a post is saved by a user
+  Future<bool> isPostSaved(String userId, String postId) async {
+    try {
+      final doc = await _firebaseFirestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        final List savedPosts = data['savedPosts'] as List? ?? [];
+        return savedPosts.contains(postId);
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Save a post
   Future<void> savePost(String userId, String postId) async {
     try {

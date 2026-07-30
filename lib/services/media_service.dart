@@ -36,4 +36,20 @@ class MediaService {
       return null;
     }
   }
+
+  Future<String?> uploadCommentMedia(String postId, XFile file) async {
+    try {
+      final String fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
+      final Reference ref = _storage.ref().child(
+        'comments/$postId/$fileName',
+      );
+
+      final UploadTask uploadTask = ref.putFile(File(file.path));
+      final TaskSnapshot snapshot = await uploadTask.whenComplete(() {});
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      return null;
+    }
+  }
 }

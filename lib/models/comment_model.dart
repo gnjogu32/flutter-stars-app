@@ -8,6 +8,8 @@ class CommentModel {
   final String? authorUsername;
   final String? authorImageUrl;
   final String content;
+  final String? imageUrl;
+  final String? videoUrl;
   final List<String> likes;
   final String parentId;
   final String? replyToName;
@@ -24,6 +26,8 @@ class CommentModel {
     this.authorUsername,
     this.authorImageUrl,
     required this.content,
+    this.imageUrl,
+    this.videoUrl,
     this.likes = const [],
     this.parentId = '',
     this.replyToName,
@@ -43,6 +47,8 @@ class CommentModel {
       'authorUsername': authorUsername,
       'authorImageUrl': authorImageUrl,
       'content': content,
+      'imageUrl': imageUrl,
+      'videoUrl': videoUrl,
       'likes': likes,
       'parentId': parentId,
       'replyToName': replyToName,
@@ -63,6 +69,8 @@ class CommentModel {
       authorUsername: json['authorUsername'],
       authorImageUrl: json['authorImageUrl'],
       content: json['content'] ?? '',
+      imageUrl: json['imageUrl'],
+      videoUrl: json['videoUrl'],
       likes: List<String>.from(json['likes'] ?? []),
       parentId: json['parentId'] ?? '',
       replyToName: json['replyToName'],
@@ -94,6 +102,8 @@ class CommentModel {
     String? authorUsername,
     String? authorImageUrl,
     String? content,
+    String? imageUrl,
+    String? videoUrl,
     List<String>? likes,
     String? parentId,
     String? replyToName,
@@ -110,6 +120,8 @@ class CommentModel {
       authorUsername: authorUsername ?? this.authorUsername,
       authorImageUrl: authorImageUrl ?? this.authorImageUrl,
       content: content ?? this.content,
+      imageUrl: imageUrl ?? this.imageUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
       likes: likes ?? this.likes,
       parentId: parentId ?? this.parentId,
       replyToName: replyToName ?? this.replyToName,

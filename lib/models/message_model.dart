@@ -9,6 +9,9 @@ class MessageModel {
   final String content;
   final String? imageUrl;
   final String? videoUrl;
+  final String? replyToId;
+  final String? replyToContent;
+  final String? replyToSenderName;
   final bool isRead;
   final DateTime sentAt;
   final DateTime? readAt;
@@ -22,6 +25,9 @@ class MessageModel {
     required this.content,
     this.imageUrl,
     this.videoUrl,
+    this.replyToId,
+    this.replyToContent,
+    this.replyToSenderName,
     this.isRead = false,
     required this.sentAt,
     this.readAt,
@@ -38,6 +44,9 @@ class MessageModel {
       'content': content,
       'imageUrl': imageUrl,
       'videoUrl': videoUrl,
+      'replyToId': replyToId,
+      'replyToContent': replyToContent,
+      'replyToSenderName': replyToSenderName,
       'isRead': isRead,
       'sentAt': sentAt,
       'readAt': readAt,
@@ -55,6 +64,9 @@ class MessageModel {
       content: json['content'] ?? '',
       imageUrl: json['imageUrl'],
       videoUrl: json['videoUrl'],
+      replyToId: json['replyToId'],
+      replyToContent: json['replyToContent'],
+      replyToSenderName: json['replyToSenderName'],
       isRead: json['isRead'] ?? false,
       sentAt: json['sentAt'] is Timestamp
           ? (json['sentAt'] as Timestamp).toDate()
@@ -75,6 +87,9 @@ class MessageModel {
     String? content,
     String? imageUrl,
     String? videoUrl,
+    String? replyToId,
+    String? replyToContent,
+    String? replyToSenderName,
     bool? isRead,
     DateTime? sentAt,
     DateTime? readAt,
@@ -88,6 +103,9 @@ class MessageModel {
       content: content ?? this.content,
       imageUrl: imageUrl ?? this.imageUrl,
       videoUrl: videoUrl ?? this.videoUrl,
+      replyToId: replyToId ?? this.replyToId,
+      replyToContent: replyToContent ?? this.replyToContent,
+      replyToSenderName: replyToSenderName ?? this.replyToSenderName,
       isRead: isRead ?? this.isRead,
       sentAt: sentAt ?? this.sentAt,
       readAt: readAt ?? this.readAt,

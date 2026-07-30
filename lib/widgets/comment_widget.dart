@@ -9,6 +9,7 @@ import '../utils/auth_guard.dart';
 import '../utils/time_utils.dart';
 import 'package:starpage/screens/profile_screen.dart';
 import 'expandable_text.dart';
+import 'video_player_widget.dart';
 
 class CommentWidget extends StatefulWidget {
   final CommentModel comment;
@@ -31,6 +32,10 @@ class CommentWidget extends StatefulWidget {
 class _CommentWidgetState extends State<CommentWidget> {
   UserModel? _currentUser;
   final UserService _userService = UserService();
+  late bool _isLiked;
+  bool _showReplies = false;
+  final CommentService _commentService = CommentService();
+  final Set<String> _hiddenCommentIds = {};
 
   @override
   void initState() {
@@ -42,11 +47,7 @@ class _CommentWidgetState extends State<CommentWidget> {
   Future<void> _loadCurrentUser() async {
     if (widget.currentUserId.isNotEmpty) {
       final user = await _userService.getUser(widget.currentUserId);
-      if (mounted) {
-        setState(() {
-          _currentUser = user;
-        });
-      }
+      if (mounted) setState(() => _currentUser = user);
     }
   }
 
@@ -112,9 +113,7 @@ class _CommentWidgetState extends State<CommentWidget> {
                     const SnackBar(content: Text('Reply posted')),
                   );
                 }
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
-                }
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
               } catch (e) {
                 messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
               }
@@ -128,13 +127,10 @@ class _CommentWidgetState extends State<CommentWidget> {
     controller.dispose();
   }
 
-  late bool _isLiked;
-  bool _showReplies = false;
-  final CommentService _commentService = CommentService();
-  final Set<String> _hiddenCommentIds = {};
-
   void _openAuthorProfile(String userId) {
-    if (userId.isEmpty) return;
+    if (userId.isEmpty) {
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
     );
@@ -148,9 +144,7 @@ class _CommentWidgetState extends State<CommentWidget> {
   }
 
   void _hideComment(String commentId) {
-    setState(() {
-      _hiddenCommentIds.add(commentId);
-    });
+    setState(() => _hiddenCommentIds.add(commentId));
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Comment hidden')));
@@ -159,7 +153,6 @@ class _CommentWidgetState extends State<CommentWidget> {
   void _showActionMenu(CommentModel comment) {
     final isAuthor = widget.currentUserId == comment.authorId;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
@@ -210,33 +203,6 @@ class _CommentWidgetState extends State<CommentWidget> {
     );
   }
 
-  static const List<String> _quickEmojis = [
-    '😀',
-    '😁',
-    '😂',
-    '🤣',
-    '😊',
-    '😍',
-    '🥳',
-    '😎',
-    '🤔',
-    '👏',
-    '🔥',
-    '💯',
-    '✨',
-    '🙌',
-    '👍',
-    '🙏',
-    '❤️',
-    '💙',
-    '💚',
-    '🎉',
-    '😢',
-    '😡',
-    '🤝',
-    '💫',
-  ];
-
   Future<void> _toggleLike() async {
     if (widget.currentUserId.isEmpty) {
       await AuthGuard.show(context);
@@ -254,9 +220,7 @@ class _CommentWidgetState extends State<CommentWidget> {
           userId: widget.currentUserId,
         );
       }
-      setState(() {
-        _isLiked = !_isLiked;
-      });
+      setState(() => _isLiked = !_isLiked);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -293,172 +257,66 @@ class _CommentWidgetState extends State<CommentWidget> {
     final controller = TextEditingController(text: widget.comment.content);
     final focusNode = FocusNode();
     final messenger = ScaffoldMessenger.of(context);
-    var showEmojiPanel = false;
 
     await showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          final keyboardInset = MediaQuery.viewInsetsOf(dialogContext).bottom;
-          final composerBottomInset = showEmojiPanel ? 0.0 : keyboardInset;
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final textColor = isDark ? Colors.white : Colors.black87;
-
-          return AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
-            title: Text('Edit Comment', style: TextStyle(color: textColor)),
-            content: AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(bottom: composerBottomInset),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            setDialogState(
-                              () => showEmojiPanel = !showEmojiPanel,
-                            );
-                            if (showEmojiPanel) {
-                              focusNode.unfocus();
-                              SystemChannels.textInput.invokeMethod(
-                                'TextInput.hide',
-                              );
-                            } else {
-                              FocusScope.of(
-                                dialogContext,
-                              ).requestFocus(focusNode);
-                            }
-                          },
-                          icon: Icon(
-                            showEmojiPanel
-                                ? Icons.keyboard_outlined
-                                : Icons.emoji_emotions_outlined,
-                            color: isDark ? Colors.white70 : Colors.black54,
-                          ),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            onTap: () {
-                              if (showEmojiPanel) {
-                                setDialogState(() => showEmojiPanel = false);
-                              }
-                            },
-                            maxLines: null,
-                            style: TextStyle(color: textColor),
-                            decoration: InputDecoration(
-                              hintText: 'Edit your comment...',
-                              hintStyle: TextStyle(
-                                color: isDark ? Colors.white54 : Colors.black45,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      height: showEmojiPanel ? 180 : 0,
-                      child: showEmojiPanel
-                          ? GridView.builder(
-                              padding: const EdgeInsets.only(top: 8),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 8,
-                                    childAspectRatio: 1.2,
-                                  ),
-                              itemCount: _quickEmojis.length,
-                              itemBuilder: (context, index) {
-                                final emoji = _quickEmojis[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () {
-                                    final currentText = controller.text;
-                                    final currentSelection =
-                                        controller.selection;
-                                    final start = currentSelection.start >= 0
-                                        ? currentSelection.start
-                                        : currentText.length;
-                                    final end = currentSelection.end >= 0
-                                        ? currentSelection.end
-                                        : currentText.length;
-                                    final newText = currentText.replaceRange(
-                                      start,
-                                      end,
-                                      emoji,
-                                    );
-                                    controller.value = TextEditingValue(
-                                      text: newText,
-                                      selection: TextSelection.collapsed(
-                                        offset: start + emoji.length,
-                                      ),
-                                    );
-                                  },
-                                  child: Center(
-                                    child: Text(
-                                      emoji,
-                                      style: const TextStyle(fontSize: 24),
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                ),
+      builder: (dialogContext) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final textColor = isDark ? Colors.white : Colors.black87;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
+          title: Text('Edit Comment', style: TextStyle(color: textColor)),
+          content: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            autofocus: true,
+            maxLines: null,
+            style: TextStyle(color: textColor),
+            decoration: InputDecoration(
+              hintText: 'Edit your comment...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(dialogContext);
-                  if (controller.text.trim().isEmpty) {
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                if (controller.text.trim().isEmpty) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Comment cannot be empty')),
+                  );
+                  return;
+                }
+                try {
+                  await _commentService.updateComment(
+                    commentId: widget.comment.commentId,
+                    content: controller.text.trim(),
+                    authorId: widget.currentUserId,
+                  );
+                  if (mounted) {
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Comment cannot be empty')),
+                      const SnackBar(content: Text('Comment updated')),
                     );
-                    return;
                   }
-
-                  try {
-                    await _commentService.updateComment(
-                      commentId: widget.comment.commentId,
-                      content: controller.text.trim(),
-                      authorId: widget.currentUserId,
+                } catch (e) {
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
                     );
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Comment updated')),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
-                    }
                   }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
     );
     focusNode.dispose();
     controller.dispose();
@@ -525,7 +383,6 @@ class _CommentWidgetState extends State<CommentWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Comment header: Author info and time
                 Row(
                   children: [
                     GestureDetector(
@@ -542,7 +399,6 @@ class _CommentWidgetState extends State<CommentWidget> {
                             : null,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     const SizedBox(width: 8),
                     Expanded(
                       child: GestureDetector(
@@ -582,7 +438,6 @@ class _CommentWidgetState extends State<CommentWidget> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                // Comment content with edited indicator
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -593,6 +448,51 @@ class _CommentWidgetState extends State<CommentWidget> {
                       ),
                       trimLines: 3,
                     ),
+                    if (widget.comment.imageUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => Dialog(
+                                backgroundColor: Colors.transparent,
+                                insetPadding: EdgeInsets.zero,
+                                child: InteractiveViewer(
+                                  child: CachedNetworkImage(
+                                    imageUrl: widget.comment.imageUrl!,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.comment.imageUrl!,
+                              placeholder: (context, url) => const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  const Icon(Icons.error),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (widget.comment.videoUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 250),
+                            child: VideoPlayerWidget(
+                              videoUrl: widget.comment.videoUrl!,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (widget.comment.isEdited)
                       Padding(
                         padding: const EdgeInsets.only(top: 4.0),
@@ -608,7 +508,6 @@ class _CommentWidgetState extends State<CommentWidget> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                // Actions: Like + Reply
                 Row(
                   children: [
                     GestureDetector(
@@ -666,7 +565,6 @@ class _CommentWidgetState extends State<CommentWidget> {
                     ),
                   ],
                 ),
-                // Replies section — root comments only
                 if (widget.comment.parentId.isEmpty)
                   StreamBuilder<List<CommentModel>>(
                     stream: _commentService.getReplies(
@@ -685,8 +583,7 @@ class _CommentWidgetState extends State<CommentWidget> {
                             child: Text(
                               _showReplies
                                   ? 'Hide replies'
-                                  : 'View ${replies.length} '
-                                        '${replies.length == 1 ? 'reply' : 'replies'}',
+                                  : 'View ${replies.length} ${replies.length == 1 ? 'reply' : 'replies'}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).colorScheme.primary,
@@ -723,13 +620,11 @@ class _CommentWidgetState extends State<CommentWidget> {
   }
 }
 
-// ── Indented reply row (no further nesting) ────────────────────────────────
 class _ReplyItem extends StatefulWidget {
   final CommentModel reply;
   final String currentUserId;
   final void Function(CommentModel, String)? onReply;
   final VoidCallback? onLongPress;
-
   const _ReplyItem({
     required this.reply,
     required this.currentUserId,
@@ -745,9 +640,10 @@ class _ReplyItemState extends State<_ReplyItem> {
   final CommentService _commentService = CommentService();
   final UserService _userService = UserService();
   UserModel? _currentUser;
-
   void _openAuthorProfile(String userId) {
-    if (userId.isEmpty) return;
+    if (userId.isEmpty) {
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
     );
@@ -763,11 +659,7 @@ class _ReplyItemState extends State<_ReplyItem> {
   Future<void> _loadCurrentUser() async {
     if (widget.currentUserId.isNotEmpty) {
       final user = await _userService.getUser(widget.currentUserId);
-      if (mounted) {
-        setState(() {
-          _currentUser = user;
-        });
-      }
+      if (mounted) setState(() => _currentUser = user);
     }
   }
 
@@ -788,7 +680,9 @@ class _ReplyItemState extends State<_ReplyItem> {
           userId: widget.currentUserId,
         );
       }
-      if (mounted) setState(() => _isLiked = !_isLiked);
+      if (mounted) {
+        setState(() => _isLiked = !_isLiked);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -905,6 +799,38 @@ class _ReplyItemState extends State<_ReplyItem> {
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 12,
                             color: textColor,
+                          ),
+                        ),
+                      if (widget.reply.imageUrl != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6.0),
+                          child: GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  insetPadding: EdgeInsets.zero,
+                                  child: InteractiveViewer(
+                                    child: CachedNetworkImage(
+                                      imageUrl: widget.reply.imageUrl!,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: widget.reply.imageUrl!,
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.error),
+                              ),
+                            ),
                           ),
                         ),
                       const SizedBox(height: 4),
@@ -1031,7 +957,7 @@ class _ReplyItemState extends State<_ReplyItem> {
                             Icon(
                               Icons.reply,
                               size: 12,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: theme.colorScheme.primary,
                             ),
                             const SizedBox(width: 4),
                             Text(

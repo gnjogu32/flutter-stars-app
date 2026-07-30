@@ -90,128 +90,139 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        leading: const AuthorProfileAvatar(),
-        title: const Text('Discover'),
-        centerTitle: true,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Stars'),
-            Tab(text: 'Posts'),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: _tabController.index == 0 
-                  ? 'Search talented stars...' 
-                  : 'Search posts or #hashtags...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty 
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {});
-                      },
-                    )
-                  : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              onChanged: (value) {
-                setState(() {});
-              },
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            leading: const AuthorProfileAvatar(),
+            title: const Text('Discover'),
+            centerTitle: true,
+            floating: true,
+            pinned: true,
+            snap: true,
+            elevation: 0,
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Stars'),
+                Tab(text: 'Posts'),
+              ],
             ),
           ),
-          
-          // Trending Hashtags
-          if (_trendingHashtags.isNotEmpty)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          SliverToBoxAdapter(
+            child: Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                  child: Text(
-                    'Trending Tags',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: _tabController.index == 0 
+                        ? 'Search talented stars...' 
+                        : 'Search posts or #hashtags...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty 
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
                   ),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Row(
-                    children: _trendingHashtags.map((tag) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: ActionChip(
-                          label: Text('#$tag'),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => HashtagFeedScreen(hashtag: tag),
+                
+                // Trending Hashtags
+                if (_trendingHashtags.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                        child: Text(
+                          'Trending Tags',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        child: Row(
+                          children: _trendingHashtags.map((tag) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                              child: ActionChip(
+                                label: Text('#$tag'),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => HashtagFeedScreen(hashtag: tag),
+                                    ),
+                                  );
+                                },
+                                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                side: BorderSide.none,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                labelStyle: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                // Talent Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    children: talents.map((talent) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: FilterChip(
+                          label: Text(talent),
+                          selected: _selectedTalentFilter == talent,
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedTalentFilter = talent;
+                            });
                           },
-                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          labelStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                       );
                     }).toList(),
                   ),
                 ),
-                const SizedBox(height: 8),
-              ],
-            ),
-
-          // Talent Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: talents.map((talent) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: FilterChip(
-                    label: Text(talent),
-                    selected: _selectedTalentFilter == talent,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedTalentFilter = talent;
-                      });
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Content Area
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildUsersList(),
-                _buildPostsList(),
               ],
             ),
           ),
         ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildUsersList(),
+            _buildPostsList(),
+          ],
+        ),
       ),
     );
   }
@@ -283,13 +294,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
             });
             await Future.delayed(const Duration(milliseconds: 400));
           },
-          child: ListView.builder(
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 2,
+              mainAxisSpacing: 2,
+              childAspectRatio: 1,
+            ),
             itemCount: searchedPosts.length,
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: EdgeInsets.zero,
             itemBuilder: (context, index) {
-              return PostWidget(
-                post: searchedPosts[index],
-                currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+              final post = searchedPosts[index];
+              return _DiscoveryGridItem(
+                post: post,
+                allPosts: searchedPosts,
+                initialIndex: index,
               );
             },
           ),
@@ -389,6 +408,119 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
   Widget _buildUserCard(UserModel user) {
     return _UserCard(user: user);
+  }
+}
+
+class _DiscoveryGridItem extends StatelessWidget {
+  final PostModel post;
+  final List<PostModel> allPosts;
+  final int initialIndex;
+
+  const _DiscoveryGridItem({
+    required this.post,
+    required this.allPosts,
+    required this.initialIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasVideo = post.videoUrl != null && post.videoUrl!.isNotEmpty;
+    final hasImages = post.imageUrls.isNotEmpty;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => _ImmersiveDiscoveryFeed(
+              posts: allPosts,
+              initialIndex: initialIndex,
+            ),
+          ),
+        );
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (hasImages)
+            CachedNetworkImage(
+              imageUrl: post.imageUrls.first,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(color: Colors.grey[200]),
+            )
+          else if (hasVideo)
+            Container(
+              color: Colors.black87,
+              child: const Center(
+                child: Icon(Icons.play_circle_outline, color: Colors.white, size: 30),
+              ),
+            )
+          else
+            Container(
+              color: Colors.blueGrey[100],
+              padding: const EdgeInsets.all(8),
+              child: Center(
+                child: Text(
+                  post.content,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          if (hasVideo)
+            const Positioned(
+              top: 4,
+              right: 4,
+              child: Icon(Icons.videocam, color: Colors.white, size: 16),
+            ),
+          if (post.imageUrls.length > 1)
+            const Positioned(
+              top: 4,
+              right: 4,
+              child: Icon(Icons.copy, color: Colors.white, size: 16),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImmersiveDiscoveryFeed extends StatelessWidget {
+  final List<PostModel> posts;
+  final int initialIndex;
+
+  const _ImmersiveDiscoveryFeed({
+    required this.posts,
+    required this.initialIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: PageView.builder(
+        scrollDirection: Axis.vertical,
+        itemCount: posts.length,
+        controller: PageController(initialPage: initialIndex),
+        itemBuilder: (context, index) {
+          return PostWidget(
+            post: posts[index],
+            currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+            isImmersive: true,
+          );
+        },
+      ),
+    );
   }
 }
 

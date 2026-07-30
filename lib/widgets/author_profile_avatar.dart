@@ -25,8 +25,8 @@ class AuthorProfileAvatar extends StatelessWidget {
           return const Padding(
             padding: EdgeInsets.all(8.0),
             child: CircleAvatar(
-              radius: 16,
-              child: Icon(Icons.person, size: 18),
+              radius: 20,
+              child: Icon(Icons.person, size: 22),
             ),
           );
         }
@@ -44,12 +44,12 @@ class AuthorProfileAvatar extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: CircleAvatar(
-              radius: 16,
+              radius: 20,
               backgroundImage: userData.profileImageUrl != null
                   ? CachedNetworkImageProvider(userData.profileImageUrl!)
                   : null,
               child: userData.profileImageUrl == null
-                  ? const Icon(Icons.person, size: 18)
+                  ? const Icon(Icons.person, size: 22)
                   : null,
             ),
           ),

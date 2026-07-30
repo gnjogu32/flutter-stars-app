@@ -31,6 +31,11 @@ This project has been updated with a complete branding suite and optimized disco
 - **Automated Discovery**: Session-stable "Automatic Shuffle" for video content (Reels), ensuring diverse talent exposure.
 - **Unified Interactions**: A standardized interaction model across all video playback modes (Feed, Reels, and Fullscreen).
 - **Social Connectivity**: Real-time unread badges, deep-linked notifications, and multi-domain sharing support (`starpage.me` and `starpage.org`).
+- **Interaction Layer & Immersive Experience**:
+    - **Seamless Playback Handover**: Instant video continuation from the home feed to full-screen view without restarts.
+    - **Keyboard-Synced UI**: Interaction sheets float precisely above system keyboards and emoji panels for ergonomic typing.
+    - **One-Handed Ergonomics**: Redesigned sidebars and action menus positioned for easier thumb reach.
+    - **Performance Stabilization**: Project-wide code audit resolving 60+ linting issues and optimizing media controller memory usage.
 
 ## Getting Started
 

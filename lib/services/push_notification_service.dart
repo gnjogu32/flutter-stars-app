@@ -152,21 +152,27 @@ class PushNotificationService {
             type == 'comment' ||
             type == 'mention_followers' ||
             type == 'mention_user' ||
+            type == 'repost_post' ||
             type == 'like_comment')) {
       _openPostDetails(context, postId);
       return;
     }
 
-    // Navigate to notifications tab (index 4)
+    // Navigate to notifications screen if it's a general notification
     if (type == 'follow' ||
         type == 'like_post' ||
         type == 'comment' ||
-        type == 'mention_followers') {
+        type == 'mention_followers' ||
+        type == 'repost_post' ||
+        type == 'mention_user') {
       navigatorKey.currentState?.pushNamed('/notifications');
+      return;
     }
+
     // DM — navigate to messages tab
     if (type == 'message') {
       navigatorKey.currentState?.pushNamed('/messages');
+      return;
     }
   }
 
@@ -175,17 +181,26 @@ class PushNotificationService {
     String postId,
   ) async {
     try {
+      // Small delay to ensure navigator/context is fully active if app just started
+      await Future.delayed(const Duration(milliseconds: 300));
+      
       final post = await PostService().getPost(postId);
       if (post != null && context.mounted) {
         final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+        
+        // Ensure we don't have multiple sheets stacking if possible, 
+        // but simple showModalBottomSheet is usually fine for one-off deep links.
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          builder: (context) => DraggableScrollableSheet(
+          useRootNavigator: true,
+          backgroundColor: Colors.transparent,
+          builder: (sheetContext) => DraggableScrollableSheet(
             expand: false,
-            minChildSize: 0.3,
-            maxChildSize: 0.85,
-            builder: (context, scrollController) => PostDetailsSheet(
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (sheetContext, scrollController) => PostDetailsSheet(
               post: post,
               currentUserId: currentUserId,
               scrollController: scrollController,

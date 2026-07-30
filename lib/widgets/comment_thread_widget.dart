@@ -32,7 +32,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   bool _isEditing = false;
   late TextEditingController _editController;
   late FocusNode _editFocusNode;
-  bool _showEditEmojiPanel = false;
   bool _isSavingEdit = false;
   late bool _isLiked;
   bool _showReplies = false;
@@ -46,35 +45,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     );
   }
 
-  static const List<String> _quickEmojis = [
-    '😀',
-    '😁',
-    '😂',
-    '🤣',
-    '😊',
-    '😍',
-    '🥳',
-    '😎',
-    '🤔',
-    '👏',
-    '🔥',
-    '💯',
-    '✨',
-    '🙌',
-    '👍',
-    '🙏',
-    '❤️',
-    '💙',
-    '💚',
-    '🎉',
-    '😢',
-    '😡',
-    '🤝',
-    '💫',
-  ];
-
   final Map<String, FocusNode> replyEditFocusNodes = {};
-  final Map<String, bool> replyEditEmojiPanels = {};
   String? replyEditId;
   final Map<String, TextEditingController> replyEditControllers = {};
 
@@ -182,7 +153,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     setState(() {
       _isEditing = true;
       _editController.text = widget.comment.content;
-      _showEditEmojiPanel = false;
     });
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
@@ -194,7 +164,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   void _cancelEdit() {
     setState(() {
       _isEditing = false;
-      _showEditEmojiPanel = false;
     });
     _editFocusNode.unfocus();
   }
@@ -384,70 +353,18 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                       if (_isEditing)
                         Column(
                           children: [
-                            Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _showEditEmojiPanel =
-                                          !_showEditEmojiPanel;
-                                    });
-                                    if (_showEditEmojiPanel) {
-                                      SystemChannels.textInput.invokeMethod(
-                                        'TextInput.hide',
-                                      );
-                                    } else {
-                                      FocusScope.of(
-                                        context,
-                                      ).requestFocus(_editFocusNode);
-                                    }
-                                  },
-                                  icon: Icon(
-                                    _showEditEmojiPanel
-                                        ? Icons.keyboard
-                                        : Icons.emoji_emotions_outlined,
-                                    color: secondaryTextColor,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _editController,
-                                    focusNode: _editFocusNode,
-                                    maxLines: null,
-                                    style: TextStyle(color: textColor),
-                                    decoration: InputDecoration(
-                                      hintText: 'Edit your comment...',
-                                      hintStyle: TextStyle(
-                                        color: secondaryTextColor,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (_showEditEmojiPanel)
-                              SizedBox(
-                                height: 150,
-                                child: GridView.builder(
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 8,
-                                      ),
-                                  itemCount: _quickEmojis.length,
-                                  itemBuilder: (context, index) => InkWell(
-                                    onTap: () {
-                                      _editController.text +=
-                                          _quickEmojis[index];
-                                    },
-                                    child: Center(
-                                      child: Text(
-                                        _quickEmojis[index],
-                                        style: const TextStyle(fontSize: 20),
-                                      ),
-                                    ),
-                                  ),
+                            TextField(
+                              controller: _editController,
+                              focusNode: _editFocusNode,
+                              maxLines: null,
+                              style: TextStyle(color: textColor),
+                              decoration: InputDecoration(
+                                hintText: 'Edit your comment...',
+                                hintStyle: TextStyle(
+                                  color: secondaryTextColor,
                                 ),
                               ),
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -485,7 +402,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               if (widget.currentUserId.isEmpty) {
                                 AuthGuard.show(context);
                               } else {
-                                // Use parentId if this is already a reply, otherwise use commentId
                                 final pId = widget.comment.parentId.isEmpty
                                     ? widget.comment.commentId
                                     : widget.comment.parentId;
@@ -652,7 +568,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                     children: [
                       InkWell(
                         onTap: () {
-                          // Use root comment ID as parent
                           final pId = reply.parentId.isEmpty
                               ? reply.commentId
                               : reply.parentId;
@@ -703,7 +618,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
   Widget _buildReplyEditField(CommentModel reply) {
     final controller = replyEditControllers[reply.commentId];
     final focusNode = replyEditFocusNodes[reply.commentId];
-    final showEmoji = replyEditEmojiPanels[reply.commentId] ?? false;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -713,48 +627,16 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
 
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                maxLines: null,
-                style: TextStyle(fontSize: 12, color: textColor),
-                decoration: InputDecoration(
-                  hintText: 'Edit your reply...',
-                  hintStyle: TextStyle(color: secondaryTextColor),
-                ),
-              ),
-            ),
-            IconButton(
-              icon: Icon(
-                showEmoji ? Icons.keyboard : Icons.emoji_emotions_outlined,
-                size: 18,
-                color: secondaryTextColor,
-              ),
-              onPressed: () {
-                setState(() {
-                  replyEditEmojiPanels[reply.commentId] = !showEmoji;
-                });
-              },
-            ),
-          ],
-        ),
-        if (showEmoji)
-          SizedBox(
-            height: 100,
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
-              ),
-              itemCount: _quickEmojis.length,
-              itemBuilder: (context, index) => InkWell(
-                onTap: () => controller.text += _quickEmojis[index],
-                child: Center(child: Text(_quickEmojis[index])),
-              ),
-            ),
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          maxLines: null,
+          style: TextStyle(fontSize: 12, color: textColor),
+          decoration: InputDecoration(
+            hintText: 'Edit your reply...',
+            hintStyle: TextStyle(color: secondaryTextColor),
           ),
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -789,7 +671,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
           userId: widget.currentUserId,
         );
       }
-      setState(() {}); // StreamBuilder will pick up changes from Firestore
+      setState(() {});
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -806,7 +688,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
         text: reply.content,
       );
       replyEditFocusNodes[reply.commentId] = FocusNode();
-      replyEditEmojiPanels[reply.commentId] = false;
     });
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
@@ -824,7 +705,6 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
       replyEditFocusNodes[commentId]?.dispose();
       replyEditControllers.remove(commentId);
       replyEditFocusNodes.remove(commentId);
-      replyEditEmojiPanels.remove(commentId);
     });
   }
 

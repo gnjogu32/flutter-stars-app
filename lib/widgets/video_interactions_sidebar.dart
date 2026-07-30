@@ -7,6 +7,7 @@ import '../services/notification_service.dart';
 import '../services/share_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/auth_guard.dart';
+import 'repost_dialog.dart';
 import 'post_details_sheet.dart';
 
 class VideoInteractionsSidebar extends StatefulWidget {
@@ -184,11 +185,45 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
     }
   }
 
-  void _openRepost() {
-    if (widget.onRepostTap != null) {
-      widget.onRepostTap!();
-    } else {
-      _openDetails();
+  void _openRepost() async {
+    final result = await RepostDialog.show(
+      context,
+      post: widget.post,
+      currentUserId: widget.currentUserId,
+    );
+
+    if (result != null && mounted) {
+      _confirmRepostToFeed(result);
+    }
+  }
+
+  Future<void> _confirmRepostToFeed(String caption) async {
+    try {
+      final userService = UserService();
+      final postService = PostService();
+      final currentUser = await userService.getUser(widget.currentUserId);
+      if (currentUser == null) throw Exception('Your profile was not found.');
+
+      await postService.repostPost(
+        originalPost: widget.post,
+        reposterId: widget.currentUserId,
+        reposterName: currentUser.displayName,
+        reposterUsername: currentUser.username,
+        reposterImageUrl: currentUser.profileImageUrl,
+        repostCaption: caption,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Reposted successfully!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error reposting: $e')));
+      }
     }
   }
 
@@ -214,7 +249,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Container(
               width: 40,
               height: 4,
@@ -335,21 +370,21 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
             const SizedBox(height: 4),
             _InteractionButton(
               icon: Icons.share_outlined,
-              label: 'Share',
+              label: '',
               onTap: _share,
             ),
             const SizedBox(height: 4),
             _InteractionButton(
               icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
               iconColor: _isSaved ? Colors.amberAccent : Colors.white,
-              label: _isSaved ? 'Saved' : 'Save',
+              label: '',
               onTap: _toggleSave,
             ),
             if (widget.onMoreTap != null) ...[
               const SizedBox(height: 4),
               _InteractionButton(
                 icon: Icons.more_vert,
-                label: 'More',
+                label: '',
                 onTap: widget.onMoreTap!,
               ),
             ],
@@ -377,29 +412,30 @@ class _InteractionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      elevation: 0,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: iconColor ?? Colors.white,
-                size: 20, // Slightly smaller icon
+            Icon(
+              icon,
+              color: iconColor ?? Colors.white,
+              size: 28,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 2), // Smaller gap between icon and label
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10, // Slightly smaller font
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            ),
             ],
           ),
         ),

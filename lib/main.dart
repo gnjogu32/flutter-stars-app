@@ -167,8 +167,18 @@ class MyApp extends StatelessWidget {
         onGenerateRoute: (settings) {
           if (settings.name == '/create-post') {
             final String? initialContent = settings.arguments as String?;
-            return MaterialPageRoute(
-              builder: (context) => CreatePostScreen(initialContent: initialContent),
+            return PageRouteBuilder(
+              opaque: false,
+              barrierColor: Colors.black.withValues(alpha: 0.1),
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  CreatePostScreen(initialContent: initialContent),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                const begin = Offset(0.0, 1.0);
+                const end = Offset.zero;
+                const curve = Curves.easeOutCubic;
+                final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                return SlideTransition(position: animation.drive(tween), child: child);
+              },
             );
           }
           if (settings.name == '/edit-post') {

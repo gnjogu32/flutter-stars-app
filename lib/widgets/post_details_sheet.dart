@@ -1,131 +1,106 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:starpage/models/post_model.dart';
-import 'package:starpage/models/user_model.dart';
-import 'package:starpage/widgets/comments_bottom_sheet.dart';
-import 'package:starpage/services/user_service.dart';
-import 'package:starpage/services/post_service.dart';
-import 'package:starpage/services/notification_service.dart';
-import 'package:starpage/services/share_service.dart';
-import 'package:starpage/utils/auth_guard.dart';
-import 'package:starpage/utils/mention_utils.dart';
-import 'package:starpage/screens/profile_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:starpage/widgets/expandable_text.dart';
-import 'package:starpage/widgets/video_player_widget.dart';
-import 'package:starpage/widgets/audio_player_widget.dart';
-import 'package:starpage/widgets/keyboard_prompt_banner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/post_model.dart';
+import '../models/user_model.dart';
+import '../services/post_service.dart';
+import '../services/user_service.dart';
+import '../services/share_service.dart';
+import '../utils/mention_utils.dart';
+import '../screens/profile_screen.dart';
+import '../widgets/video_player_widget.dart';
+import '../widgets/audio_player_widget.dart';
+import '../widgets/expandable_text.dart';
+import '../widgets/comments_bottom_sheet.dart';
+import 'repost_dialog.dart';
 
 class PostDetailsSheet extends StatefulWidget {
   final PostModel post;
-  final ScrollController? scrollController;
   final String currentUserId;
+  final ScrollController scrollController;
 
   const PostDetailsSheet({
     super.key,
     required this.post,
-    this.scrollController,
     required this.currentUserId,
+    required this.scrollController,
   });
 
   @override
   State<PostDetailsSheet> createState() => _PostDetailsSheetState();
 }
 
-class _PostDetailsSheetState extends State<PostDetailsSheet> {
+class _PostDetailsSheetState extends State<PostDetailsSheet>
+    with TickerProviderStateMixin {
+  final PostService _postService = PostService();
+  final UserService _userService = UserService();
   late bool _isLiked;
   late int _likeCount;
   bool _isLikeUpdating = false;
-  bool _isReposting = false;
   bool _isSaved = false;
+  bool _isReposting = false;
+  bool _showLikeHeart = false;
+  late AnimationController _heartAnimationController;
 
   @override
   void initState() {
     super.initState();
-    _isLiked = widget.post.isLikedBy(widget.currentUserId);
-    _likeCount = widget.post.likeCount;
-    _checkSavedStatus();
+    _isLiked = widget.post.likes.contains(widget.currentUserId);
+    _likeCount = widget.post.likes.length;
+    _heartAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _checkIfSaved();
   }
 
-  Future<void> _checkSavedStatus() async {
-    if (widget.currentUserId.isEmpty) return;
-    try {
-      final userService = UserService();
-      final savedIds = await userService.getSavedPostIds(widget.currentUserId);
-      if (mounted) {
-        setState(() {
-          _isSaved = savedIds.contains(widget.post.postId);
-        });
-      }
-    } catch (_) {}
+  void _handleDoubleTap() async {
+    if (!_isLiked) {
+      await _toggleLike();
+    }
+    setState(() => _showLikeHeart = true);
+    _heartAnimationController.forward(from: 0).then((_) {
+      setState(() => _showLikeHeart = false);
+    });
   }
 
-  Future<void> _toggleSave() async {
-    if (widget.currentUserId.isEmpty) {
-      await AuthGuard.show(context);
-      return;
-    }
-
-    final wasSaved = _isSaved;
-    setState(() => _isSaved = !wasSaved);
-
-    try {
-      final userService = UserService();
-      if (wasSaved) {
-        await userService.unsavePost(widget.currentUserId, widget.post.postId);
-      } else {
-        await userService.savePost(widget.currentUserId, widget.post.postId);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isSaved = wasSaved);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
+  Future<void> _checkIfSaved() async {
+    final saved = await _userService.isPostSaved(
+      widget.currentUserId,
+      widget.post.postId,
+    );
+    if (mounted) setState(() => _isSaved = saved);
   }
 
   Future<void> _toggleLike() async {
     if (_isLikeUpdating) return;
-    if (!await AuthGuard.check(context, widget.currentUserId)) return;
-
-    final wasLiked = _isLiked;
     setState(() {
       _isLikeUpdating = true;
-      _isLiked = !wasLiked;
-      _likeCount = wasLiked ? (_likeCount - 1) : _likeCount + 1;
+      if (_isLiked) {
+        _isLiked = false;
+        _likeCount--;
+      } else {
+        _isLiked = true;
+        _likeCount++;
+      }
     });
 
     try {
-      if (wasLiked) {
-        await PostService().unlikePost(
-          widget.post.postId,
-          widget.currentUserId,
-        );
+      if (_isLiked) {
+        await _postService.likePost(widget.post.postId, widget.currentUserId);
       } else {
-        await PostService().likePost(widget.post.postId, widget.currentUserId);
-        if (widget.currentUserId != widget.post.authorId) {
-          final currentUser = await UserService().getUser(widget.currentUserId);
-          if (currentUser != null) {
-            await NotificationService().createNotification(
-              userId: widget.post.authorId,
-              triggeredBy: widget.currentUserId,
-              triggeredByName: currentUser.displayName,
-              triggeredByImageUrl: currentUser.profileImageUrl,
-              type: 'like_post',
-              postId: widget.post.postId,
-              content: '${currentUser.displayName} liked your post',
-            );
-          }
-        }
+        await _postService.unlikePost(widget.post.postId, widget.currentUserId);
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _isLiked = wasLiked;
-          _likeCount = wasLiked ? (_likeCount + 1) : (_likeCount - 1);
+          if (_isLiked) {
+            _isLiked = false;
+            _likeCount--;
+          } else {
+            _isLiked = true;
+            _likeCount++;
+          }
         });
       }
     } finally {
@@ -133,14 +108,14 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
     }
   }
 
-  void _openComments() async {
+  void _openComments({bool autoFocus = false}) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
         builder: (context, scrollController) => CommentsBottomSheet(
@@ -149,426 +124,73 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
           currentUserId: widget.currentUserId,
           postContent: widget.post.content,
           scrollController: scrollController,
+          autoFocus: autoFocus,
         ),
       ),
     );
+  }
+
+  Future<void> _toggleSave() async {
+    final newState = !_isSaved;
+    setState(() => _isSaved = newState);
+    try {
+      if (newState) {
+        await _userService.savePost(widget.currentUserId, widget.post.postId);
+      } else {
+        await _userService.unsavePost(widget.currentUserId, widget.post.postId);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSaved = !newState);
+    }
+  }
+
+  void _confirmRepost() async {
+    final result = await RepostDialog.show(
+      context,
+      post: widget.post,
+      currentUserId: widget.currentUserId,
+    );
+
+    if (result != null && mounted) {
+      await _repostToFeed(caption: result.trim());
+    }
   }
 
   Future<void> _repostToFeed({String caption = ''}) async {
     if (_isReposting) return;
     setState(() => _isReposting = true);
     try {
-      final userService = UserService();
-      final postService = PostService();
-      final currentUser = await userService.getUser(widget.currentUserId);
-      if (currentUser == null) throw Exception('Profile not found');
+      final currentUser = await _userService.getUser(widget.currentUserId);
+      if (currentUser == null) {
+        throw Exception('Your profile was not found.');
+      }
 
-      // Check if already reposted
-      final alreadyReposted = await postService.hasUserReposted(
-        widget.post.postId,
-        widget.currentUserId,
+      await _postService.repostPost(
+        originalPost: widget.post,
+        reposterId: widget.currentUserId,
+        reposterName: currentUser.displayName,
+        reposterUsername: currentUser.username,
+        reposterImageUrl: currentUser.profileImageUrl,
+        repostCaption: caption,
       );
-
-      if (alreadyReposted) {
-        await postService.undoRepost(
-          originalPostId: widget.post.postId,
-          reposterId: widget.currentUserId,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Repost removed ✓')));
-        }
-      } else {
-        final repostId = await postService.repostPost(
-          originalPost: widget.post,
-          reposterId: widget.currentUserId,
-          reposterName: currentUser.displayName,
-          reposterUsername: currentUser.username,
-          reposterImageUrl: currentUser.profileImageUrl,
-          repostCaption: caption,
-        );
-
-        if (widget.currentUserId != widget.post.authorId) {
-          try {
-            await NotificationService().createNotification(
-              userId: widget.post.authorId,
-              triggeredBy: widget.currentUserId,
-              triggeredByName: currentUser.displayName,
-              triggeredByImageUrl: currentUser.profileImageUrl,
-              type: 'repost_post',
-              postId: repostId,
-              content: '${currentUser.displayName} reposted your content',
-            );
-          } catch (e) {
-            debugPrint('Repost notification skipped: $e');
-          }
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Reposted ✓')));
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Reposted successfully!')));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error reposting: $e')));
       }
     } finally {
       if (mounted) setState(() => _isReposting = false);
     }
   }
 
-  Future<void> _confirmRepost() async {
-    if (_isReposting) return;
-    final textController = TextEditingController();
-    final focusNode = FocusNode();
-    final hasFocus = ValueNotifier(false);
-    var showEmojiPanel = false;
-
-    focusNode.addListener(() {
-      hasFocus.value = focusNode.hasFocus;
-    });
-
-    final result = await showModalBottomSheet<String?>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        bool listenerAdded = false;
-        // Mention state
-        List<UserModel> mentionableUsers = [];
-        List<UserModel> filteredMentionUsers = [];
-        String? activeMentionQuery;
-        bool isLoadingMentionUsers = false;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Future<void> ensureMentionableUsersLoaded() async {
-              if (mentionableUsers.isNotEmpty || isLoadingMentionUsers) return;
-              isLoadingMentionUsers = true;
-              try {
-                final users = await UserService().getAllUsers();
-                mentionableUsers = users;
-              } finally {
-                isLoadingMentionUsers = false;
-              }
-            }
-
-            void handleMentionInputChanged() async {
-              final query = MentionUtils.activeMentionQuery(
-                textController.text,
-                textController.selection,
-              );
-
-              if (query == null) {
-                if (activeMentionQuery != null || filteredMentionUsers.isNotEmpty) {
-                  setDialogState(() {
-                    activeMentionQuery = null;
-                    filteredMentionUsers = const [];
-                  });
-                }
-                return;
-              }
-
-              await ensureMentionableUsersLoaded();
-              final normalizedQuery = query.toLowerCase();
-              final currentUserId = widget.currentUserId;
-              final matchingUsers = mentionableUsers
-                  .where((user) {
-                    if (user.uid == currentUserId) return false;
-                    final handle = user.username ??
-                        MentionUtils.normalizeDisplayNameToHandle(user.displayName);
-                    return normalizedQuery.isEmpty ||
-                        handle.startsWith(normalizedQuery) ||
-                        user.displayName.toLowerCase().contains(normalizedQuery);
-                  })
-                  .take(5)
-                  .toList();
-
-              setDialogState(() {
-                activeMentionQuery = query;
-                filteredMentionUsers = matchingUsers;
-              });
-            }
-
-            if (!listenerAdded) {
-              textController.addListener(handleMentionInputChanged);
-              listenerAdded = true;
-            }
-
-            void insertMentionHandle(String handle) {
-              final nextValue = MentionUtils.insertMention(
-                text: textController.text,
-                selection: textController.selection,
-                handle: handle,
-              );
-              textController.value = nextValue;
-              setDialogState(() {
-                activeMentionQuery = null;
-                filteredMentionUsers = const [];
-              });
-            }
-
-            Widget buildMentionSuggestions() {
-              if (activeMentionQuery == null) return const SizedBox.shrink();
-              final theme = Theme.of(context);
-              final showFollowers =
-                  'followers'.startsWith(activeMentionQuery!.toLowerCase());
-              if (!showFollowers && filteredMentionUsers.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Container(
-                margin: const EdgeInsets.only(top: 8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.dividerColor),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (showFollowers)
-                      ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.campaign_outlined),
-                        title: const Text('@followers'),
-                        onTap: () => insertMentionHandle('followers'),
-                      ),
-                    ...filteredMentionUsers.map((user) {
-                      final handle = user.username ??
-                          MentionUtils.normalizeDisplayNameToHandle(user.displayName);
-                      return ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          radius: 14,
-                          backgroundImage: user.profileImageUrl != null
-                              ? CachedNetworkImageProvider(user.profileImageUrl!)
-                              : null,
-                          child: user.profileImageUrl == null
-                              ? const Icon(Icons.person, size: 14)
-                              : null,
-                        ),
-                        title: Text(user.displayName, style: const TextStyle(fontSize: 12)),
-                        subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
-                        onTap: () => insertMentionHandle(handle),
-                      );
-                    }),
-                  ],
-                ),
-              );
-            }
-
-            final List<String> quickEmojis = [
-              '😀',
-              '😁',
-              '😂',
-              '🤣',
-              '😊',
-              '😍',
-              '🥳',
-              '😎',
-              '🤔',
-              '👏',
-              '🔥',
-              '💯',
-              '✨',
-              '🙌',
-              '👍',
-              '🙏',
-              '❤️',
-              '💙',
-              '💚',
-              '🎉',
-              '😢',
-              '😡',
-              '🤝',
-              '💫',
-            ];
-
-            final theme = Theme.of(context);
-            return Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Repost',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const KeyboardPromptBanner(
-                      visible: true,
-                      text: 'Add a repost caption before sharing.',
-                      icon: Icons.repeat_outlined,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Add an optional caption to your repost:',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            setDialogState(
-                              () => showEmojiPanel = !showEmojiPanel,
-                            );
-                            if (showEmojiPanel) {
-                              focusNode.unfocus();
-                              SystemChannels.textInput.invokeMethod(
-                                'TextInput.hide',
-                              );
-                            } else {
-                              FocusScope.of(context).requestFocus(focusNode);
-                            }
-                          },
-                          icon: Icon(
-                            showEmojiPanel
-                                ? Icons.keyboard_outlined
-                                : Icons.emoji_emotions_outlined,
-                          ),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: textController,
-                            focusNode: focusNode,
-                            autofocus: true,
-                            onTap: () {
-                              if (showEmojiPanel) {
-                                setDialogState(() => showEmojiPanel = false);
-                              }
-                            },
-                            decoration: InputDecoration(
-                              hintText: 'Write something...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              contentPadding: const EdgeInsets.all(12),
-                            ),
-                            maxLines: 3,
-                            maxLength: 280,
-                          ),
-                        ),
-                      ],
-                    ),
-                    buildMentionSuggestions(),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      height: showEmojiPanel ? 180 : 0,
-                      child: showEmojiPanel
-                          ? GridView.builder(
-                              padding: const EdgeInsets.only(top: 8),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 8,
-                                    childAspectRatio: 1.2,
-                                  ),
-                              itemCount: quickEmojis.length,
-                              itemBuilder: (context, index) {
-                                final emoji = quickEmojis[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () {
-                                    final currentText = textController.text;
-                                    final currentSelection =
-                                        textController.selection;
-                                    final start = currentSelection.start >= 0
-                                        ? currentSelection.start
-                                        : currentText.length;
-                                    final end = currentSelection.end >= 0
-                                        ? currentSelection.end
-                                        : currentText.length;
-                                    final newText = currentText.replaceRange(
-                                      start,
-                                      end,
-                                      emoji,
-                                    );
-                                    textController.value = TextEditingValue(
-                                      text: newText,
-                                      selection: TextSelection.collapsed(
-                                        offset: start + emoji.length,
-                                      ),
-                                    );
-                                  },
-                                  child: Center(
-                                    child: Text(
-                                      emoji,
-                                      style: const TextStyle(fontSize: 24),
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context, textController.text),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: theme.colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Repost Now',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (result != null && mounted) {
-      await _repostToFeed(caption: result.trim());
-    }
-    hasFocus.dispose();
-    focusNode.dispose();
-    textController.dispose();
-  }
-
   void _showShareOptions() {
     final theme = Theme.of(context);
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -632,8 +254,6 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                 title: const Text('Download Video'),
                 onTap: () {
                   Navigator.pop(context);
-                  // Use PostWidget's download if possible, or just call Gal directly if needed.
-                  // For now, consistent UI is enough.
                 },
               ),
             const SizedBox(height: 20),
@@ -708,47 +328,83 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                   ),
                 ],
                 const SizedBox(height: 16),
-
-                // Media: Images
                 if (widget.post.imageUrls.isNotEmpty) ...[
                   ...widget.post.imageUrls.map(
                     (url) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: CachedNetworkImage(
-                          imageUrl: url,
-                          fit: BoxFit.contain,
-                          placeholder: (context, url) =>
-                              const Center(child: CircularProgressIndicator()),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.broken_image),
+                      child: GestureDetector(
+                        onDoubleTap: _handleDoubleTap,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: CachedNetworkImage(
+                                imageUrl: url,
+                                fit: BoxFit.contain,
+                                placeholder: (context, url) =>
+                                    const Center(child: CircularProgressIndicator()),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.broken_image),
+                              ),
+                            ),
+                            if (_showLikeHeart)
+                              ScaleTransition(
+                                scale: Tween<double>(begin: 0.0, end: 1.2).animate(
+                                  CurvedAnimation(
+                                    parent: _heartAnimationController,
+                                    curve: Curves.elasticOut,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.favorite,
+                                  color: Colors.white,
+                                  size: 80,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                 ],
-
-                // Media: Audio
                 if (widget.post.audioUrl != null &&
                     widget.post.audioUrl!.isNotEmpty) ...[
                   AudioPlayerWidget(audioUrl: widget.post.audioUrl!),
                   const SizedBox(height: 16),
                 ],
-
-                // Media: Video
                 if (widget.post.videoUrl != null &&
                     widget.post.videoUrl!.isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: VideoPlayerWidget(
-                      videoUrl: widget.post.videoUrl!,
-                      autoPlay: true,
-                      looping: true,
-                      post: widget.post,
-                      currentUserId: widget.currentUserId,
-                    ),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: VideoPlayerWidget(
+                          videoUrl: widget.post.videoUrl!,
+                          autoPlay: true,
+                          looping: true,
+                          post: widget.post,
+                          currentUserId: widget.currentUserId,
+                          onDoubleTap: _handleDoubleTap,
+                        ),
+                      ),
+                      if (_showLikeHeart)
+                        ScaleTransition(
+                          scale: Tween<double>(begin: 0.0, end: 1.2).animate(
+                            CurvedAnimation(
+                              parent: _heartAnimationController,
+                              curve: Curves.elasticOut,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.white,
+                            size: 80,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -756,8 +412,6 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
             ),
           ),
           Divider(height: 1, color: theme.dividerColor),
-
-          // Interaction TabBar (Consistent with Feed)
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('posts')
@@ -768,7 +422,6 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               int commentCount = widget.post.commentCount;
               int repostCount = widget.post.repostCount;
               bool isLiked = _isLiked;
-
               if (snapshot.hasData && snapshot.data!.exists) {
                 final data = snapshot.data!.data() as Map<String, dynamic>;
                 final List likes = data['likes'] as List? ?? [];
@@ -776,19 +429,17 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                 commentCount = data['commentCount'] ?? 0;
                 repostCount = data['repostCount'] ?? 0;
                 isLiked = likes.contains(widget.currentUserId);
-
                 if (!_isLikeUpdating) {
                   _isLiked = isLiked;
                   _likeCount = likeCount;
                 }
               }
-
               return DefaultTabController(
                 length: 5,
                 child: TabBar(
                   onTap: (index) {
                     if (index == 0) _toggleLike();
-                    if (index == 1) _openComments();
+                    if (index == 1) _openComments(autoFocus: true);
                     if (index == 2) _confirmRepost();
                     if (index == 3) _toggleSave();
                     if (index == 4) _showShareOptions();
@@ -836,20 +487,18 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                         _isSaved ? Icons.bookmark : Icons.bookmark_border,
                         size: 20,
                       ),
-                      child: const Text('Save', style: TextStyle(fontSize: 10)),
+                      child: const SizedBox.shrink(),
                     ),
                     const Tab(
                       height: 48,
                       icon: Icon(Icons.share_outlined, size: 20),
-                      child: Text('Share', style: TextStyle(fontSize: 10)),
+                      child: SizedBox.shrink(),
                     ),
                   ],
                 ),
               );
             },
           ),
-
-          // Author section at the very bottom
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Row(

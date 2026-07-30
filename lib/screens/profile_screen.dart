@@ -21,6 +21,8 @@ import '../utils/constants.dart';
 
 enum _ProfileMediaFolder { all, photos, videos, saved }
 
+enum _ProfileSearchType { posts, stars }
+
 class ProfileScreen extends StatefulWidget {
   final String userId;
 
@@ -43,7 +45,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   _ProfileMediaFolder _selectedFolder = _ProfileMediaFolder.all;
   bool _isGridView = true;
   String _searchQuery = '';
+  _ProfileSearchType _searchType = _ProfileSearchType.posts;
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey _mediaSectionKey = GlobalKey();
 
   // Cached futures/streams to prevent jumpy UI during rebuilds
   Stream<Map<String, dynamic>>? _analyticsStream;
@@ -266,6 +270,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _scrollToMediaSection() {
+    final context = _mediaSectionKey.currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   void _showShareOptions(String userId) {
     final theme = Theme.of(context);
     final profileUrl = AppConstants.profileUrl(userId);
@@ -393,11 +408,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           if (isOwnProfile) ...[
             IconButton(
-              icon: const Icon(Icons.bar_chart),
-              tooltip: 'Analytics Dashboard',
-              onPressed: _openAnalyticsDashboard,
-            ),
-            IconButton(
               icon: const Icon(Icons.settings_outlined),
               tooltip: 'Settings',
               onPressed: () => Navigator.of(context).pushNamed('/settings'),
@@ -473,112 +483,132 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           final user = UserModel.fromFirestoreDoc(userSnapshot.data!);
 
-          return StreamBuilder<QuerySnapshot>(
-            stream: _selectedFolder == _ProfileMediaFolder.saved
-                ? _firestore
-                      .collection('posts')
-                      .orderBy('createdAt', descending: true)
-                      .snapshots()
-                : _firestore
-                      .collection('posts')
-                      .where('authorId', isEqualTo: user.uid)
-                      .orderBy('createdAt', descending: true)
-                      .snapshots(),
-            builder: (context, postsSnapshot) {
-              final allPosts =
-                  (!postsSnapshot.hasData || postsSnapshot.data!.docs.isEmpty)
-                  ? <PostModel>[]
-                  : postsSnapshot.data!.docs
-                        .map(
-                          (doc) => PostModel.fromJson(
-                            doc.data() as Map<String, dynamic>,
-                          ),
+          return _searchType == _ProfileSearchType.posts
+              ? StreamBuilder<QuerySnapshot>(
+                  stream: _selectedFolder == _ProfileMediaFolder.saved
+                      ? _firestore
+                            .collection('posts')
+                            .orderBy('createdAt', descending: true)
+                            .snapshots()
+                      : _firestore
+                            .collection('posts')
+                            .where('authorId', isEqualTo: user.uid)
+                            .orderBy('createdAt', descending: true)
+                            .snapshots(),
+                  builder: (context, postsSnapshot) {
+                    final allPosts = (!postsSnapshot.hasData ||
+                            postsSnapshot.data!.docs.isEmpty)
+                        ? <PostModel>[]
+                        : postsSnapshot.data!.docs
+                            .map(
+                              (doc) => PostModel.fromJson(
+                                doc.data() as Map<String, dynamic>,
+                              ),
+                            )
+                            .toList();
+
+                    final filteredPosts = allPosts
+                        .where(
+                          (post) => _matchesSelectedFolder(post, user.savedPosts),
                         )
+                        .where((post) =>
+                            _searchQuery.isEmpty ||
+                            post.content
+                                .toLowerCase()
+                                .contains(_searchQuery.toLowerCase()))
                         .toList();
 
-              final filteredPosts = allPosts
-                  .where(
-                    (post) => _matchesSelectedFolder(post, user.savedPosts),
-                  )
-                  .where((post) => _searchQuery.isEmpty || 
-                         post.content.toLowerCase().contains(_searchQuery.toLowerCase()))
-                  .toList();
-
-              return CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _buildProfileHeader(user, isOwnProfile),
-                  ),
-                  const SliverToBoxAdapter(child: Divider()),
-                  SliverToBoxAdapter(
-                    child: _buildFolderSection(
-                      isOwnProfile,
-                      filteredPosts.length,
-                    ),
-                  ),
-                  if (postsSnapshot.connectionState ==
-                          ConnectionState.waiting &&
-                      !postsSnapshot.hasData)
-                    const SliverToBoxAdapter(
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: CircularProgressIndicator(),
+                    return CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: _buildProfileHeader(user, isOwnProfile),
                         ),
-                      ),
-                    )
-                  else if (filteredPosts.isEmpty)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 48,
-                        ),
-                        child: Center(
-                          child: Text(
-                            _selectedFolder == _ProfileMediaFolder.all
-                                ? 'No posts yet'
-                                : 'No ${_selectedFolder.name} posts yet',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey),
+                        SliverToBoxAdapter(child: Divider(key: _mediaSectionKey)),
+                        SliverToBoxAdapter(
+                          child: _buildFolderSection(
+                            isOwnProfile,
+                            filteredPosts.length,
                           ),
                         ),
-                      ),
-                    )
-                  else if (_isGridView)
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 4,
-                              mainAxisSpacing: 4,
-                              childAspectRatio: 1,
+                        if (postsSnapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            !postsSnapshot.hasData)
+                          const SliverToBoxAdapter(
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(32.0),
+                                child: CircularProgressIndicator(),
+                              ),
                             ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) =>
-                              _buildGridPostItem(filteredPosts[index]),
-                          childCount: filteredPosts.length,
-                        ),
-                      ),
-                    )
-                  else
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => PostWidget(
-                          post: filteredPosts[index],
-                          currentUserId: _auth.currentUser?.uid ?? '',
-                        ),
-                        childCount: filteredPosts.length,
-                      ),
+                          )
+                        else if (filteredPosts.isEmpty)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 48,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  _selectedFolder == _ProfileMediaFolder.all
+                                      ? 'No posts yet'
+                                      : 'No ${_selectedFolder.name} posts yet',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(color: Colors.grey),
+                                ),
+                              ),
+                            ),
+                          )
+                        else if (_isGridView)
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 4,
+                                mainAxisSpacing: 4,
+                                childAspectRatio: 1,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) =>
+                                    _buildGridPostItem(filteredPosts[index]),
+                                childCount: filteredPosts.length,
+                              ),
+                            ),
+                          )
+                        else
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) => PostWidget(
+                                post: filteredPosts[index],
+                                currentUserId: _auth.currentUser?.uid ?? '',
+                              ),
+                              childCount: filteredPosts.length,
+                            ),
+                          ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                      ],
+                    );
+                  },
+                )
+              : CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _buildProfileHeader(user, isOwnProfile),
                     ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                ],
-              );
-            },
-          );
+                    SliverToBoxAdapter(child: Divider(key: _mediaSectionKey)),
+                    SliverToBoxAdapter(
+                      child: _buildFolderSection(isOwnProfile, 0),
+                    ),
+                    _buildStarsSliverList(),
+                    const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                  ],
+                );
         },
       ),
     );
@@ -755,7 +785,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             setState(() {
                               _isGridView = false;
                               _selectedFolder = _ProfileMediaFolder.all;
+                              _searchType = _ProfileSearchType.posts;
                             });
+                            _scrollToMediaSection();
                           },
                         ),
                         _buildStat(
@@ -875,38 +907,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Bar
+          // Search Bar & Type Toggle
           Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.trim();
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search posts...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 20),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide.none,
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.trim();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: _searchType == _ProfileSearchType.posts 
+                        ? 'Search posts...' 
+                        : 'Search stars...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: theme.colorScheme.surfaceContainerHighest,
+                  ),
                 ),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest,
-              ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    FilterChip(
+                      label: const Text('Posts', style: TextStyle(fontSize: 12)),
+                      selected: _searchType == _ProfileSearchType.posts,
+                      onSelected: (selected) {
+                        if (selected) setState(() => _searchType = _ProfileSearchType.posts);
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      label: const Text('Stars', style: TextStyle(fontSize: 12)),
+                      selected: _searchType == _ProfileSearchType.stars,
+                      onSelected: (selected) {
+                        if (selected) setState(() => _searchType = _ProfileSearchType.stars);
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           Text(
@@ -1148,6 +1206,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case _ProfileMediaFolder.saved:
         return savedIds.contains(post.postId);
     }
+  }
+
+  Widget _buildStarsSliverList() {
+    if (_searchQuery.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Center(
+            child: Text(
+              'Search for talented stars...',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('users')
+          .where('displayName', isGreaterThanOrEqualTo: _searchQuery)
+          .where('displayName', isLessThan: '${_searchQuery}z')
+          .limit(10)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final users = snapshot.data?.docs
+                .map((doc) => UserModel.fromFirestoreDoc(doc))
+                .toList() ??
+            [];
+
+        if (users.isEmpty) {
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Center(
+                child: Text(
+                  'No stars found matching your search.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _buildUserSearchCard(users[index]),
+            childCount: users.length,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildUserSearchCard(UserModel user) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundImage: user.profileImageUrl != null
+              ? CachedNetworkImageProvider(user.profileImageUrl!)
+              : null,
+          child: user.profileImageUrl == null ? const Icon(Icons.person) : null,
+        ),
+        title: Text(user.displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(user.talent ?? 'Creative Star'),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => ProfileScreen(userId: user.uid)),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildGridPostItem(PostModel post) {

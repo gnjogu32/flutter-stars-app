@@ -60,7 +60,7 @@ jobs:
           retention-days: 30
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        run: npm install -g firebase-tools@latest
 
       - name: Distribute APK to Firebase App Distribution
         env:

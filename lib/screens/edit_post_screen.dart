@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/post_model.dart';
 import '../services/post_service.dart';
 import '../widgets/keyboard_prompt_banner.dart';
 
 class EditPostScreen extends StatefulWidget {
   final PostModel post;
-
   const EditPostScreen({super.key, required this.post});
 
   @override
@@ -39,8 +39,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('EditPostScreen initialized for post: ${widget.post.postId}');
-    debugPrint('Initial content: ${widget.post.content}');
     _contentController = TextEditingController(text: widget.post.content);
     _repostCaptionController = TextEditingController(
       text: widget.post.repostCaption ?? '',
@@ -62,9 +60,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
   }
 
   void _handleComposerFocusChanged() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _updatePost() async {
@@ -74,12 +70,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
       });
       return;
     }
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-
     try {
       await _postService.updatePost(
         postId: widget.post.postId,
@@ -89,7 +83,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
             ? _repostCaptionController.text.trim()
             : null,
       );
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Post updated successfully!')),
@@ -101,17 +94,19 @@ class _EditPostScreenState extends State<EditPostScreen> {
         _errorMessage = 'Error updating post: $e';
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final editingRepostCaption = _repostCaptionFocusNode.hasFocus;
-    final showKeyboardPrompt = isKeyboardVisible;
 
     return Scaffold(
       appBar: AppBar(
@@ -119,7 +114,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      bottomNavigationBar: showKeyboardPrompt
+      bottomNavigationBar: isKeyboardVisible
           ? SafeArea(
               top: false,
               child: Padding(
@@ -144,7 +139,27 @@ class _EditPostScreenState extends State<EditPostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // If this is a repost, show original author's content (read-only)
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: widget.post.authorImageUrl != null
+                      ? CachedNetworkImageProvider(widget.post.authorImageUrl!)
+                      : null,
+                  child: widget.post.authorImageUrl == null
+                      ? const Icon(Icons.person)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  widget.post.authorName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
             if (widget.post.repostCaption != null) ...[
               Container(
                 padding: const EdgeInsets.all(12.0),
@@ -177,13 +192,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                'Your Caption',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
             ],
-            // Show images (read-only, can't change images when editing)
             if (widget.post.imageUrls.isNotEmpty) ...[
               Text(
                 'Images (cannot be changed)',
@@ -191,30 +200,26 @@ class _EditPostScreenState extends State<EditPostScreen> {
               ),
               const SizedBox(height: 8),
               SizedBox(
-                height: 120,
+                height: 100,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: widget.post.imageUrls.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          widget.post.imageUrls[index],
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                        ),
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        widget.post.imageUrls[index],
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
             ],
-
-            // Content text field
             if (widget.post.repostCaption == null) ...[
               Text('Content', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
@@ -249,13 +254,11 @@ class _EditPostScreenState extends State<EditPostScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   contentPadding: const EdgeInsets.all(12),
-                  counterText: '', // Hide character counter
+                  counterText: '',
                 ),
               ),
               const SizedBox(height: 24),
             ],
-
-            // Talent selection (not editable for reposts)
             if (widget.post.repostCaption == null) ...[
               Text(
                 'Talent Category',
@@ -264,17 +267,16 @@ class _EditPostScreenState extends State<EditPostScreen> {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _selectedTalent,
-                items: talents.map((String talent) {
-                  return DropdownMenuItem<String>(
-                    value: talent,
-                    child: Text(talent),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedTalent = newValue;
-                  });
-                },
+                items: talents
+                    .map(
+                      (String talent) => DropdownMenuItem<String>(
+                        value: talent,
+                        child: Text(talent),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (String? newValue) =>
+                    setState(() => _selectedTalent = newValue),
                 decoration: InputDecoration(
                   hintText: 'Select a talent',
                   border: OutlineInputBorder(
@@ -284,8 +286,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
               ),
               const SizedBox(height: 16),
             ],
-
-            // Error message
             if (_errorMessage != null)
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -295,8 +295,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 ),
               ),
             const SizedBox(height: 24),
-
-            // Update button
             SizedBox(
               width: double.infinity,
               height: 50,

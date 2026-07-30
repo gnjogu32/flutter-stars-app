@@ -139,10 +139,7 @@ class _TrendingSectionState extends State<TrendingSection>
       duration: Duration(milliseconds: 600 + (index * 100)),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.8 + (0.2 * value),
-          child: Opacity(opacity: value, child: child),
-        );
+        return Opacity(opacity: value, child: child);
       },
       child: PostWidget(
         key: ValueKey('trending_${post.postId}'),
@@ -303,10 +300,7 @@ class _TrendingStreamSectionState extends State<TrendingStreamSection>
       duration: Duration(milliseconds: 600 + (index * 100)),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.8 + (0.2 * value),
-          child: Opacity(opacity: value, child: child),
-        );
+        return Opacity(opacity: value, child: child);
       },
       child: PostWidget(
         key: ValueKey('trending_${post.postId}'),

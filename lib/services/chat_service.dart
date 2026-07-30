@@ -25,6 +25,9 @@ class ChatService {
     required String content,
     String? imageUrl,
     String? videoUrl,
+    String? replyToId,
+    String? replyToContent,
+    String? replyToSenderName,
   }) async {
     try {
       // Outgoing Safety Check: Verify if the sender has blocked the recipient
@@ -74,6 +77,9 @@ class ChatService {
         content: content,
         imageUrl: imageUrl,
         videoUrl: videoUrl,
+        replyToId: replyToId,
+        replyToContent: replyToContent,
+        replyToSenderName: replyToSenderName,
         sentAt: now,
       );
 
