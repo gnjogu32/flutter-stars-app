@@ -148,10 +148,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Widget _buildMentionSuggestions() {
-    if (_activeMentionQuery == null || _filteredMentionUsers.isEmpty) {
+    if (_activeMentionQuery == null) {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
+    final showFollowers =
+        'followers'.startsWith(_activeMentionQuery!.toLowerCase());
+
+    if (!showFollowers && _filteredMentionUsers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       constraints: const BoxConstraints(maxHeight: 200),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -160,33 +167,41 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerColor),
       ),
-      child: ListView.builder(
+      child: ListView(
         shrinkWrap: true,
-        itemCount: _filteredMentionUsers.length,
-        itemBuilder: (context, index) {
-          final user = _filteredMentionUsers[index];
-          final handle =
-              user.username ??
-              MentionUtils.normalizeDisplayNameToHandle(user.displayName);
-          return ListTile(
-            dense: true,
-            leading: CircleAvatar(
-              radius: 14,
-              backgroundImage: user.profileImageUrl != null
-                  ? CachedNetworkImageProvider(user.profileImageUrl!)
-                  : null,
-              child: user.profileImageUrl == null
-                  ? const Icon(Icons.person, size: 14)
-                  : null,
+        padding: EdgeInsets.zero,
+        children: [
+          if (showFollowers)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text('@followers'),
+              onTap: () => _insertMentionHandle('followers'),
             ),
-            title: Text(
-              user.displayName,
-              style: const TextStyle(fontSize: 12),
-            ),
-            subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
-            onTap: () => _insertMentionHandle(handle),
-          );
-        },
+          ..._filteredMentionUsers.map((user) {
+            final handle =
+                user.username ??
+                MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+            return ListTile(
+              dense: true,
+              leading: CircleAvatar(
+                radius: 14,
+                backgroundImage: user.profileImageUrl != null
+                    ? CachedNetworkImageProvider(user.profileImageUrl!)
+                    : null,
+                child: user.profileImageUrl == null
+                    ? const Icon(Icons.person, size: 14)
+                    : null,
+              ),
+              title: Text(
+                user.displayName,
+                style: const TextStyle(fontSize: 12),
+              ),
+              subtitle: Text('@$handle', style: const TextStyle(fontSize: 10)),
+              onTap: () => _insertMentionHandle(handle),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -319,6 +334,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (_selectedImages.isEmpty && _selectedVideo == null) {
       return const SizedBox.shrink();
     }
+    final theme = Theme.of(context);
 
     return Container(
       height: 120,
@@ -367,18 +383,39 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.black87,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.primary.withValues(alpha: 0.1),
+                    theme.colorScheme.primary.withValues(alpha: 0.05),
+                  ],
+                ),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                ),
               ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  const Center(
+                  Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.videocam, color: Colors.white, size: 32),
-                        SizedBox(height: 4),
-                        Text('Video', style: TextStyle(color: Colors.white, fontSize: 10)),
+                        Icon(
+                          Icons.videocam,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                          size: 32,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Video',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   ),

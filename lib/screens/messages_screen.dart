@@ -9,6 +9,8 @@ import '../widgets/keyboard_prompt_banner.dart';
 import '../widgets/author_profile_avatar.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
+import '../services/user_service.dart';
+import '../models/user_model.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -45,7 +47,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     super.dispose();
   }
 
-  void _navigateToChat(ConversationModel conversation) {
+  void _navigateToChat(ConversationModel conversation, {UserModel? otherUser}) {
     // Extract other user ID from conversation
     final currentUserId = _auth.currentUser?.uid ?? '';
     final otherUserId = conversation.participantIds.firstWhere(
@@ -60,16 +62,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
         builder: (context) => ChatScreen(
           conversationId: conversation.conversationId,
           otherUserId: otherUserId,
-          otherUserName: conversation.otherUserName ?? 'User',
-          otherUserImageUrl: conversation.otherUserImageUrl,
+          otherUserName: otherUser?.displayName ?? conversation.otherUserName ?? 'User',
+          otherUserImageUrl: otherUser?.profileImageUrl ?? conversation.otherUserImageUrl,
         ),
       ),
     );
   }
 
   bool _canDeleteConversation(ConversationModel conversation) {
-    // Only the conversation creator can delete it
-    return conversation.createdBy == _auth.currentUser?.uid;
+    // Both participants can delete the chat for themselves, 
+    // but in our current ChatService.deleteConversation it deletes the document.
+    // For now, let's allow anyone in the chat to delete the document.
+    return conversation.participantIds.contains(_auth.currentUser?.uid);
   }
 
   Future<void> _confirmAndDeleteConversation(
@@ -283,7 +287,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       isDeleting: _deletingConversationIds.contains(
         conversation.conversationId,
       ),
-      onTap: () => _navigateToChat(conversation),
+      onTap: (otherUser) => _navigateToChat(conversation, otherUser: otherUser),
       onDelete: () => _confirmAndDeleteConversation(conversation),
       canDelete: _canDeleteConversation(conversation),
     );
@@ -293,7 +297,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 class _ConversationItem extends StatefulWidget {
   final ConversationModel conversation;
   final bool isDeleting;
-  final VoidCallback onTap;
+  final Function(UserModel?) onTap;
   final VoidCallback onDelete;
   final bool canDelete;
 
@@ -312,17 +316,70 @@ class _ConversationItem extends StatefulWidget {
 
 class _ConversationItemState extends State<_ConversationItem>
     with AutomaticKeepAliveClientMixin {
+  final UserService _userService = UserService();
+  UserModel? _otherUser;
+  bool _isLoadingOtherUser = true;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
+  void initState() {
+    super.initState();
+    _loadOtherUser();
+  }
+
+  Future<void> _loadOtherUser() async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final otherUserId = widget.conversation.participantIds.firstWhere(
+      (id) => id != currentUserId,
+      orElse: () => '',
+    );
+
+    if (otherUserId.isNotEmpty) {
+      final user = await _userService.getUser(otherUserId);
+      if (mounted) {
+        setState(() {
+          _otherUser = user;
+          _isLoadingOtherUser = false;
+        });
+      }
+    } else {
+      if (mounted) setState(() => _isLoadingOtherUser = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final displayName = _otherUser?.displayName ??
+        widget.conversation.otherUserName ??
+        'User';
+    final imageUrl = _otherUser?.profileImageUrl ??
+        widget.conversation.otherUserImageUrl;
+    final hasUnread = widget.conversation.unreadCount > 0;
+
     return AnimationUtils.scaleButtonAnimation(
-      onTap: widget.isDeleting ? () {} : widget.onTap,
+      onTap: widget.isDeleting ? () {} : () => widget.onTap(_otherUser),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Card(
+          elevation: hasUnread ? 2 : 0,
+          shadowColor: hasUnread ? theme.colorScheme.primary.withValues(alpha: 0.3) : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: hasUnread
+                  ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.grey.shade200),
+              width: hasUnread ? 1.5 : 1,
+            ),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -330,53 +387,86 @@ class _ConversationItemState extends State<_ConversationItem>
                 // Avatar
                 GestureDetector(
                   onTap: () {
-                    final currentUserId =
-                        FirebaseAuth.instance.currentUser?.uid ?? '';
-                    final otherUserId = widget.conversation.participantIds
-                        .firstWhere(
-                          (id) => id != currentUserId,
-                          orElse: () => '',
-                        );
-                    if (otherUserId.isNotEmpty) {
+                    if (_otherUser != null) {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) =>
-                              ProfileScreen(userId: otherUserId),
+                              ProfileScreen(userId: _otherUser!.uid),
                         ),
                       );
                     }
                   },
-                  child: CircleAvatar(
-                    radius: 24,
-                    backgroundImage:
-                        widget.conversation.otherUserImageUrl != null
-                        ? CachedNetworkImageProvider(
-                            widget.conversation.otherUserImageUrl!,
-                          )
-                        : null,
-                    child: widget.conversation.otherUserImageUrl == null
-                        ? const Icon(Icons.person)
-                        : null,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        backgroundImage: imageUrl != null
+                            ? CachedNetworkImageProvider(imageUrl)
+                            : null,
+                        child: imageUrl == null
+                            ? const Icon(Icons.person, size: 30)
+                            : null,
+                      ),
+                      if (hasUnread)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.cardColor,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (_isLoadingOtherUser)
+                        const Positioned.fill(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white24,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 // User info and last message
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.conversation.otherUserName ?? 'Unknown',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                        displayName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight:
+                              hasUnread ? FontWeight.w900 : FontWeight.bold,
+                          color: hasUnread
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        widget.conversation.lastMessage,
+                        hasUnread
+                            ? 'Sent you a new message'
+                            : (widget.conversation.lastMessage.isEmpty
+                                ? 'Start a conversation'
+                                : widget.conversation.lastMessage),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: hasUnread
+                              ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                              : theme.hintColor,
+                          fontWeight:
+                              hasUnread ? FontWeight.w600 : FontWeight.normal,
+                        ),
                       ),
                     ],
                   ),
@@ -393,7 +483,13 @@ class _ConversationItemState extends State<_ConversationItem>
                           TimeUtils.formatShorthand(
                             widget.conversation.lastMessageTime,
                           ),
-                          style: Theme.of(context).textTheme.labelSmall,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: hasUnread
+                                ? theme.colorScheme.primary
+                                : theme.hintColor,
+                            fontWeight:
+                                hasUnread ? FontWeight.bold : FontWeight.normal,
+                          ),
                         ),
                         PopupMenuButton<String>(
                           padding: EdgeInsets.zero,
@@ -412,19 +508,22 @@ class _ConversationItemState extends State<_ConversationItem>
                               widget.onDelete();
                             }
                           },
-                          itemBuilder: (context) => const [
+                          itemBuilder: (context) => [
                             PopupMenuItem(
                               value: 'delete',
+                              enabled: widget.canDelete,
                               child: Row(
                                 children: [
                                   Icon(
                                     Icons.delete_outline,
-                                    color: Colors.red,
+                                    color: widget.canDelete ? Colors.red : Colors.grey,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
                                     'Delete chat',
-                                    style: TextStyle(color: Colors.red),
+                                    style: TextStyle(
+                                      color: widget.canDelete ? Colors.red : Colors.grey,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -435,20 +534,20 @@ class _ConversationItemState extends State<_ConversationItem>
                     ),
                     if (widget.conversation.unreadCount > 0)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: 4, right: 4),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue,
+                            color: theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             '${widget.conversation.unreadCount}',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: theme.colorScheme.onPrimary,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),

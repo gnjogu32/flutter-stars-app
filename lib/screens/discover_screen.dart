@@ -424,6 +424,7 @@ class _DiscoveryGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final hasVideo = post.videoUrl != null && post.videoUrl!.isNotEmpty;
     final hasImages = post.imageUrls.isNotEmpty;
 
@@ -449,21 +450,34 @@ class _DiscoveryGridItem extends StatelessWidget {
             )
           else if (hasVideo)
             Container(
-              color: Colors.black87,
-              child: const Center(
-                child: Icon(Icons.play_circle_outline, color: Colors.white, size: 30),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.primary.withValues(alpha: 0.1),
+                    theme.colorScheme.primary.withValues(alpha: 0.05),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.play_circle_outline,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                  size: 30,
+                ),
               ),
             )
           else
             Container(
-              color: Colors.blueGrey[100],
+              color: theme.colorScheme.surfaceContainerHighest,
               padding: const EdgeInsets.all(8),
               child: Center(
                 child: Text(
                   post.content,
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 10),
+                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                   textAlign: TextAlign.center,
                 ),
               ),

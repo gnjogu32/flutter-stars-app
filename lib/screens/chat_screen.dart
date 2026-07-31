@@ -8,10 +8,12 @@ import '../models/message_model.dart';
 import '../services/chat_service.dart';
 import '../services/user_service.dart';
 import '../services/media_service.dart';
+import '../services/encryption_service.dart';
 import '../utils/time_utils.dart';
 import '../utils/animation_utils.dart';
 import '../screens/profile_screen.dart';
 import '../widgets/video_player_widget.dart';
+import '../widgets/expandable_text.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -34,6 +36,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final ChatService _chatService = ChatService();
   final UserService _userService = UserService();
+  final EncryptionService _encryptionService = EncryptionService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
@@ -48,6 +51,14 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _messageController.addListener(_onTextChanged);
+    _initializeChat();
+  }
+
+  void _initializeChat() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      await _encryptionService.ensureKeysGenerated(uid);
+    }
     _markRead();
   }
 
@@ -139,6 +150,19 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('View Profile'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ProfileScreen(userId: message.senderId),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.copy_outlined),
               title: const Text('Copy Text'),
               onTap: () {
@@ -227,10 +251,53 @@ class _ChatScreenState extends State<ChatScreen> {
                 _confirmDeleteConversation();
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.block, color: Colors.red),
+              title: const Text(
+                'Block User',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmBlockUser();
+              },
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmBlockUser() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Block ${widget.otherUserName}?'),
+        content: const Text(
+          'They will no longer be able to message you or see your profile. This will also delete the conversation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Block'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final currentUserUid = _auth.currentUser?.uid;
+      if (currentUserUid != null) {
+        await _userService.blockUser(currentUserUid, widget.otherUserId);
+        await _chatService.deleteConversation(widget.conversationId);
+        if (mounted) Navigator.pop(context);
+      }
+    }
   }
 
   Future<void> _confirmDeleteConversation() async {
@@ -407,6 +474,10 @@ class _ChatScreenState extends State<ChatScreen> {
         centerTitle: true,
         elevation: 0,
         actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: Icon(Icons.enhanced_encryption, size: 16, color: Colors.green),
+          ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: _showChatOptions,
@@ -415,6 +486,22 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            width: double.infinity,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.lock_outline, size: 10, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  'Messages are end-to-end encrypted',
+                  style: theme.textTheme.labelSmall?.copyWith(color: Colors.grey, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
           // Messages list
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
@@ -445,6 +532,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
+                    final itemKey = _messageKeys.putIfAbsent(
+                      msg.messageId,
+                      () => GlobalKey(),
+                    );
+
                     return Dismissible(
                       key: Key('msg_${msg.messageId}'),
                       direction: DismissDirection.startToEnd,
@@ -458,12 +550,19 @@ class _ChatScreenState extends State<ChatScreen> {
                         alignment: Alignment.centerLeft,
                         child: Icon(
                           Icons.reply,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.6),
                         ),
                       ),
                       child: GestureDetector(
                         onLongPress: () => _showMessageActions(msg),
-                        child: _buildMessageBubble(msg, messageBubbleMaxWidth),
+                        child: Container(
+                          key: itemKey,
+                          color: _highlightedMessageId == msg.messageId
+                              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                              : null,
+                          child: _buildMessageBubble(msg, messageBubbleMaxWidth),
+                        ),
                       ),
                     );
                   },
@@ -668,12 +767,69 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  final Map<String, String> _decryptedCache = {};
+  final Map<String, GlobalKey> _messageKeys = {};
+  String? _highlightedMessageId;
+
+  void _scrollToMessage(String messageId) {
+    final key = _messageKeys[messageId];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+      setState(() => _highlightedMessageId = messageId);
+      Timer(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _highlightedMessageId = null);
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Message is too far up to preview'), duration: Duration(seconds: 1)),
+      );
+    }
+  }
+
   Widget _buildMessageBubble(MessageModel message, double maxWidth) {
+    if (message.isEncrypted && message.content.isNotEmpty) {
+      if (_decryptedCache.containsKey(message.messageId)) {
+        return _renderMessageBubble(
+          message.copyWith(content: _decryptedCache[message.messageId]),
+          maxWidth,
+        );
+      }
+
+      return FutureBuilder<String>(
+        future: _decrypt(message),
+        builder: (context, snapshot) {
+          final decryptedContent = snapshot.data ?? '🔐 Decrypting...';
+          if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+            _decryptedCache[message.messageId] = snapshot.data!;
+          }
+          return _renderMessageBubble(
+            message.copyWith(content: decryptedContent),
+            maxWidth,
+          );
+        },
+      );
+    }
+    return _renderMessageBubble(message, maxWidth);
+  }
+
+  Future<String> _decrypt(MessageModel message) async {
+    final senderPublicKey = await _encryptionService.getRecipientPublicKey(message.senderId);
+    if (senderPublicKey == null) return '[Identity Error]';
+
+    return await _encryptionService.decryptMessage(
+      encryptedContent: message.content,
+      nonceBase64: message.nonce!,
+      senderPublicKeyBase64: senderPublicKey,
+    );
+  }
+
+  Widget _renderMessageBubble(MessageModel message, double maxWidth) {
     final isCurrentUser = message.senderId == _auth.currentUser?.uid;
     final theme = Theme.of(context);
-    final alignment = isCurrentUser
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
     final bgColor = isCurrentUser
         ? theme.colorScheme.primary
         : theme.colorScheme.surfaceContainerHighest;
@@ -682,160 +838,238 @@ class _ChatScreenState extends State<ChatScreen> {
         : theme.colorScheme.onSurface;
 
     return Padding(
-      padding: EdgeInsets.only(
-        left: isCurrentUser ? 50 : 12,
-        right: isCurrentUser ? 12 : 50,
-        top: 4,
-        bottom: 4,
-      ),
-      child: Align(
-        alignment: alignment,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: Column(
-            crossAxisAlignment: isCurrentUser
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              if (message.replyToId != null)
-                GestureDetector(
-                  onTap: () {
-                    // In a more advanced implementation, we would scroll to the message
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isCurrentUser
-                          ? Colors.white.withValues(alpha: 0.2)
-                          : theme.colorScheme.surface.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border(
-                        left: BorderSide(
-                          color: isCurrentUser ? Colors.white70 : theme.colorScheme.primary,
-                          width: 3,
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          message.replyToSenderName ?? 'Message',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isCurrentUser ? Colors.white : theme.colorScheme.primary,
-                          ),
-                        ),
-                        Text(
-                          message.replyToContent ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isCurrentUser ? Colors.white70 : Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      child: Row(
+        mainAxisAlignment:
+            isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isCurrentUser) ...[
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(userId: message.senderId),
                   ),
-                ),
-              if (message.imageUrl != null)
-                GestureDetector(
-                  onTap: () {
-                    // Show full screen image
-                    showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        backgroundColor: Colors.transparent,
-                        insetPadding: EdgeInsets.zero,
-                        child: Stack(
+                );
+              },
+              child: CircleAvatar(
+                radius: 16,
+                backgroundImage: message.senderImageUrl != null
+                    ? CachedNetworkImageProvider(message.senderImageUrl!)
+                    : null,
+                child: message.senderImageUrl == null
+                    ? const Icon(Icons.person, size: 18)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Column(
+                crossAxisAlignment: isCurrentUser
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  if (message.replyToId != null)
+                    GestureDetector(
+                      onTap: () => _scrollToMessage(message.replyToId!),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isCurrentUser
+                              ? Colors.white.withValues(alpha: 0.2)
+                              : theme.colorScheme.surface.withValues(
+                                  alpha: 0.5,
+                                ),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border(
+                            left: BorderSide(
+                              color: isCurrentUser
+                                  ? Colors.white70
+                                  : theme.colorScheme.primary,
+                              width: 3,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            InteractiveViewer(
-                              child: CachedNetworkImage(
-                                imageUrl: message.imageUrl!,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.contain,
+                            Text(
+                              message.replyToSenderName ?? 'Message',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isCurrentUser
+                                    ? Colors.white
+                                    : theme.colorScheme.primary,
                               ),
                             ),
-                            Positioned(
-                              top: 40,
-                              right: 20,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                                onPressed: () => Navigator.pop(context),
+                            Text(
+                              message.replyToContent ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isCurrentUser
+                                    ? Colors.white70
+                                    : Colors.grey[700],
                               ),
                             ),
                           ],
                         ),
                       ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: theme.dividerColor, width: 0.5),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: CachedNetworkImage(
-                        imageUrl: message.imageUrl!,
-                        placeholder: (context, url) => Container(
-                          width: maxWidth,
-                          height: 200,
-                          color: Colors.grey[300],
-                          child: const Center(child: CircularProgressIndicator()),
+                  if (message.imageUrl != null)
+                    GestureDetector(
+                      onTap: () {
+                        // Show full screen image
+                        showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            insetPadding: EdgeInsets.zero,
+                            child: Stack(
+                              children: [
+                                InteractiveViewer(
+                                  child: CachedNetworkImage(
+                                    imageUrl: message.imageUrl!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 40,
+                                  right: 20,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 30,
+                                    ),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.dividerColor,
+                            width: 0.5,
+                          ),
                         ),
-                        errorWidget: (context, url, error) => const Icon(Icons.error),
-                        fit: BoxFit.cover,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: CachedNetworkImage(
+                            imageUrl: message.imageUrl!,
+                            placeholder: (context, url) => Container(
+                              width: maxWidth,
+                              height: 200,
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.error),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              if (message.videoUrl != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.black,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 300),
-                      child: VideoPlayerWidget(videoUrl: message.videoUrl!),
+                  if (message.videoUrl != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.black,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 300),
+                          child: VideoPlayerWidget(videoUrl: message.videoUrl!),
+                        ),
+                      ),
+                    ),
+                  if (message.content.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: BorderRadius.circular(18).copyWith(
+                          bottomRight: isCurrentUser
+                              ? const Radius.circular(2)
+                              : null,
+                          bottomLeft: !isCurrentUser
+                              ? const Radius.circular(2)
+                              : null,
+                        ),
+                      ),
+                      child: ExpandableText(
+                        message.content,
+                        style: TextStyle(color: textColor, fontSize: 15),
+                        trimLines: 8,
+                        actionStyle: TextStyle(
+                          color: isCurrentUser
+                              ? Colors.white70
+                              : theme.colorScheme.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 2),
+                  Text(
+                    TimeUtils.formatShorthand(message.sentAt),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      color: Colors.grey,
                     ),
                   ),
-                ),
-              if (message.content.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(18).copyWith(
-                      bottomRight: isCurrentUser ? const Radius.circular(2) : null,
-                      bottomLeft: !isCurrentUser ? const Radius.circular(2) : null,
-                    ),
-                  ),
-                  child: Text(
-                    message.content,
-                    style: TextStyle(color: textColor, fontSize: 15),
-                  ),
-                ),
-              const SizedBox(height: 2),
-              Text(
-                TimeUtils.formatShorthand(message.sentAt),
-                style: theme.textTheme.labelSmall?.copyWith(fontSize: 10, color: Colors.grey),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          if (isCurrentUser) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ProfileScreen(userId: message.senderId),
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                radius: 12,
+                backgroundImage: _auth.currentUser?.photoURL != null
+                    ? CachedNetworkImageProvider(_auth.currentUser!.photoURL!)
+                    : null,
+                child: _auth.currentUser?.photoURL == null
+                    ? const Icon(Icons.person, size: 14)
+                    : null,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

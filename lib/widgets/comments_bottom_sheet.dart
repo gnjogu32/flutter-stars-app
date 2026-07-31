@@ -660,35 +660,51 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Widget _buildMentionSuggestions() {
-    if (_activeMentionQuery == null || _filteredMentionUsers.isEmpty) {
+    if (_activeMentionQuery == null) {
       return const SizedBox.shrink();
     }
+    final theme = Theme.of(context);
+    final showFollowers =
+        'followers'.startsWith(_activeMentionQuery!.toLowerCase());
+
+    if (!showFollowers && _filteredMentionUsers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       constraints: const BoxConstraints(maxHeight: 180),
-      color: Theme.of(context).colorScheme.surface,
-      child: ListView.builder(
+      color: theme.colorScheme.surface,
+      child: ListView(
         shrinkWrap: true,
-        itemCount: _filteredMentionUsers.length,
-        itemBuilder: (context, index) {
-          final user = _filteredMentionUsers[index];
-          final handle =
-              user.username ??
-              MentionUtils.normalizeDisplayNameToHandle(user.displayName);
-          return ListTile(
-            leading: CircleAvatar(
-              radius: 14,
-              backgroundImage: user.profileImageUrl != null
-                  ? CachedNetworkImageProvider(user.profileImageUrl!)
-                  : null,
-              child: user.profileImageUrl == null
-                  ? const Icon(Icons.person, size: 14)
-                  : null,
+        padding: EdgeInsets.zero,
+        children: [
+          if (showFollowers)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text('@followers'),
+              onTap: () => _insertMentionHandle('followers'),
             ),
-            title: Text(user.displayName, style: const TextStyle(fontSize: 13)),
-            subtitle: Text('@$handle', style: const TextStyle(fontSize: 11)),
-            onTap: () => _insertMentionHandle(handle),
-          );
-        },
+          ..._filteredMentionUsers.map((user) {
+            final handle =
+                user.username ??
+                MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+            return ListTile(
+              leading: CircleAvatar(
+                radius: 14,
+                backgroundImage: user.profileImageUrl != null
+                    ? CachedNetworkImageProvider(user.profileImageUrl!)
+                    : null,
+                child: user.profileImageUrl == null
+                    ? const Icon(Icons.person, size: 14)
+                    : null,
+              ),
+              title: Text(user.displayName, style: const TextStyle(fontSize: 13)),
+              subtitle: Text('@$handle', style: const TextStyle(fontSize: 11)),
+              onTap: () => _insertMentionHandle(handle),
+            );
+          }),
+        ],
       ),
     );
   }

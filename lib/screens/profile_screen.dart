@@ -1329,11 +1329,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
             else if (isVideo)
               Container(
-                color: Colors.black87,
-                child: const Icon(
-                  Icons.play_circle_outline,
-                  color: Colors.white70,
-                  size: 32,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.play_circle_outline,
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                    size: 32,
+                  ),
                 ),
               )
             else

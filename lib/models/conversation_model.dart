@@ -11,6 +11,7 @@ class ConversationModel {
   final String? otherUserImageUrl;
   final String? createdBy; // Who initiated/created the conversation
   final List<String> mutedBy; // List of user IDs who muted this conversation
+  final List<String> deletedBy; // List of user IDs who "deleted" this chat
 
   ConversationModel({
     required this.conversationId,
@@ -23,6 +24,7 @@ class ConversationModel {
     this.otherUserImageUrl,
     this.createdBy,
     this.mutedBy = const [],
+    this.deletedBy = const [],
   });
 
   // Convert ConversationModel to JSON for Firestore
@@ -38,6 +40,7 @@ class ConversationModel {
       'otherUserImageUrl': otherUserImageUrl,
       'createdBy': createdBy,
       'mutedBy': mutedBy,
+      'deletedBy': deletedBy,
     };
   }
 
@@ -58,6 +61,7 @@ class ConversationModel {
       otherUserImageUrl: json['otherUserImageUrl'],
       createdBy: json['createdBy'],
       mutedBy: List<String>.from(json['mutedBy'] ?? []),
+      deletedBy: List<String>.from(json['deletedBy'] ?? []),
     );
   }
 
@@ -72,6 +76,7 @@ class ConversationModel {
     String? otherUserName,
     String? otherUserImageUrl,
     List<String>? mutedBy,
+    List<String>? deletedBy,
   }) {
     return ConversationModel(
       conversationId: conversationId ?? this.conversationId,
@@ -83,6 +88,7 @@ class ConversationModel {
       otherUserName: otherUserName ?? this.otherUserName,
       otherUserImageUrl: otherUserImageUrl ?? this.otherUserImageUrl,
       mutedBy: mutedBy ?? this.mutedBy,
+      deletedBy: deletedBy ?? this.deletedBy,
     );
   }
 }

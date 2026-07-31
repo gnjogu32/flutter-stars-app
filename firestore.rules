@@ -46,11 +46,17 @@ service cloud.firestore {
              request.resource.data.likes is list;
     }
 
+    function hasMedia(data) {
+      return ('imageUrl' in data && data.imageUrl != null && data.imageUrl != "") ||
+             ('videoUrl' in data && data.videoUrl != null && data.videoUrl != "");
+    }
+
     // Allow comment authors to edit their comments
     function isCommentEditUpdate() {
       return isAuthenticated() &&
              request.resource.data.diff(resource.data).changedKeys().hasOnly(['content', 'updatedAt', 'isEdited', 'editedAt']) &&
-             validateString(request.resource.data.content, 1, 2000) &&
+             (validateString(request.resource.data.content, 1, 2000) ||
+              (request.resource.data.content == "" && hasMedia(request.resource.data))) &&
              request.resource.data.isEdited is bool &&
              isTimestamp(request.resource.data.updatedAt) &&
              (request.resource.data.editedAt == null || isTimestamp(request.resource.data.editedAt));
@@ -91,7 +97,8 @@ service cloud.firestore {
       allow read: if true; // Public comments
       allow create: if isAuthenticated() &&
                        request.resource.data.authorId == request.auth.uid &&
-                       validateString(request.resource.data.content, 1, 2000) &&
+                       (validateString(request.resource.data.content, 1, 2000) ||
+                        (request.resource.data.content == "" && hasMedia(request.resource.data))) &&
                        request.resource.data.postId is string &&
                        isTimestamp(request.resource.data.createdAt);
       allow update: if ((resource.data.authorId == request.auth.uid && isCommentEditUpdate()) || isCommentLikeUpdate() || isAdmin()) &&
@@ -116,9 +123,9 @@ service cloud.firestore {
       allow update: if isAuthenticated() &&
                        request.auth.uid in resource.data.participantIds &&
                        (request.resource.data.participantIds == resource.data.participantIds ||
-                        !request.resource.data.diff(resource.data).changedKeys().hasAny(['participantIds', 'createdBy', 'createdAt']));
+                        request.resource.data.diff(resource.data).changedKeys().hasAny(['lastMessage', 'lastSenderId', 'lastMessageTime', 'updatedAt', 'mutedBy', 'deletedBy']));
       allow delete: if isAuthenticated() &&
-                       resource.data.createdBy == request.auth.uid; // Only creator can delete
+                       request.auth.uid in resource.data.participantIds;
       match /messages/{messageId} {
         allow read: if isAuthenticated() &&
                        ((get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds == null || 

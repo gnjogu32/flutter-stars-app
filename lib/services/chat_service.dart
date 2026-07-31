@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/message_model.dart';
 import '../models/conversation_model.dart';
 import 'notification_service.dart';
 import 'user_service.dart';
+import 'encryption_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -30,7 +32,28 @@ class ChatService {
     String? replyToSenderName,
   }) async {
     try {
-      // Outgoing Safety Check: Verify if the sender has blocked the recipient
+      final encryptionService = EncryptionService();
+      String? nonce;
+      bool isEncrypted = false;
+      String finalContent = content;
+
+      // Try E2EE
+      final recipientPublicKey = await encryptionService.getRecipientPublicKey(recipientId);
+      if (recipientPublicKey != null && content.isNotEmpty) {
+        try {
+          final encrypted = await encryptionService.encryptMessage(
+            content: content,
+            recipientPublicKeyBase64: recipientPublicKey,
+          );
+          finalContent = encrypted['content']!;
+          nonce = encrypted['nonce'];
+          isEncrypted = true;
+        } catch (e) {
+          debugPrint('E2EE encryption failed, falling back to plaintext: $e');
+        }
+      }
+
+      // Outgoing Safety Check...
       // (Reading our own document is always allowed)
       final userService = UserService();
       final senderBlockedRecipient = await userService.isUserBlocked(
@@ -65,6 +88,7 @@ class ChatService {
           'createdAt': now,
           'updatedAt': now,
           'mutedBy': [],
+          'deletedBy': [],
         }, SetOptions(merge: true));
       }
 
@@ -74,12 +98,14 @@ class ChatService {
         senderId: senderId,
         senderName: senderName,
         senderImageUrl: senderImageUrl,
-        content: content,
+        content: finalContent,
         imageUrl: imageUrl,
         videoUrl: videoUrl,
         replyToId: replyToId,
         replyToContent: replyToContent,
         replyToSenderName: replyToSenderName,
+        isEncrypted: isEncrypted,
+        nonce: nonce,
         sentAt: now,
       );
 
@@ -92,13 +118,14 @@ class ChatService {
       // Update conversation metadata
       final String lastMessageText = imageUrl != null
           ? '📷 Photo'
-          : (videoUrl != null ? '🎥 Video' : content);
+          : (videoUrl != null ? '🎥 Video' : (isEncrypted ? '🔐 Encrypted message' : content));
 
       await conversationRef.set({
         'lastMessage': lastMessageText,
         'lastSenderId': senderId,
         'lastMessageTime': now,
         'updatedAt': now,
+        'deletedBy': FieldValue.arrayRemove([recipientId]), // Restore for recipient if they deleted it
       }, SetOptions(merge: true));
 
       // Attempt Notification (Fail-safe)
@@ -154,6 +181,7 @@ class ChatService {
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => ConversationModel.fromJson(doc.data()))
+              .where((conv) => !conv.deletedBy.contains(userId)) // Filter out deleted
               .toList(),
         );
   }
@@ -251,28 +279,15 @@ class ChatService {
     }
   }
 
-  // Delete an entire conversation (including its messages)
+  // Delete an entire conversation (Soft delete: hide for current user)
   Future<void> deleteConversation(String conversationId) async {
     try {
-      final messagesRef = _firestore
-          .collection('conversations')
-          .doc(conversationId)
-          .collection('messages');
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null) return;
 
-      while (true) {
-        final snapshot = await messagesRef.limit(400).get();
-        if (snapshot.docs.isEmpty) break;
-
-        final batch = _firestore.batch();
-        for (final doc in snapshot.docs) {
-          batch.delete(doc.reference);
-        }
-        await batch.commit();
-
-        if (snapshot.docs.length < 400) break;
-      }
-
-      await _firestore.collection('conversations').doc(conversationId).delete();
+      await _firestore.collection('conversations').doc(conversationId).update({
+        'deletedBy': FieldValue.arrayUnion([currentUserId]),
+      });
     } catch (e) {
       rethrow;
     }
@@ -402,6 +417,7 @@ class ChatService {
           'createdBy': currentUserId, // Track who initiated the conversation
           'createdAt': DateTime.now(),
           'updatedAt': DateTime.now(),
+          'deletedBy': [],
         }, SetOptions(merge: true));
       }
 

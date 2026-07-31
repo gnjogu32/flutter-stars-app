@@ -13,6 +13,8 @@ class MessageModel {
   final String? replyToContent;
   final String? replyToSenderName;
   final bool isRead;
+  final bool isEncrypted;
+  final String? nonce;
   final DateTime sentAt;
   final DateTime? readAt;
 
@@ -29,6 +31,8 @@ class MessageModel {
     this.replyToContent,
     this.replyToSenderName,
     this.isRead = false,
+    this.isEncrypted = false,
+    this.nonce,
     required this.sentAt,
     this.readAt,
   });
@@ -48,6 +52,8 @@ class MessageModel {
       'replyToContent': replyToContent,
       'replyToSenderName': replyToSenderName,
       'isRead': isRead,
+      'isEncrypted': isEncrypted,
+      'nonce': nonce,
       'sentAt': sentAt,
       'readAt': readAt,
     };
@@ -68,6 +74,8 @@ class MessageModel {
       replyToContent: json['replyToContent'],
       replyToSenderName: json['replyToSenderName'],
       isRead: json['isRead'] ?? false,
+      isEncrypted: json['isEncrypted'] ?? false,
+      nonce: json['nonce'],
       sentAt: json['sentAt'] is Timestamp
           ? (json['sentAt'] as Timestamp).toDate()
           : DateTime.parse(json['sentAt'] ?? DateTime.now().toIso8601String()),
@@ -91,6 +99,8 @@ class MessageModel {
     String? replyToContent,
     String? replyToSenderName,
     bool? isRead,
+    bool? isEncrypted,
+    String? nonce,
     DateTime? sentAt,
     DateTime? readAt,
   }) {
@@ -107,6 +117,8 @@ class MessageModel {
       replyToContent: replyToContent ?? this.replyToContent,
       replyToSenderName: replyToSenderName ?? this.replyToSenderName,
       isRead: isRead ?? this.isRead,
+      isEncrypted: isEncrypted ?? this.isEncrypted,
+      nonce: nonce ?? this.nonce,
       sentAt: sentAt ?? this.sentAt,
       readAt: readAt ?? this.readAt,
     );
