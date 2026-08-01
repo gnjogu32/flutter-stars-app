@@ -407,7 +407,7 @@ class _PostWidgetState extends State<PostWidget>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.95,
+        initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
@@ -473,7 +473,7 @@ class _PostWidgetState extends State<PostWidget>
               _buildBarItem(
                 icon: Icons.comment_outlined,
                 label: '$commentCount',
-                onTap: () => _openCommentsSheet(autoFocus: true),
+                onTap: () => _openCommentsSheet(autoFocus: false),
               ),
               _buildBarItem(
                 icon: Icons.repeat,
@@ -692,7 +692,7 @@ class _PostWidgetState extends State<PostWidget>
                     _buildSidebarItem(
                       icon: Icons.comment_outlined,
                       label: '$commentCount',
-                      onTap: () => _openCommentsSheet(autoFocus: true),
+                      onTap: () => _openCommentsSheet(autoFocus: false),
                     ),
                     const SizedBox(height: 8),
                     _buildSidebarItem(

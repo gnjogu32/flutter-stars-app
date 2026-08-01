@@ -114,7 +114,7 @@ class _PostDetailsSheetState extends State<PostDetailsSheet>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
+        initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
@@ -439,7 +439,7 @@ class _PostDetailsSheetState extends State<PostDetailsSheet>
                 child: TabBar(
                   onTap: (index) {
                     if (index == 0) _toggleLike();
-                    if (index == 1) _openComments(autoFocus: true);
+                    if (index == 1) _openComments(autoFocus: false);
                     if (index == 2) _confirmRepost();
                     if (index == 3) _toggleSave();
                     if (index == 4) _showShareOptions();

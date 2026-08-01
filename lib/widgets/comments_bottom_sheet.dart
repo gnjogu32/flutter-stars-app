@@ -316,6 +316,56 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     }
   }
 
+  Widget _buildMentionSuggestions() {
+    if (_activeMentionQuery == null) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    final showFollowers =
+        'followers'.startsWith(_activeMentionQuery!.toLowerCase());
+
+    if (!showFollowers && _filteredMentionUsers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 180),
+      color: theme.colorScheme.surface,
+      child: ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        children: [
+          if (showFollowers)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text('@followers'),
+              onTap: () => _insertMentionHandle('followers'),
+            ),
+          ..._filteredMentionUsers.map((user) {
+            final handle =
+                user.username ??
+                MentionUtils.normalizeDisplayNameToHandle(user.displayName);
+            return ListTile(
+              leading: CircleAvatar(
+                radius: 14,
+                backgroundImage: user.profileImageUrl != null
+                    ? CachedNetworkImageProvider(user.profileImageUrl!)
+                    : null,
+                child: user.profileImageUrl == null
+                    ? const Icon(Icons.person, size: 14)
+                    : null,
+              ),
+              title: Text(user.displayName, style: const TextStyle(fontSize: 13)),
+              subtitle: Text('@$handle', style: const TextStyle(fontSize: 11)),
+              onTap: () => _insertMentionHandle(handle),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -447,8 +497,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               ),
             ),
 
+            // Footer Interaction Area (Moved back into main Column to ensure it stays above keyboard correctly in all scenarios)
             _buildMentionSuggestions(),
-
             if (_selectedMedia != null || _selectedGifUrl != null)
               Container(
                 height: 100,
@@ -511,7 +561,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   ],
                 ),
               ),
-
             Material(
               elevation: 12,
               color: theme.colorScheme.surface,
@@ -554,7 +603,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           ],
                         ),
                       ),
-
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       decoration: BoxDecoration(
@@ -593,6 +641,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                                         vertical: 10,
                                       ),
                                     ),
+                                    onChanged: (_) => setState(() {}),
                                   ),
                                 ),
                                 const SizedBox(width: 4),
@@ -655,56 +704,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildMentionSuggestions() {
-    if (_activeMentionQuery == null) {
-      return const SizedBox.shrink();
-    }
-    final theme = Theme.of(context);
-    final showFollowers =
-        'followers'.startsWith(_activeMentionQuery!.toLowerCase());
-
-    if (!showFollowers && _filteredMentionUsers.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 180),
-      color: theme.colorScheme.surface,
-      child: ListView(
-        shrinkWrap: true,
-        padding: EdgeInsets.zero,
-        children: [
-          if (showFollowers)
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.campaign_outlined),
-              title: const Text('@followers'),
-              onTap: () => _insertMentionHandle('followers'),
-            ),
-          ..._filteredMentionUsers.map((user) {
-            final handle =
-                user.username ??
-                MentionUtils.normalizeDisplayNameToHandle(user.displayName);
-            return ListTile(
-              leading: CircleAvatar(
-                radius: 14,
-                backgroundImage: user.profileImageUrl != null
-                    ? CachedNetworkImageProvider(user.profileImageUrl!)
-                    : null,
-                child: user.profileImageUrl == null
-                    ? const Icon(Icons.person, size: 14)
-                    : null,
-              ),
-              title: Text(user.displayName, style: const TextStyle(fontSize: 13)),
-              subtitle: Text('@$handle', style: const TextStyle(fontSize: 11)),
-              onTap: () => _insertMentionHandle(handle),
-            );
-          }),
-        ],
       ),
     );
   }
@@ -1048,12 +1047,29 @@ class _CommentItem extends StatelessWidget {
                       if (comment.imageUrl != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8.0),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: CachedNetworkImage(
-                              imageUrl: comment.imageUrl!,
-                              placeholder: (context, url) => const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                          child: GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  insetPadding: EdgeInsets.zero,
+                                  child: InteractiveViewer(
+                                    child: CachedNetworkImage(
+                                      imageUrl: comment.imageUrl!,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: comment.imageUrl!,
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
                               ),
                             ),
                           ),
@@ -1354,12 +1370,29 @@ class _ReplyItem extends StatelessWidget {
                   if (reply.imageUrl != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 6.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: CachedNetworkImage(
-                          imageUrl: reply.imageUrl!,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                      child: GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              insetPadding: EdgeInsets.zero,
+                              child: InteractiveViewer(
+                                child: CachedNetworkImage(
+                                  imageUrl: reply.imageUrl!,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: reply.imageUrl!,
+                            placeholder: (context, url) => const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           ),
                         ),
                       ),

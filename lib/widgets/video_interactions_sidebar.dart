@@ -166,8 +166,8 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
       isScrollControlled: true,
       builder: (context) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.3,
-        maxChildSize: 0.85,
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
         builder: (context, scrollController) => PostDetailsSheet(
           post: widget.post,
           currentUserId: widget.currentUserId,

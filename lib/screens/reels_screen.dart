@@ -579,7 +579,7 @@ class _ReelItemState extends State<_ReelItem>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.95,
+        initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
@@ -1007,7 +1007,7 @@ class _ReelItemState extends State<_ReelItem>
                     _InteractionButton(
                       icon: Icons.comment_outlined,
                       label: '$commentCount',
-                      onTap: () => _openComments(autoFocus: true),
+                      onTap: () => _openComments(autoFocus: false),
                     ),
                     const SizedBox(height: 4),
                     _InteractionButton(

@@ -367,7 +367,7 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.95,
+        initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
@@ -788,7 +788,7 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                       currentUserId: widget.currentUserId!,
                       isMuted: _isMuted,
                       onToggleMute: _toggleMute,
-                      onCommentTap: () => _openComments(autoFocus: true),
+                      onCommentTap: () => _openComments(autoFocus: false),
                       onRepostTap: _confirmRepost,
                       onMoreTap: _showMoreOptions,
                       onShareTap: _showShareOptions,
