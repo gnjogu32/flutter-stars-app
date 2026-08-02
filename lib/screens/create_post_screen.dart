@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui';
+import 'package:video_player/video_player.dart';
 import '../services/post_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
@@ -269,6 +270,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
+  void _showVideoFullScreenPreview() {
+    if (_selectedVideo == null) return;
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _LocalVideoPreviewScreen(
+          file: File(_selectedVideo!.path),
+        ),
+      ),
+    );
+  }
+
   void _removeImage(int index) {
     setState(() {
       final path = _selectedImages[index].path;
@@ -378,63 +391,53 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             );
           } else {
-            return Container(
-              width: 100,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    theme.colorScheme.primary.withValues(alpha: 0.1),
-                    theme.colorScheme.primary.withValues(alpha: 0.05),
-                  ],
-                ),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                ),
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.videocam,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                          size: 32,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Video',
-                          style: TextStyle(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+            return GestureDetector(
+              onTap: _showVideoFullScreenPreview,
+              child: Container(
+                width: 100,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colorScheme.primary.withValues(alpha: 0.1),
+                      theme.colorScheme.primary.withValues(alpha: 0.05),
+                    ],
                   ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: _removeVideo,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _LocalVideoThumbnail(file: File(_selectedVideo!.path)),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: _removeVideo,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 16, color: Colors.white),
                         ),
-                        child: const Icon(Icons.close, size: 16, color: Colors.white),
                       ),
                     ),
-                  ),
-                ],
+                    const Center(
+                      child: Icon(
+                        Icons.play_circle_outline,
+                        color: Colors.white70,
+                        size: 32,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -660,6 +663,113 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LocalVideoThumbnail extends StatefulWidget {
+  final File file;
+  const _LocalVideoThumbnail({required this.file});
+
+  @override
+  State<_LocalVideoThumbnail> createState() => _LocalVideoThumbnailState();
+}
+
+class _LocalVideoThumbnailState extends State<_LocalVideoThumbnail> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.file(widget.file)
+      ..initialize().then((_) {
+        if (mounted) setState(() => _initialized = true);
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized) {
+      return Container(color: Colors.black12);
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: VideoPlayer(_controller),
+    );
+  }
+}
+
+class _LocalVideoPreviewScreen extends StatefulWidget {
+  final File file;
+  const _LocalVideoPreviewScreen({required this.file});
+
+  @override
+  State<_LocalVideoPreviewScreen> createState() => _LocalVideoPreviewScreenState();
+}
+
+class _LocalVideoPreviewScreenState extends State<_LocalVideoPreviewScreen> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.file(widget.file)
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _initialized = true);
+          _controller.play();
+          _controller.setLooping(true);
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Video Preview', style: TextStyle(color: Colors.white)),
+      ),
+      body: Center(
+        child: _initialized
+            ? GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _controller.value.isPlaying
+                        ? _controller.pause()
+                        : _controller.play();
+                  });
+                },
+                child: AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      VideoPlayer(_controller),
+                      if (!_controller.value.isPlaying)
+                        const Icon(Icons.play_arrow, size: 80, color: Colors.white54),
+                    ],
+                  ),
+                ),
+              )
+            : const CircularProgressIndicator(color: Colors.white),
       ),
     );
   }

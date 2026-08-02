@@ -8,6 +8,7 @@ import '../services/user_service.dart';
 import '../utils/auth_guard.dart';
 import '../widgets/author_profile_avatar.dart';
 import '../widgets/post_widget.dart';
+import '../widgets/video_grid_thumbnail.dart';
 import 'profile_screen.dart';
 import 'hashtag_feed_screen.dart';
 
@@ -449,24 +450,21 @@ class _DiscoveryGridItem extends StatelessWidget {
               placeholder: (context, url) => Container(color: Colors.grey[200]),
             )
           else if (hasVideo)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    theme.colorScheme.primary.withValues(alpha: 0.1),
-                    theme.colorScheme.primary.withValues(alpha: 0.05),
-                  ],
+            Stack(
+              fit: StackFit.expand,
+              children: [
+                VideoGridThumbnail(videoUrl: post.videoUrl!),
+                Container(
+                  color: Colors.black26,
+                  child: Center(
+                    child: Icon(
+                      Icons.play_circle_outline,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      size: 30,
+                    ),
+                  ),
                 ),
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.play_circle_outline,
-                  color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                  size: 30,
-                ),
-              ),
+              ],
             )
           else
             Container(

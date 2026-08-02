@@ -14,6 +14,7 @@ import '../services/chat_service.dart';
 import '../services/user_service.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_details_sheet.dart';
+import '../widgets/video_grid_thumbnail.dart';
 import 'analytics_dashboard_screen.dart';
 import 'chat_screen.dart';
 import 'followers_following_screen.dart';
@@ -1328,24 +1329,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Icon(Icons.broken_image),
               )
             else if (isVideo)
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                    ],
+              Stack(
+                fit: StackFit.expand,
+                children: [
+                  VideoGridThumbnail(videoUrl: post.videoUrl!),
+                  Container(
+                    color: Colors.black26,
+                    child: const Center(
+                      child: Icon(
+                        Icons.play_circle_outline,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.play_circle_outline,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-                    size: 32,
-                  ),
-                ),
+                ],
               )
             else
               Container(
