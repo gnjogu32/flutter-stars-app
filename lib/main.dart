@@ -168,8 +168,8 @@ class MyApp extends StatelessWidget {
           if (settings.name == '/create-post') {
             final String? initialContent = settings.arguments as String?;
             return PageRouteBuilder(
-              opaque: false,
-              barrierColor: Colors.black.withValues(alpha: 0.1),
+              opaque: true,
+              barrierColor: Colors.black,
               pageBuilder: (context, animation, secondaryAnimation) =>
                   CreatePostScreen(initialContent: initialContent),
               transitionsBuilder: (context, animation, secondaryAnimation, child) {

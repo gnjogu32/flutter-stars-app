@@ -451,7 +451,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.85),
+      backgroundColor: theme.colorScheme.surface,
       resizeToAvoidBottomInset: true,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -483,19 +483,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         ],
         centerTitle: true,
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // System background blur effect
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-          Column(
-            children: [
-              // Extra padding for transparent AppBar
-              SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight),
+          // Extra padding for transparent AppBar
+          SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight),
               
               // Talent Picker Header
               Padding(
@@ -627,8 +618,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ],
           ),
-        ],
-      ),
     );
   }
 
