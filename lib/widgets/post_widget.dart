@@ -445,11 +445,18 @@ class _PostWidgetState extends State<PostWidget>
           commentCount = data['commentCount'] ?? 0;
           repostCount = data['repostCount'] ?? 0;
           isLiked = likes.contains(widget.currentUserId);
-
-          if (!_isLikeUpdating) {
-            _isLiked = isLiked;
-            _likeCount = likeCount;
-          }
+          
+          // Side-effect controlled by mounted check to minimize rebuild loops
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_isLikeUpdating) {
+              if (_isLiked != isLiked || _likeCount != likeCount) {
+                setState(() {
+                  _isLiked = isLiked;
+                  _likeCount = likeCount;
+                });
+              }
+            }
+          });
         }
 
         return Container(

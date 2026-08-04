@@ -86,13 +86,17 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
   }
 
   void refreshReels() {
-    _disposeAllPreloaded();
+    // Seamless refresh: don't clear _cachedReels to avoid blank screens.
+    // The StreamBuilder will handle updating the list with new data.
     setState(() {
-      _cachedReels = null;
       _activeIndex = _infiniteLoopOffset;
     });
     if (_pageController.hasClients) {
-      _pageController.jumpToPage(_infiniteLoopOffset);
+      _pageController.animateToPage(
+        _infiniteLoopOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -109,7 +113,8 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
     if (reels.isEmpty) {
       return;
     }
-    final indicesToPreload = [index, index + 1];
+    // Preload previous, current, and next two items for ultra-smooth continuous browsing
+    final indicesToPreload = [index - 1, index, index + 1, index + 2];
     _preloadedControllers.removeWhere((idx, controller) {
       if (!indicesToPreload.contains(idx)) {
         controller.setVolume(0);
@@ -164,20 +169,10 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
             .limit(50)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              _cachedReels == null) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
+          if (snapshot.hasError) {
+            debugPrint('Reels stream error: ${snapshot.error}');
           }
-          if (snapshot.hasError && _cachedReels == null) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white),
-              ),
-            );
-          }
+
           if (snapshot.hasData) {
             final latestReels = (snapshot.data?.docs ?? [])
                 .map(
@@ -195,11 +190,18 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
                   .toList();
               if (newItems.isNotEmpty) {
                 _cachedReels!.addAll(newItems);
+                // Sort by createdAt descending to ensure seamless additions
+                _cachedReels!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
               }
             }
           }
           final reels = _cachedReels ?? [];
           if (reels.isEmpty) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            }
             return const Center(
               child: Text(
                 'No reels yet',

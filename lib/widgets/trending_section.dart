@@ -90,28 +90,24 @@ class _TrendingSectionState extends State<TrendingSection>
         FutureBuilder<List<PostModel>>(
           future: _trendingPostsFuture,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              );
-            }
-
             if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('Error: ${snapshot.error}'),
-              );
+              debugPrint('Trending error: ${snapshot.error}');
             }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            final trendingPosts = snapshot.data ?? [];
+
+            if (trendingPosts.isEmpty) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
               return const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text('No trending posts yet'),
               );
             }
-
-            final trendingPosts = snapshot.data!;
 
             return ListView.builder(
               shrinkWrap: true,
@@ -251,28 +247,24 @@ class _TrendingStreamSectionState extends State<TrendingStreamSection>
         StreamBuilder<List<PostModel>>(
           stream: _trendingService.getTrendingPostsStream(limit: 5),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              );
-            }
-
             if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('Error: ${snapshot.error}'),
-              );
+              debugPrint('Trending stream error: ${snapshot.error}');
             }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            final trendingPosts = snapshot.data ?? [];
+
+            if (trendingPosts.isEmpty) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
               return const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text('No trending posts yet'),
               );
             }
-
-            final trendingPosts = snapshot.data!;
 
             return ListView.builder(
               shrinkWrap: true,

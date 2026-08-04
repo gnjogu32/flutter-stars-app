@@ -279,33 +279,40 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     return StreamBuilder<QuerySnapshot>(
       stream: query.snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && _cachedDiscoveryPosts == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError && _cachedDiscoveryPosts == null) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+        if (snapshot.hasError) {
+          debugPrint('Discover posts error: ${snapshot.error}');
         }
 
         if (snapshot.hasData) {
           final latestPosts = snapshot.data!.docs
-              .map((doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>))
+              .map((doc) =>
+                  PostModel.fromJson(doc.data() as Map<String, dynamic>))
               .toList();
 
           if (_cachedDiscoveryPosts == null || _cachedDiscoveryPosts!.isEmpty) {
             _cachedDiscoveryPosts = latestPosts;
           } else {
-            // Background update: only add truly new items to avoid jumping
-            final existingIds = _cachedDiscoveryPosts!.map((p) => p.postId).toSet();
-            final newItems = latestPosts.where((p) => !existingIds.contains(p.postId)).toList();
+            final existingIds =
+                _cachedDiscoveryPosts!.map((p) => p.postId).toSet();
+            final newItems =
+                latestPosts.where((p) => !existingIds.contains(p.postId)).toList();
             if (newItems.isNotEmpty) {
-              // Add new items but don't re-shuffle current block yet to prevent jumping
+              // Prepend new items
               _cachedDiscoveryPosts!.insertAll(0, newItems);
             }
           }
         }
 
         final filteredPosts = _cachedDiscoveryPosts ?? [];
+
+        if (filteredPosts.isEmpty) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return const Center(
+            child: Text('No posts found matching your search.'),
+          );
+        }
 
         var searchedPosts = filteredPosts;
 

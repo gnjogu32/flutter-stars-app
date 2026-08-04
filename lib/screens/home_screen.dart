@@ -46,7 +46,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 600) {
+        _scrollController.position.maxScrollExtent - 1000) {
       _loadPosts();
     }
   }
@@ -62,7 +62,7 @@ class HomeScreenState extends State<HomeScreen> {
       Query query = _firestore
           .collection('posts')
           .orderBy('createdAt', descending: true)
-          .limit(15);
+          .limit(25);
 
       if (_lastDocument != null) {
         query = query.startAfterDocument(_lastDocument!);
@@ -79,7 +79,7 @@ class HomeScreenState extends State<HomeScreen> {
           setState(() {
             _posts.addAll(newPosts);
             _lastDocument = snapshot.docs.last;
-            _hasMore = snapshot.docs.length >= 15;
+            _hasMore = snapshot.docs.length >= 25;
             _isLoading = false;
           });
         }
@@ -118,12 +118,32 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _posts.clear();
-      _lastDocument = null;
-      _hasMore = true;
-    });
-    await _loadPosts();
+    try {
+      Query query = _firestore
+          .collection('posts')
+          .orderBy('createdAt', descending: true)
+          .limit(15);
+
+      final snapshot = await query.get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final newPosts = snapshot.docs
+            .map((doc) => PostModel.fromFirestoreDoc(doc))
+            .toList();
+
+        if (mounted) {
+          setState(() {
+            _posts.clear();
+            _posts.addAll(newPosts);
+            _lastDocument = snapshot.docs.last;
+            _hasMore = snapshot.docs.length >= 15;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Refresh error: $e');
+    }
   }
 
   @override
@@ -154,94 +174,97 @@ class HomeScreenState extends State<HomeScreen> {
         body: RefreshIndicator(
           key: _refreshKey,
           onRefresh: _refresh,
-          child: _posts.isEmpty && _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : StreamBuilder<DocumentSnapshot>(
-                  stream: _firestore
-                      .collection('users')
-                      .doc(_auth.currentUser?.uid ?? 'guest')
-                      .snapshots(),
-                  builder: (context, userSnapshot) {
-                    List<String> mutedPosts = [];
-                    List<String> mutedAuthors = [];
-                    List<String> blockedUsers = [];
-                    bool autoPlayEnabled = true;
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: _firestore
+                .collection('users')
+                .doc(_auth.currentUser?.uid ?? 'guest')
+                .snapshots(),
+            builder: (context, userSnapshot) {
+              if (userSnapshot.hasError) {
+                debugPrint('User snapshot error: ${userSnapshot.error}');
+              }
 
-                    if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                      final userData =
-                          userSnapshot.data!.data() as Map<String, dynamic>;
-                      mutedPosts =
-                          List<String>.from(userData['mutedPosts'] ?? []);
-                      mutedAuthors = List<String>.from(
-                        userData['mutedAuthors'] ?? [],
-                      );
-                      blockedUsers = List<String>.from(
-                        userData['blockedUsers'] ?? [],
-                      );
-                      autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
-                    }
+              List<String> mutedPosts = [];
+              List<String> mutedAuthors = [];
+              List<String> blockedUsers = [];
+              bool autoPlayEnabled = true;
 
-                    final filteredPosts = _posts.where((post) {
-                      return !mutedPosts.contains(post.postId) &&
-                          !mutedAuthors.contains(post.authorId) &&
-                          !blockedUsers.contains(post.authorId);
-                    }).toList();
+              if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                final userData =
+                    userSnapshot.data!.data() as Map<String, dynamic>;
+                mutedPosts = List<String>.from(userData['mutedPosts'] ?? []);
+                mutedAuthors = List<String>.from(
+                  userData['mutedAuthors'] ?? [],
+                );
+                blockedUsers = List<String>.from(
+                  userData['blockedUsers'] ?? [],
+                );
+                autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
+              }
 
-                    if (filteredPosts.isEmpty && !_isLoading) {
-                      return LayoutBuilder(
-                        builder: (context, constraints) => SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: SizedBox(
-                            height: constraints.maxHeight,
-                            child: const Center(
-                              child: Text(
-                                'No posts yet. Follow talented stars to see their work!',
-                              ),
-                            ),
-                          ),
+              final filteredPosts = _posts.where((post) {
+                return !mutedPosts.contains(post.postId) &&
+                    !mutedAuthors.contains(post.authorId) &&
+                    !blockedUsers.contains(post.authorId);
+              }).toList();
+
+              if (filteredPosts.isEmpty) {
+                if (_isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: constraints.maxHeight,
+                      child: const Center(
+                        child: Text(
+                          'No posts yet. Follow talented stars to see their work!',
                         ),
-                      );
-                    }
-
-                    return ListView.builder(
-                      // We don't attach controller here because NestedScrollView handles it
-                      // ignore: deprecated_member_use
-                      cacheExtent: 2000.0,
-                      itemCount: filteredPosts.length + 1 + (_hasMore ? 1 : 0),
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
                       ),
-                      addAutomaticKeepAlives: true,
-                      addRepaintBoundaries: true,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return TrendingStreamSection(
-                            currentUserId: _auth.currentUser?.uid ?? '',
-                            autoPlayEnabled: autoPlayEnabled,
-                            isTabVisible: _isTabVisible,
-                          );
-                        }
+                    ),
+                  ),
+                );
+              }
 
-                        final postIndex = index - 1;
-
-                        if (postIndex == filteredPosts.length) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 32),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-
-                        return PostWidget(
-                          key: ValueKey(filteredPosts[postIndex].postId),
-                          post: filteredPosts[postIndex],
-                          currentUserId: _auth.currentUser?.uid ?? '',
-                          isTabVisible: _isTabVisible,
-                          autoPlayEnabled: autoPlayEnabled,
-                        );
-                      },
-                    );
-                  },
+              return ListView.builder(
+                // ignore: deprecated_member_use
+                cacheExtent: 3000.0, // Increased for smoother scrolling
+                itemCount: filteredPosts.length + 1 + (_hasMore ? 1 : 0),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
+                addAutomaticKeepAlives: true,
+                addRepaintBoundaries: true,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return TrendingStreamSection(
+                      currentUserId: _auth.currentUser?.uid ?? '',
+                      autoPlayEnabled: autoPlayEnabled,
+                      isTabVisible: _isTabVisible,
+                    );
+                  }
+
+                  final postIndex = index - 1;
+
+                  if (postIndex == filteredPosts.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  return PostWidget(
+                    key: ValueKey(filteredPosts[postIndex].postId),
+                    post: filteredPosts[postIndex],
+                    currentUserId: _auth.currentUser?.uid ?? '',
+                    isTabVisible: _isTabVisible,
+                    autoPlayEnabled: autoPlayEnabled,
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
