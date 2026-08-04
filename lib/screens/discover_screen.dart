@@ -11,6 +11,8 @@ import '../widgets/post_widget.dart';
 import '../widgets/video_grid_thumbnail.dart';
 import 'profile_screen.dart';
 import 'hashtag_feed_screen.dart';
+import '../services/trending_service.dart';
+import '../utils/animation_utils.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -45,7 +47,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _searchFocusNode.addListener(_handleFocusChanged);
     _loadTrendingHashtags();
   }
@@ -108,7 +110,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
               controller: _tabController,
               tabs: const [
                 Tab(text: 'Stars'),
-                Tab(text: 'Posts'),
+                Tab(text: 'Trending'),
+                Tab(text: 'Recent'),
               ],
             ),
           ),
@@ -221,10 +224,45 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           controller: _tabController,
           children: [
             _buildUsersList(),
+            _buildTrendingGrid(),
             _buildPostsList(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTrendingGrid() {
+    final trendingService = TrendingService();
+    return FutureBuilder(
+      future: trendingService.getTrendingPosts(limit: 30),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final posts = snapshot.data?.posts ?? [];
+        if (posts.isEmpty) {
+          return const Center(child: Text('No trending posts today.'));
+        }
+
+        return GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 2,
+            mainAxisSpacing: 2,
+            childAspectRatio: 1,
+          ),
+          itemCount: posts.length,
+          padding: EdgeInsets.zero,
+          itemBuilder: (context, index) {
+            return _DiscoveryGridItem(
+              post: posts[index],
+              allPosts: posts,
+              initialIndex: index,
+            );
+          },
+        );
+      },
     );
   }
 

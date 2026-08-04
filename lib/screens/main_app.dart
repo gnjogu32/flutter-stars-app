@@ -77,6 +77,24 @@ class MainAppState extends State<MainApp> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _screens),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 0.0),
+        child: SizedBox(
+          height: 65,
+          width: 65,
+          child: FloatingActionButton(
+            onPressed: () {
+              Navigator.of(context).pushNamed('/create-post');
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
+            shape: const CircleBorder(),
+            elevation: 4,
+            child: const Icon(Icons.add, size: 35),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,

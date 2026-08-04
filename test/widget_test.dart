@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:starpage/widgets/comments_bottom_sheet.dart';
 
 void main() {
   group('Widget Tests', () {
@@ -135,6 +136,30 @@ void main() {
 
       // Verify callback was triggered
       expect(commentTapCalled, true);
+    });
+
+    testWidgets('Comment composer footer hides reply preview text', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CommentComposerFooter(
+              controller: TextEditingController(),
+              focusNode: FocusNode(),
+              isSending: false,
+              onSend: () {},
+              onAddMedia: () {},
+              onPickGif: () {},
+              charCount: 12,
+              isOverLimit: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.send), findsOneWidget);
+      expect(find.textContaining('Replying to'), findsNothing);
     });
 
     testWidgets('Comment input field receives focus and shows keyboard', (

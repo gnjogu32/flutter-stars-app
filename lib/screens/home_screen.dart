@@ -129,126 +129,120 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: const AuthorProfileAvatar(),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/icon.png', height: 28, width: 28),
-            const SizedBox(width: 8),
-            const Text(
-              'Starpage',
-              style: TextStyle(fontWeight: FontWeight.bold),
+      body: NestedScrollView(
+        controller: _scrollController,
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            leading: const AuthorProfileAvatar(),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/icon.png', height: 28, width: 28),
+                const SizedBox(width: 8),
+                const Text(
+                  'Starpage',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-          ],
-        ),
-        centerTitle: true,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Create Post',
-            onPressed: () {
-              Navigator.of(context).pushNamed('/create-post');
-            },
+            centerTitle: true,
+            floating: true,
+            snap: true,
+            elevation: 0,
           ),
         ],
-      ),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            key: _refreshKey,
-            onRefresh: _refresh,
-            child: _posts.isEmpty && _isLoading
+        body: RefreshIndicator(
+          key: _refreshKey,
+          onRefresh: _refresh,
+          child: _posts.isEmpty && _isLoading
               ? const Center(child: CircularProgressIndicator())
               : StreamBuilder<DocumentSnapshot>(
-              stream: _firestore
-                  .collection('users')
-                  .doc(_auth.currentUser?.uid ?? 'guest')
-                  .snapshots(),
-              builder: (context, userSnapshot) {
-                List<String> mutedPosts = [];
-                List<String> mutedAuthors = [];
-                List<String> blockedUsers = [];
-                bool autoPlayEnabled = true;
+                  stream: _firestore
+                      .collection('users')
+                      .doc(_auth.currentUser?.uid ?? 'guest')
+                      .snapshots(),
+                  builder: (context, userSnapshot) {
+                    List<String> mutedPosts = [];
+                    List<String> mutedAuthors = [];
+                    List<String> blockedUsers = [];
+                    bool autoPlayEnabled = true;
 
-                if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                  final userData =
-                      userSnapshot.data!.data() as Map<String, dynamic>;
-                  mutedPosts = List<String>.from(userData['mutedPosts'] ?? []);
-                  mutedAuthors = List<String>.from(
-                    userData['mutedAuthors'] ?? [],
-                  );
-                  blockedUsers = List<String>.from(
-                    userData['blockedUsers'] ?? [],
-                  );
-                  autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
-                }
+                    if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                      final userData =
+                          userSnapshot.data!.data() as Map<String, dynamic>;
+                      mutedPosts =
+                          List<String>.from(userData['mutedPosts'] ?? []);
+                      mutedAuthors = List<String>.from(
+                        userData['mutedAuthors'] ?? [],
+                      );
+                      blockedUsers = List<String>.from(
+                        userData['blockedUsers'] ?? [],
+                      );
+                      autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
+                    }
 
-                final filteredPosts = _posts.where((post) {
-                  return !mutedPosts.contains(post.postId) &&
-                      !mutedAuthors.contains(post.authorId) &&
-                      !blockedUsers.contains(post.authorId);
-                }).toList();
+                    final filteredPosts = _posts.where((post) {
+                      return !mutedPosts.contains(post.postId) &&
+                          !mutedAuthors.contains(post.authorId) &&
+                          !blockedUsers.contains(post.authorId);
+                    }).toList();
 
-                if (filteredPosts.isEmpty && !_isLoading) {
-                  return LayoutBuilder(
-                    builder: (context, constraints) => SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: SizedBox(
-                        height: constraints.maxHeight,
-                        child: const Center(
-                          child: Text(
-                            'No posts yet. Follow talented stars to see their work!',
+                    if (filteredPosts.isEmpty && !_isLoading) {
+                      return LayoutBuilder(
+                        builder: (context, constraints) => SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: constraints.maxHeight,
+                            child: const Center(
+                              child: Text(
+                                'No posts yet. Follow talented stars to see their work!',
+                              ),
+                            ),
                           ),
                         ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      // We don't attach controller here because NestedScrollView handles it
+                      // ignore: deprecated_member_use
+                      cacheExtent: 2000.0,
+                      itemCount: filteredPosts.length + 1 + (_hasMore ? 1 : 0),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
                       ),
-                    ),
-                  );
-                }
+                      addAutomaticKeepAlives: true,
+                      addRepaintBoundaries: true,
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return TrendingStreamSection(
+                            currentUserId: _auth.currentUser?.uid ?? '',
+                            autoPlayEnabled: autoPlayEnabled,
+                            isTabVisible: _isTabVisible,
+                          );
+                        }
 
-                return ListView.builder(
-                  controller: _scrollController,
-                  // ignore: deprecated_member_use
-                  cacheExtent: 2000.0, // Aggressive caching to remove blank screens
-                  itemCount:
-                      filteredPosts.length + 1 + (_hasMore ? 1 : 0),
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  addAutomaticKeepAlives: true,
-                  addRepaintBoundaries: true,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return TrendingStreamSection(
-                        currentUserId: _auth.currentUser?.uid ?? '',
-                        autoPlayEnabled: autoPlayEnabled,
-                        isTabVisible: _isTabVisible,
-                      );
-                    }
+                        final postIndex = index - 1;
 
-                    final postIndex = index - 1;
+                        if (postIndex == filteredPosts.length) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 32),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
 
-                    if (postIndex == filteredPosts.length) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-
-                    return PostWidget(
-                      key: ValueKey(filteredPosts[postIndex].postId),
-                      post: filteredPosts[postIndex],
-                      currentUserId: _auth.currentUser?.uid ?? '',
-                      isTabVisible: _isTabVisible,
-                      autoPlayEnabled: autoPlayEnabled,
+                        return PostWidget(
+                          key: ValueKey(filteredPosts[postIndex].postId),
+                          post: filteredPosts[postIndex],
+                          currentUserId: _auth.currentUser?.uid ?? '',
+                          isTabVisible: _isTabVisible,
+                          autoPlayEnabled: autoPlayEnabled,
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
-          ),
-        ],
+                ),
+        ),
       ),
     );
   }

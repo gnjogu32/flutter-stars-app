@@ -273,24 +273,15 @@ class _TrendingListViewState extends State<_TrendingListView>
         });
         await _loadMore();
       },
-      child: ListView.builder(
-        controller: _scrollController,
-        // ignore: deprecated_member_use
-        cacheExtent: 1500.0, // Increased to remove blank screen while scrolling
-        itemCount: _posts.length + (_hasMore ? 1 : 0),
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        addAutomaticKeepAlives: true,
-        addRepaintBoundaries: true,
-        itemBuilder: (context, index) {
-          if (index == _posts.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: CircularProgressIndicator()),
-            );
+      child: PageView.builder(
+        scrollDirection: Axis.vertical,
+        onPageChanged: (index) {
+          if (index >= _posts.length - 3) {
+            _loadMore();
           }
-
+        },
+        itemCount: _posts.length,
+        itemBuilder: (context, index) {
           final post = _posts[index];
 
           Widget child;
@@ -300,6 +291,7 @@ class _TrendingListViewState extends State<_TrendingListView>
             child = PostWidget(
               post: post,
               currentUserId: _auth.currentUser?.uid ?? '',
+              isImmersive: true,
             );
           }
 

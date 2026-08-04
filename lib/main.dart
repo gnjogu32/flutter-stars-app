@@ -157,7 +157,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignUpScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
-          '/trending': (context) => const TrendingScreen(),
+          '/trending': (context) => const MainApp(initialIndex: 2),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/change-password': (context) => const ChangePasswordScreen(),
           '/notifications': (context) => const MainApp(initialIndex: 4),

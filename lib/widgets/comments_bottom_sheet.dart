@@ -13,6 +13,131 @@ import '../utils/mention_utils.dart';
 import '../utils/auth_guard.dart';
 import '../utils/time_utils.dart';
 
+class CommentComposerFooter extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool isSending;
+  final VoidCallback onSend;
+  final VoidCallback onAddMedia;
+  final VoidCallback onPickGif;
+  final int charCount;
+  final bool isOverLimit;
+
+  const CommentComposerFooter({
+    super.key,
+    required this.controller,
+    required this.focusNode,
+    required this.isSending,
+    required this.onSend,
+    required this.onAddMedia,
+    required this.onPickGif,
+    required this.charCount,
+    required this.isOverLimit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      elevation: 8,
+      color: theme.colorScheme.surface,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 1,
+            color: theme.dividerColor.withValues(alpha: 0.6),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 8, 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    minLines: 1,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Add a comment...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: isSending ? null : onSend,
+                  icon: isSending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          Icons.send,
+                          color: theme.colorScheme.primary,
+                          size: 22,
+                        ),
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(
+                    minWidth: 34,
+                    minHeight: 34,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 8, 4),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  onPressed: onAddMedia,
+                  tooltip: 'Add media',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.gif_box_outlined, size: 18),
+                  onPressed: onPickGif,
+                  tooltip: 'Search GIFs',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                ),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Text(
+                    '$charCount/280',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: isOverLimit ? Colors.red : theme.hintColor,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class CommentsBottomSheet extends StatefulWidget {
   final String postId;
   final String postAuthorId;
@@ -168,8 +293,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       if (currentUser == null) throw Exception('Profile not found');
       final parentId = _replyTo != null
           ? (_replyTo!.parentId.isEmpty
-              ? _replyTo!.commentId
-              : _replyTo!.parentId)
+                ? _replyTo!.commentId
+                : _replyTo!.parentId)
           : '';
 
       await _commentService.addComment(
@@ -327,8 +452,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
-    final showFollowers =
-        'followers'.startsWith(_activeMentionQuery!.toLowerCase());
+    final showFollowers = 'followers'.startsWith(
+      _activeMentionQuery!.toLowerCase(),
+    );
 
     if (!showFollowers && _filteredMentionUsers.isEmpty) {
       return const SizedBox.shrink();
@@ -362,7 +488,10 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     ? const Icon(Icons.person, size: 14)
                     : null,
               ),
-              title: Text(user.displayName, style: const TextStyle(fontSize: 13)),
+              title: Text(
+                user.displayName,
+                style: const TextStyle(fontSize: 13),
+              ),
               subtitle: Text('@$handle', style: const TextStyle(fontSize: 11)),
               onTap: () => _insertMentionHandle(handle),
             );
@@ -386,9 +515,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Container(
-              width: 40,
+              width: 36,
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
@@ -396,13 +525,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.fromLTRB(14, 4, 8, 4),
               child: Row(
                 children: [
                   Text(
                     'Comments',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
                   const Spacer(),
@@ -410,6 +540,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     icon: const Icon(Icons.close, size: 20),
                     onPressed: () => Navigator.pop(context),
                     visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                 ],
               ),
@@ -497,21 +632,21 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                               fit: BoxFit.cover,
                             )
                           : (_isSelectedVideo
-                              ? Container(
-                                  height: 70,
-                                  width: 70,
-                                  color: Colors.black87,
-                                  child: const Icon(
-                                    Icons.videocam,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Image.file(
-                                  File(_selectedMedia!.path),
-                                  height: 70,
-                                  width: 70,
-                                  fit: BoxFit.cover,
-                                )),
+                                ? Container(
+                                    height: 70,
+                                    width: 70,
+                                    color: Colors.black87,
+                                    child: const Icon(
+                                      Icons.videocam,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Image.file(
+                                    File(_selectedMedia!.path),
+                                    height: 70,
+                                    width: 70,
+                                    fit: BoxFit.cover,
+                                  )),
                     ),
                     Positioned(
                       top: 0,
@@ -544,145 +679,15 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   ],
                 ),
               ),
-            Material(
-              elevation: 12,
-              color: theme.colorScheme.surface,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_replyTo != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withValues(
-                          alpha: 0.15,
-                        ),
-                        border: Border(
-                          top: BorderSide(
-                            color: theme.dividerColor,
-                            width: 0.5,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Replying to ${_replyTo!.authorName}',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _replyTo = null),
-                            child: const Icon(Icons.close, size: 14),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      border: Border(
-                        top: BorderSide(color: theme.dividerColor, width: 0.5),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _commentController,
-                                  focusNode: _commentFocusNode,
-                                  minLines: 1,
-                                  maxLines: 3,
-                                  style: const TextStyle(fontSize: 14),
-                                  decoration: InputDecoration(
-                                    hintText: 'Add a comment...',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor:
-                                        theme.colorScheme.surfaceContainerHighest,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              IconButton(
-                                onPressed: _isSending ? null : _sendComment,
-                                icon: _isSending
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Icon(
-                                        Icons.send,
-                                        color: theme.colorScheme.primary,
-                                        size: 22,
-                                      ),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.add_circle_outline, size: 18),
-                                onPressed: _showMediaSourceSelector,
-                                tooltip: 'Add media',
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.all(8),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.gif_box_outlined, size: 18),
-                                onPressed: _showGifPicker,
-                                tooltip: 'Search GIFs',
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.all(8),
-                              ),
-                              const Spacer(),
-                              Padding(
-                                padding: const EdgeInsets.only(right: 12),
-                                child: Text(
-                                  '${_commentController.text.length}/280',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: _commentController.text.length > 280
-                                        ? Colors.red
-                                        : theme.hintColor,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            CommentComposerFooter(
+              controller: _commentController,
+              focusNode: _commentFocusNode,
+              isSending: _isSending,
+              onSend: _sendComment,
+              onAddMedia: _showMediaSourceSelector,
+              onPickGif: _showGifPicker,
+              charCount: _commentController.text.length,
+              isOverLimit: _commentController.text.length > 280,
             ),
           ],
         ),
@@ -833,38 +838,38 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
                   : _error != null
                   ? Center(child: Text('Error: $_error'))
                   : GridView.builder(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(8),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 1.5,
-                        ),
-                    itemCount: _gifs.length,
-                    itemBuilder: (context, index) => GestureDetector(
-                      onTap: () {
-                        widget.onGifSelected(_gifs[index]);
-                        Navigator.pop(context);
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: CachedNetworkImage(
-                          imageUrl: _gifs[index],
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(8),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 1.5,
+                          ),
+                      itemCount: _gifs.length,
+                      itemBuilder: (context, index) => GestureDetector(
+                        onTap: () {
+                          widget.onGifSelected(_gifs[index]);
+                          Navigator.pop(context);
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: _gifs[index],
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
             ),
             const Padding(
               padding: EdgeInsets.all(8.0),
@@ -1050,7 +1055,9 @@ class _CommentItem extends StatelessWidget {
                               child: CachedNetworkImage(
                                 imageUrl: comment.imageUrl!,
                                 placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
                             ),
