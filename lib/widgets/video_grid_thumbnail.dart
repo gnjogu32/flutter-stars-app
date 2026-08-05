@@ -3,7 +3,12 @@ import 'package:video_player/video_player.dart';
 
 class VideoGridThumbnail extends StatefulWidget {
   final String videoUrl;
-  const VideoGridThumbnail({super.key, required this.videoUrl});
+  final bool isTabVisible;
+  const VideoGridThumbnail({
+    super.key,
+    required this.videoUrl,
+    this.isTabVisible = true,
+  });
 
   @override
   State<VideoGridThumbnail> createState() => _VideoGridThumbnailState();
@@ -16,19 +21,33 @@ class _VideoGridThumbnailState extends State<VideoGridThumbnail> {
   @override
   void initState() {
     super.initState();
-    _initializeController();
+    if (widget.isTabVisible) {
+      _initializeController();
+    }
+  }
+
+  @override
+  void didUpdateWidget(VideoGridThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isTabVisible && !oldWidget.isTabVisible && !_isInitialized) {
+      _initializeController();
+    } else if (!widget.isTabVisible && oldWidget.isTabVisible) {
+      _controller?.pause();
+      _controller?.setVolume(0);
+    }
   }
 
   Future<void> _initializeController() async {
-    if (widget.videoUrl.isEmpty) return;
+    if (widget.videoUrl.isEmpty || _controller != null) return;
     
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
     try {
-      // We only need the first frame, so we initialize and then stop.
       await _controller!.initialize();
       if (mounted) {
         setState(() {
           _isInitialized = true;
+          _controller!.setVolume(0);
+          _controller!.pause();
         });
       }
     } catch (e) {

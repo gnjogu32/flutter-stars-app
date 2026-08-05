@@ -11,7 +11,8 @@ import 'reels_screen.dart';
 
 class MainApp extends StatefulWidget {
   final int initialIndex;
-  const MainApp({super.key, this.initialIndex = 0});
+  final int initialSubIndex;
+  const MainApp({super.key, this.initialIndex = 0, this.initialSubIndex = 0});
 
   static MainAppState? of(BuildContext context) =>
       context.findAncestorStateOfType<MainAppState>();
@@ -25,6 +26,7 @@ class MainAppState extends State<MainApp> {
   late final List<Widget> _screens;
   final ValueNotifier<bool> _homeTabActive = ValueNotifier(true);
   final ValueNotifier<bool> _reelsTabActive = ValueNotifier(false);
+  final ValueNotifier<bool> _discoverTabActive = ValueNotifier(false);
   final NotificationService _notificationService = NotificationService();
   final ChatService _chatService = ChatService();
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
@@ -41,6 +43,7 @@ class MainAppState extends State<MainApp> {
 
     _homeTabActive.value = index == 0;
     _reelsTabActive.value = index == 1;
+    _discoverTabActive.value = index == 2;
     setState(() {
       _selectedIndex = index;
     });
@@ -56,11 +59,15 @@ class MainAppState extends State<MainApp> {
     _selectedIndex = widget.initialIndex;
     _homeTabActive.value = _selectedIndex == 0;
     _reelsTabActive.value = _selectedIndex == 1;
+    _discoverTabActive.value = _selectedIndex == 2;
 
     _screens = [
       HomeScreen(key: _homeKey, tabActiveNotifier: _homeTabActive),
       ReelsScreen(key: _reelsKey, tabActiveNotifier: _reelsTabActive),
-      const DiscoverScreen(),
+      DiscoverScreen(
+        tabActiveNotifier: _discoverTabActive,
+        initialTabIndex: widget.initialSubIndex,
+      ),
       const MessagesScreen(),
       const NotificationsScreen(),
     ];
@@ -70,6 +77,7 @@ class MainAppState extends State<MainApp> {
   void dispose() {
     _homeTabActive.dispose();
     _reelsTabActive.dispose();
+    _discoverTabActive.dispose();
     super.dispose();
   }
 

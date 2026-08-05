@@ -12,7 +12,6 @@ import 'screens/main_app.dart';
 import 'screens/create_post_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/edit_post_screen.dart';
-import 'screens/trending_screen.dart';
 import 'screens/settings_screen.dart';
 import 'models/post_model.dart';
 import 'firebase_options.dart';
@@ -157,7 +156,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignUpScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
-          '/trending': (context) => const MainApp(initialIndex: 2),
+          '/trending': (context) => const MainApp(initialIndex: 2, initialSubIndex: 1),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/change-password': (context) => const ChangePasswordScreen(),
           '/notifications': (context) => const MainApp(initialIndex: 4),

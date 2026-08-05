@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 import '../services/trending_service.dart';
-import '../screens/trending_screen.dart';
 import 'post_widget.dart';
 
 class TrendingSection extends StatefulWidget {
@@ -65,7 +64,7 @@ class _TrendingSectionState extends State<TrendingSection>
                   onTap:
                       widget.onSeeAll ??
                       () {
-                        Navigator.of(context).push(_createTrendingPageRoute());
+                        Navigator.of(context).pushNamed('/trending');
                       },
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
@@ -146,28 +145,6 @@ class _TrendingSectionState extends State<TrendingSection>
       ),
     );
   }
-
-  Route _createTrendingPageRoute() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) =>
-          const TrendingScreen(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0);
-        const end = Offset.zero;
-        const curve = Curves.easeOutCubic;
-
-        final tween = Tween(
-          begin: begin,
-          end: end,
-        ).chain(CurveTween(curve: curve));
-
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
-    );
-  }
 }
 
 class TrendingStreamSection extends StatefulWidget {
@@ -222,7 +199,7 @@ class _TrendingStreamSectionState extends State<TrendingStreamSection>
                   onTap:
                       widget.onSeeAll ??
                       () {
-                        Navigator.of(context).push(_createTrendingPageRoute());
+                        Navigator.of(context).pushNamed('/trending');
                       },
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
@@ -301,28 +278,6 @@ class _TrendingStreamSectionState extends State<TrendingStreamSection>
         isTabVisible: widget.isTabVisible,
         autoPlayEnabled: widget.autoPlayEnabled,
       ),
-    );
-  }
-
-  Route _createTrendingPageRoute() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) =>
-          const TrendingScreen(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0);
-        const end = Offset.zero;
-        const curve = Curves.easeOutCubic;
-
-        final tween = Tween(
-          begin: begin,
-          end: end,
-        ).chain(CurveTween(curve: curve));
-
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
     );
   }
 }

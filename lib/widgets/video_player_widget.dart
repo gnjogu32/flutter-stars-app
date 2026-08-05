@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/post_model.dart';
 import 'full_screen_video_player.dart';
 import '../utils/screen_awake_controller.dart';
@@ -251,22 +252,80 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_error != null) return Container(height: 200, color: Colors.black, child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.error_outline, color: Colors.white, size: 40), const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Colors.white))])));
-    if (!_isInitialized) return Container(height: 200, color: Colors.black12, child: const Center(child: CircularProgressIndicator()));
-    final double ratio = widget.aspectRatio ?? _controller.value.aspectRatio;
+    final double ratio = widget.aspectRatio ?? (_isInitialized ? _controller.value.aspectRatio : 16 / 9);
+
+    if (_error != null) {
+      return AspectRatio(
+        aspectRatio: ratio,
+        child: Container(
+          color: Colors.black,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white24, size: 40),
+                const SizedBox(height: 8),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.white24, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return AspectRatio(
       aspectRatio: ratio,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _handleTap,
-            onDoubleTap: widget.onDoubleTap,
-            onLongPress: _togglePlay,
-            child: RepaintBoundary(child: VideoPlayer(_controller)),
+          // Loading / Placeholder Layer
+          if (!_isInitialized)
+            Container(
+              color: Colors.black,
+              width: double.infinity,
+              height: double.infinity,
+              child: widget.post != null && widget.post!.imageUrls.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: widget.post!.imageUrls.first,
+                      fit: widget.fit,
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white24,
+                        ),
+                      ),
+                    )
+                  : const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white24,
+                      ),
+                    ),
+            ),
+
+          if (_isInitialized)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _handleTap,
+              onDoubleTap: widget.onDoubleTap,
+              onLongPress: _togglePlay,
+              child: RepaintBoundary(child: VideoPlayer(_controller)),
+            ),
+
+          ValueListenableBuilder(
+            valueListenable: _controller,
+            builder: (context, VideoPlayerValue value, child) {
+              if (value.isBuffering) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
-          ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { if (value.isBuffering) return const Center(child: CircularProgressIndicator(color: Colors.white70)); return const SizedBox.shrink(); }),
           if (_showPlayPauseIndicator) Center(child: Container(padding: const EdgeInsets.all(16), decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: Icon(_controller.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 40))),
           if (widget.showControls && _showOverlay && !_controller.value.isPlaying) Center(child: IconButton(icon: const Icon(Icons.play_circle_outline, color: Colors.white70, size: 60), onPressed: _handleTap)),
           if (widget.showControls && _showOverlay) Positioned(bottom: 0, left: 0, right: 0, child: Column(mainAxisSize: MainAxisSize.min, children: [VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: Colors.red, bufferedColor: Colors.white24, backgroundColor: Colors.white12)), Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), child: Row(children: [ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) => Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 10))), const Text(' / ', style: TextStyle(color: Colors.white30, fontSize: 10)), Text(_formatDuration(_controller.value.duration), style: const TextStyle(color: Colors.white, fontSize: 10)), const Spacer()]))])),

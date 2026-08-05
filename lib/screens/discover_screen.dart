@@ -12,14 +12,17 @@ import '../widgets/video_grid_thumbnail.dart';
 import 'profile_screen.dart';
 import 'hashtag_feed_screen.dart';
 import '../services/trending_service.dart';
-import '../utils/animation_utils.dart';
 
 class DiscoverScreen extends StatefulWidget {
-  const DiscoverScreen({super.key});
+  final ValueNotifier<bool>? tabActiveNotifier;
+  final int initialTabIndex;
+  const DiscoverScreen({super.key, this.tabActiveNotifier, this.initialTabIndex = 0});
 
   @override
   State<DiscoverScreen> createState() => _DiscoverScreenState();
 }
+
+enum _TrendingTimeRange { today, week, topLiked }
 
 class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -29,6 +32,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   String _selectedTalentFilter = 'All';
   List<String> _trendingHashtags = [];
   List<PostModel>? _cachedDiscoveryPosts;
+  bool _isTabVisible = false;
+  _TrendingTimeRange _selectedTrendingRange = _TrendingTimeRange.today;
 
   final List<String> talents = [
     'All',
@@ -44,12 +49,32 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     'Gaming',
   ];
 
+  bool _isGridView = true;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _searchFocusNode.addListener(_handleFocusChanged);
     _loadTrendingHashtags();
+
+    _isTabVisible = widget.tabActiveNotifier?.value ?? true;
+    widget.tabActiveNotifier?.addListener(_onTabActiveChanged);
+  }
+
+  void _onTabActiveChanged() {
+    if (mounted) {
+      setState(() {
+        _isTabVisible = widget.tabActiveNotifier!.value;
+      });
+    }
   }
 
   Future<void> _loadTrendingHashtags() async {
@@ -88,6 +113,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     _searchFocusNode.removeListener(_handleFocusChanged);
     _searchFocusNode.dispose();
     _searchController.dispose();
+    widget.tabActiveNotifier?.removeListener(_onTabActiveChanged);
     super.dispose();
   }
 
@@ -196,24 +222,41 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   ),
 
                 // Talent Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
+                Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: Row(
-                    children: talents.map((talent) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: FilterChip(
-                          label: Text(talent),
-                          selected: _selectedTalentFilter == talent,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedTalentFilter = talent;
-                            });
-                          },
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: talents.map((talent) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: FilterChip(
+                                  label: Text(talent),
+                                  selected: _selectedTalentFilter == talent,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedTalentFilter = talent;
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                      if (_tabController.index > 0)
+                        IconButton(
+                          icon: Icon(
+                            _isGridView ? Icons.grid_view : Icons.view_agenda_outlined,
+                            color: theme.colorScheme.primary,
+                          ),
+                          onPressed: () => setState(() => _isGridView = !_isGridView),
+                          tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -234,36 +277,114 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
   Widget _buildTrendingGrid() {
     final trendingService = TrendingService();
-    return FutureBuilder(
-      future: trendingService.getTrendingPosts(limit: 30),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final posts = snapshot.data?.posts ?? [];
-        if (posts.isEmpty) {
-          return const Center(child: Text('No trending posts today.'));
-        }
 
-        return GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 2,
-            mainAxisSpacing: 2,
-            childAspectRatio: 1,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          child: Row(
+            children: [
+              _buildRangeChip('Today', _TrendingTimeRange.today),
+              const SizedBox(width: 8),
+              _buildRangeChip('Week', _TrendingTimeRange.week),
+              const SizedBox(width: 8),
+              _buildRangeChip('Top Liked', _TrendingTimeRange.topLiked),
+            ],
           ),
-          itemCount: posts.length,
-          padding: EdgeInsets.zero,
-          itemBuilder: (context, index) {
-            return _DiscoveryGridItem(
-              post: posts[index],
-              allPosts: posts,
-              initialIndex: index,
-            );
-          },
-        );
+        ),
+        Expanded(
+          child: FutureBuilder(
+            key: ValueKey('trending_grid_$_selectedTrendingRange'),
+            future: _getTrendingFuture(trendingService),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final posts = snapshot.data?.posts ?? [];
+              if (posts.isEmpty) {
+                return const Center(child: Text('No trending posts found.'));
+              }
+
+              if (!_isGridView) {
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    setState(() {});
+                    await Future.delayed(const Duration(milliseconds: 400));
+                  },
+                  child: ListView.builder(
+                    itemCount: posts.length,
+                    padding: EdgeInsets.zero,
+                    itemBuilder: (context, index) {
+                      return PostWidget(
+                        post: posts[index],
+                        currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                      );
+                    },
+                  ),
+                );
+              }
+
+              return GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 2,
+                  mainAxisSpacing: 2,
+                  childAspectRatio: 1,
+                ),
+                itemCount: posts.length,
+                padding: EdgeInsets.zero,
+                itemBuilder: (context, index) {
+                  return _DiscoveryGridItem(
+                    post: posts[index],
+                    allPosts: posts,
+                    initialIndex: index,
+                    isTabVisible: _isTabVisible && _tabController.index == 1,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRangeChip(String label, _TrendingTimeRange range) {
+    final isSelected = _selectedTrendingRange == range;
+    return ChoiceChip(
+      label: Text(label, style: const TextStyle(fontSize: 11)),
+      selected: isSelected,
+      onSelected: (val) {
+        if (val) setState(() => _selectedTrendingRange = range);
       },
     );
+  }
+
+  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})> _getTrendingFuture(
+    TrendingService service,
+  ) {
+    // Synchronize filters: apply _selectedTalentFilter to trending queries
+    final talent = _selectedTalentFilter == 'All' ? null : _selectedTalentFilter;
+
+    switch (_selectedTrendingRange) {
+      case _TrendingTimeRange.today:
+        if (talent == null) {
+          return service.getTrendingPosts(limit: 30);
+        } else {
+          return service.getTrendingPostsByTalent(talent: talent, limit: 30);
+        }
+      case _TrendingTimeRange.week:
+        // Placeholder for weekly trending logic, utilizing talent filter
+        if (talent == null) {
+          return service.getTrendingPosts(limit: 30);
+        } else {
+          return service.getTrendingPostsByTalent(talent: talent, limit: 30);
+        }
+      case _TrendingTimeRange.topLiked:
+        // For top liked, we prioritize total engagement over the last 24h/7d window
+        // but we still respect the talent filter.
+        return service.getTopPostsByLikes(limit: 30);
+    }
   }
 
   Widget _buildPostsList() {
@@ -333,6 +454,27 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           );
         }
 
+        if (!_isGridView) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _cachedDiscoveryPosts = null;
+              });
+              await Future.delayed(const Duration(milliseconds: 400));
+            },
+            child: ListView.builder(
+              itemCount: searchedPosts.length,
+              padding: EdgeInsets.zero,
+              itemBuilder: (context, index) {
+                return PostWidget(
+                  post: searchedPosts[index],
+                  currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                );
+              },
+            ),
+          );
+        }
+
         return RefreshIndicator(
           onRefresh: () async {
             setState(() {
@@ -355,6 +497,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 post: post,
                 allPosts: searchedPosts,
                 initialIndex: index,
+                isTabVisible: _isTabVisible && _tabController.index == 2,
               );
             },
           ),
@@ -461,11 +604,13 @@ class _DiscoveryGridItem extends StatelessWidget {
   final PostModel post;
   final List<PostModel> allPosts;
   final int initialIndex;
+  final bool isTabVisible;
 
   const _DiscoveryGridItem({
     required this.post,
     required this.allPosts,
     required this.initialIndex,
+    this.isTabVisible = true,
   });
 
   @override
@@ -498,7 +643,10 @@ class _DiscoveryGridItem extends StatelessWidget {
             Stack(
               fit: StackFit.expand,
               children: [
-                VideoGridThumbnail(videoUrl: post.videoUrl!),
+                VideoGridThumbnail(
+                  videoUrl: post.videoUrl!,
+                  isTabVisible: isTabVisible,
+                ),
                 Container(
                   color: Colors.black26,
                   child: Center(
