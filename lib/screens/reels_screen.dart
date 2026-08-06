@@ -100,15 +100,6 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _disposeAllPreloaded() {
-    for (final controller in _preloadedControllers.values) {
-      controller.setVolume(0);
-      controller.pause();
-      controller.dispose();
-    }
-    _preloadedControllers.clear();
-  }
-
   void _preloadAdjacent(int index, List<PostModel> reels) {
     if (reels.isEmpty) {
       return;

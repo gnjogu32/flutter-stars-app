@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:typed_data';
 import 'dart:io';
-import 'dart:ui';
 import 'package:video_player/video_player.dart';
 import '../services/post_service.dart';
 import '../services/auth_service.dart';
