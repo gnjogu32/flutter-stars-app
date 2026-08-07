@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:typed_data';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import '../services/post_service.dart';
@@ -207,6 +207,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    HapticFeedback.lightImpact();
     try {
       if (source == ImageSource.gallery) {
         final result = await FilePicker.pickFiles(
@@ -245,6 +246,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _pickVideo(ImageSource source) async {
+    HapticFeedback.lightImpact();
     try {
       if (source == ImageSource.gallery) {
         final result = await FilePicker.pickFiles(type: FileType.video);
@@ -296,6 +298,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _createPost() async {
+    HapticFeedback.mediumImpact();
     if (_contentController.text.trim().isEmpty &&
         _selectedImages.isEmpty &&
         _selectedVideo == null) {

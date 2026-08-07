@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/notification_service.dart';
 import '../services/chat_service.dart';
@@ -92,6 +93,7 @@ class MainAppState extends State<MainApp> {
           width: 65,
           child: FloatingActionButton(
             onPressed: () {
+              HapticFeedback.lightImpact();
               Navigator.of(context).pushNamed('/create-post');
             },
             backgroundColor: Theme.of(context).colorScheme.primary,

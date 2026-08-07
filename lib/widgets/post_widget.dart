@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
@@ -69,7 +70,10 @@ class _PostWidgetState extends State<PostWidget>
 
   void _handleDoubleTap() async {
     if (!_isLiked) {
+      HapticFeedback.mediumImpact();
       await _toggleLike();
+    } else {
+      HapticFeedback.selectionClick();
     }
     setState(() => _showLikeHeart = true);
     _heartAnimationController.forward(from: 0).then((_) {
@@ -99,6 +103,7 @@ class _PostWidgetState extends State<PostWidget>
       return;
     }
 
+    HapticFeedback.lightImpact();
     setState(() {
       _isLikeUpdating = true;
       if (_isLiked) {

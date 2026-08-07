@@ -119,7 +119,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refresh() async {
     try {
-      Query query = _firestore
+      final Query query = _firestore
           .collection('posts')
           .orderBy('createdAt', descending: true)
           .limit(15);
@@ -184,10 +184,10 @@ class HomeScreenState extends State<HomeScreen> {
                 debugPrint('User snapshot error: ${userSnapshot.error}');
               }
 
-              List<String> mutedPosts = [];
-              List<String> mutedAuthors = [];
-              List<String> blockedUsers = [];
-              bool autoPlayEnabled = true;
+              final List<String> mutedPosts;
+              final List<String> mutedAuthors;
+              final List<String> blockedUsers;
+              final bool autoPlayEnabled;
 
               if (userSnapshot.hasData && userSnapshot.data!.exists) {
                 final userData =
@@ -200,6 +200,11 @@ class HomeScreenState extends State<HomeScreen> {
                   userData['blockedUsers'] ?? [],
                 );
                 autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
+              } else {
+                mutedPosts = [];
+                mutedAuthors = [];
+                blockedUsers = [];
+                autoPlayEnabled = true;
               }
 
               final filteredPosts = _posts.where((post) {

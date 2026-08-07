@@ -265,6 +265,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Future<void> _sendComment() async {
+    HapticFeedback.lightImpact();
     final content = _commentController.text.trim();
     if (content.isEmpty && _selectedMedia == null && _selectedGifUrl == null) {
       return;
@@ -338,6 +339,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Future<void> _pickMedia(ImageSource source, {bool isVideo = false}) async {
+    HapticFeedback.selectionClick();
     final picker = ImagePicker();
     final media = isVideo
         ? await picker.pickVideo(source: source)
@@ -612,6 +614,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 },
               ),
             ),
+
+            if (_isUploading)
+              const LinearProgressIndicator(minHeight: 2),
 
             // Footer Interaction Area
             _buildMentionSuggestions(),
