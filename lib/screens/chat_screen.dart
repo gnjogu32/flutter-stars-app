@@ -364,8 +364,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _pickAndSendMedia(ImageSource source,
-      {required bool isVideo}) async {
+  Future<void> _pickAndSendMedia(
+    ImageSource source, {
+    required bool isVideo,
+  }) async {
     try {
       final picker = ImagePicker();
       final XFile? file = isVideo
@@ -404,9 +406,9 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send media: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send media: $e')));
       }
     } finally {
       if (mounted) setState(() => _isMediaUploading = false);
@@ -476,7 +478,11 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           const Padding(
             padding: EdgeInsets.only(right: 8),
-            child: Icon(Icons.enhanced_encryption, size: 16, color: Colors.green),
+            child: Icon(
+              Icons.enhanced_encryption,
+              size: 16,
+              color: Colors.green,
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
@@ -488,7 +494,9 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
             width: double.infinity,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -497,7 +505,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(width: 4),
                 Text(
                   'Messages are end-to-end encrypted',
-                  style: theme.textTheme.labelSmall?.copyWith(color: Colors.grey, fontSize: 10),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.grey,
+                    fontSize: 10,
+                  ),
                 ),
               ],
             ),
@@ -514,7 +525,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
-                
+
                 final messages = snapshot.data ?? [];
 
                 if (messages.isEmpty) {
@@ -550,8 +561,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         alignment: Alignment.centerLeft,
                         child: Icon(
                           Icons.reply,
-                          color:
-                              theme.colorScheme.primary.withValues(alpha: 0.6),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       child: GestureDetector(
@@ -561,7 +573,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: _highlightedMessageId == msg.messageId
                               ? theme.colorScheme.primary.withValues(alpha: 0.1)
                               : null,
-                          child: _buildMessageBubble(msg, messageBubbleMaxWidth),
+                          child: _buildMessageBubble(
+                            msg,
+                            messageBubbleMaxWidth,
+                          ),
                         ),
                       ),
                     );
@@ -658,16 +673,22 @@ class _ChatScreenState extends State<ChatScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(
-                          alpha: 0.5,
-                        ),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         border: Border(
-                          top: BorderSide(color: theme.dividerColor, width: 0.5),
+                          top: BorderSide(
+                            color: theme.dividerColor,
+                            width: 0.5,
+                          ),
                         ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.reply, size: 16, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.reply,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(
@@ -683,8 +704,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 Text(
                                   _replyingTo!.content.isEmpty
                                       ? (_replyingTo!.imageUrl != null
-                                          ? 'Photo'
-                                          : 'Video')
+                                            ? 'Photo'
+                                            : 'Video')
                                       : _replyingTo!.content,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -785,7 +806,10 @@ class _ChatScreenState extends State<ChatScreen> {
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Message is too far up to preview'), duration: Duration(seconds: 1)),
+        const SnackBar(
+          content: Text('Message is too far up to preview'),
+          duration: Duration(seconds: 1),
+        ),
       );
     }
   }
@@ -803,7 +827,8 @@ class _ChatScreenState extends State<ChatScreen> {
         future: _decrypt(message),
         builder: (context, snapshot) {
           final decryptedContent = snapshot.data ?? '🔐 Decrypting...';
-          if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.done &&
+              snapshot.hasData) {
             _decryptedCache[message.messageId] = snapshot.data!;
           }
           return _renderMessageBubble(
@@ -817,7 +842,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String> _decrypt(MessageModel message) async {
-    final senderPublicKey = await _encryptionService.getRecipientPublicKey(message.senderId);
+    final senderPublicKey = await _encryptionService.getRecipientPublicKey(
+      message.senderId,
+    );
     if (senderPublicKey == null) return '[Identity Error]';
 
     return await _encryptionService.decryptMessage(
@@ -840,8 +867,9 @@ class _ChatScreenState extends State<ChatScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
       child: Row(
-        mainAxisAlignment:
-            isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isCurrentUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isCurrentUser) ...[
@@ -849,7 +877,8 @@ class _ChatScreenState extends State<ChatScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userId: message.senderId),
+                    builder: (context) =>
+                        ProfileScreen(userId: message.senderId),
                   ),
                 );
               },

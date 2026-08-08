@@ -360,9 +360,7 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                               style: TextStyle(color: textColor),
                               decoration: InputDecoration(
                                 hintText: 'Edit your comment...',
-                                hintStyle: TextStyle(
-                                  color: secondaryTextColor,
-                                ),
+                                hintStyle: TextStyle(color: secondaryTextColor),
                               ),
                             ),
                             Row(

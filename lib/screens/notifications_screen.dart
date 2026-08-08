@@ -186,7 +186,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 const SnackBar(content: Text('All notifications deleted')),
               );
             },
-            child: const Text('Delete All', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Delete All',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -368,7 +371,11 @@ class _NotificationItemState extends State<_NotificationItem>
               notification.type == 'repost_post' ||
               notification.type == 'like_comment') {
             if (notification.postId != null && context.mounted) {
-              await _openPostDetails(context, notification.postId!, currentUserId);
+              await _openPostDetails(
+                context,
+                notification.postId!,
+                currentUserId,
+              );
             }
           }
         },
@@ -428,9 +435,9 @@ class _NotificationItemState extends State<_NotificationItem>
         // Only try to pop if we might still be showing the dialog
         // This is tricky without a more robust state management,
         // but adding context.mounted check helps.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading post: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading post: $e')));
       }
     }
   }

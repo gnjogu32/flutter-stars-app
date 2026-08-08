@@ -199,7 +199,8 @@ class PostService {
           .trim();
       final ownerName =
           (originalPost.originalAuthorName ?? originalPost.authorName).trim();
-      final ownerUsername = originalPost.originalAuthorUsername ?? originalPost.authorUsername;
+      final ownerUsername =
+          originalPost.originalAuthorUsername ?? originalPost.authorUsername;
       final ownerImageUrl =
           originalPost.originalAuthorImageUrl ?? originalPost.authorImageUrl;
 
@@ -357,13 +358,15 @@ class PostService {
       if (repostQuery.docs.isEmpty) return;
 
       final repostDoc = repostQuery.docs.first;
-      final originalPostRef = _firestore.collection('posts').doc(originalPostId);
+      final originalPostRef = _firestore
+          .collection('posts')
+          .doc(originalPostId);
 
       await _firestore.runTransaction((transaction) async {
         final originalSnapshot = await transaction.get(originalPostRef);
-        
+
         transaction.delete(repostDoc.reference);
-        
+
         if (originalSnapshot.exists) {
           transaction.update(originalPostRef, {
             'repostCount': FieldValue.increment(-1),
@@ -389,6 +392,7 @@ class PostService {
       return false;
     }
   }
+
   // Get post by ID
   Future<PostModel?> getPost(String postId) async {
     try {
@@ -450,9 +454,9 @@ class PostService {
   Future<List<PostModel>> getMutedPosts(List<String> mutedIds) async {
     try {
       if (mutedIds.isEmpty) return [];
-      
+
       final List<PostModel> muted = [];
-      // Firestore 'in' query supports max 10-30 IDs usually. 
+      // Firestore 'in' query supports max 10-30 IDs usually.
       // If there are many, we might need to fetch individually or in chunks.
       for (String id in mutedIds) {
         final p = await getPost(id);

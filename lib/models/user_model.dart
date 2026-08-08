@@ -105,7 +105,9 @@ class UserModel {
       fcmToken: json['fcmToken'],
       notificationsEnabled: json['notificationsEnabled'] ?? true,
       autoPlayEnabled: json['autoPlayEnabled'] ?? true,
-      birthday: json['birthday'] != null ? DateTime.parse(json['birthday']) : null,
+      birthday: json['birthday'] != null
+          ? DateTime.parse(json['birthday'])
+          : null,
       birthdayPublic: json['birthdayPublic'] ?? false,
     );
   }
@@ -145,7 +147,9 @@ class UserModel {
       fcmToken: data['fcmToken'],
       notificationsEnabled: data['notificationsEnabled'] ?? true,
       autoPlayEnabled: data['autoPlayEnabled'] ?? true,
-      birthday: data['birthday'] != null ? DateTime.parse(data['birthday']) : null,
+      birthday: data['birthday'] != null
+          ? DateTime.parse(data['birthday'])
+          : null,
       birthdayPublic: data['birthdayPublic'] ?? false,
     );
   }

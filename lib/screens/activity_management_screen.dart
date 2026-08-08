@@ -13,7 +13,8 @@ class ActivityManagementScreen extends StatefulWidget {
   const ActivityManagementScreen({super.key, this.initialTabIndex = 0});
 
   @override
-  State<ActivityManagementScreen> createState() => _ActivityManagementScreenState();
+  State<ActivityManagementScreen> createState() =>
+      _ActivityManagementScreenState();
 }
 
 class _ActivityManagementScreenState extends State<ActivityManagementScreen>
@@ -87,10 +88,8 @@ class _ActivityManagementScreenState extends State<ActivityManagementScreen>
         }
         return ListView.builder(
           itemCount: posts.length,
-          itemBuilder: (context, index) => PostWidget(
-            post: posts[index],
-            currentUserId: _currentUserId,
-          ),
+          itemBuilder: (context, index) =>
+              PostWidget(post: posts[index], currentUserId: _currentUserId),
         );
       },
     );
@@ -117,10 +116,8 @@ class _ActivityManagementScreenState extends State<ActivityManagementScreen>
             final posts = snapshot.data ?? [];
             return ListView.builder(
               itemCount: posts.length,
-              itemBuilder: (context, index) => PostWidget(
-                post: posts[index],
-                currentUserId: _currentUserId,
-              ),
+              itemBuilder: (context, index) =>
+                  PostWidget(post: posts[index], currentUserId: _currentUserId),
             );
           },
         );
@@ -148,7 +145,9 @@ class _ActivityManagementScreenState extends State<ActivityManagementScreen>
                 backgroundImage: user.profileImageUrl != null
                     ? CachedNetworkImageProvider(user.profileImageUrl!)
                     : null,
-                child: user.profileImageUrl == null ? const Icon(Icons.person) : null,
+                child: user.profileImageUrl == null
+                    ? const Icon(Icons.person)
+                    : null,
               ),
               title: Text(user.displayName),
               subtitle: Text(user.talent ?? 'Talent not specified'),
@@ -161,7 +160,9 @@ class _ActivityManagementScreenState extends State<ActivityManagementScreen>
               ),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => ProfileScreen(userId: user.uid)),
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(userId: user.uid),
+                ),
               ),
             );
           },
@@ -203,7 +204,10 @@ class _ActivityManagementScreenState extends State<ActivityManagementScreen>
                   subtitle: Text('By ${post.authorName}'),
                   trailing: TextButton(
                     onPressed: () async {
-                      await _userService.unmutePost(_currentUserId, post.postId);
+                      await _userService.unmutePost(
+                        _currentUserId,
+                        post.postId,
+                      );
                       setState(() {});
                     },
                     child: const Text('Unmute'),
@@ -237,7 +241,9 @@ class _ActivityManagementScreenState extends State<ActivityManagementScreen>
                 backgroundImage: user.profileImageUrl != null
                     ? CachedNetworkImageProvider(user.profileImageUrl!)
                     : null,
-                child: user.profileImageUrl == null ? const Icon(Icons.person) : null,
+                child: user.profileImageUrl == null
+                    ? const Icon(Icons.person)
+                    : null,
               ),
               title: Text(user.displayName),
               trailing: TextButton(

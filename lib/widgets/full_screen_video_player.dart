@@ -196,11 +196,16 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
 
     try {
       if (wasLiked) {
-        await PostService().unlikePost(widget.post.postId, widget.currentUserId!);
+        await PostService().unlikePost(
+          widget.post.postId,
+          widget.currentUserId!,
+        );
       } else {
         await PostService().likePost(widget.post.postId, widget.currentUserId!);
         if (widget.currentUserId != widget.post.authorId) {
-          final currentUser = await UserService().getUser(widget.currentUserId!);
+          final currentUser = await UserService().getUser(
+            widget.currentUserId!,
+          );
           if (currentUser != null) {
             await NotificationService().createNotification(
               userId: widget.post.authorId,
@@ -220,9 +225,9 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
           _isLiked = wasLiked;
           _likeCount = wasLiked ? (_likeCount + 1) : (_likeCount - 1);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -395,9 +400,9 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
         repostCaption: caption,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reposted! ✓')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Reposted! ✓')));
       }
     } catch (e) {
       if (mounted) {
@@ -506,9 +511,11 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                   title: const Text('Report Post'),
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Post reported.')),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Post reported.')),
+                      );
+                    }
                   },
                 ),
                 ListTile(
@@ -576,9 +583,11 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                 Navigator.pop(context);
                 final postUrl = AppConstants.postUrl(widget.post.postId);
                 Clipboard.setData(ClipboardData(text: postUrl));
-                ScaffoldMessenger.of(
-                  this.context,
-                ).showSnackBar(const SnackBar(content: Text('Link copied ✓')));
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Link copied ✓')));
+                }
               },
             ),
             ListTile(
@@ -587,11 +596,13 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
               onTap: () {
                 Navigator.pop(context);
                 ShareService.sharePost(widget.post);
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Post details copied for sharing ✓'),
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Post details copied for sharing ✓'),
+                    ),
+                  );
+                }
                 // Track share in analytics
                 if (widget.currentUserId != null) {
                   AnalyticsService().trackShare(
@@ -674,9 +685,9 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }

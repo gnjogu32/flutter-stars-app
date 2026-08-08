@@ -16,7 +16,11 @@ import '../services/trending_service.dart';
 class DiscoverScreen extends StatefulWidget {
   final ValueNotifier<bool>? tabActiveNotifier;
   final int initialTabIndex;
-  const DiscoverScreen({super.key, this.tabActiveNotifier, this.initialTabIndex = 0});
+  const DiscoverScreen({
+    super.key,
+    this.tabActiveNotifier,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<DiscoverScreen> createState() => _DiscoverScreenState();
@@ -24,7 +28,8 @@ class DiscoverScreen extends StatefulWidget {
 
 enum _TrendingTimeRange { today, week, topLiked }
 
-class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProviderStateMixin {
+class _DiscoverScreenState extends State<DiscoverScreen>
+    with SingleTickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late TabController _tabController;
   final _searchController = TextEditingController();
@@ -80,17 +85,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   Future<void> _loadTrendingHashtags() async {
     try {
       // Basic logic: get unique hashtags from recent posts
-      final snapshot = await _firestore.collection('posts')
+      final snapshot = await _firestore
+          .collection('posts')
           .orderBy('createdAt', descending: true)
           .limit(100)
           .get();
-      
+
       final Set<String> tags = {};
       for (var doc in snapshot.docs) {
         final post = PostModel.fromJson(doc.data());
         tags.addAll(post.hashtags);
       }
-      
+
       if (mounted) {
         setState(() {
           _trendingHashtags = tags.toList().take(10).toList();
@@ -150,19 +156,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: _tabController.index == 0 
-                        ? 'Search talented stars...' 
-                        : 'Search posts or #hashtags...',
+                      hintText: _tabController.index == 0
+                          ? 'Search talented stars...'
+                          : 'Search posts or #hashtags...',
                       prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchController.text.isNotEmpty 
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {});
-                            },
-                          )
-                        : null,
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {});
+                              },
+                            )
+                          : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -176,17 +182,23 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     },
                   ),
                 ),
-                
+
                 // Trending Hashtags
                 if (_trendingHashtags.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 4.0,
+                        ),
                         child: Text(
                           'Trending Tags',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       SingleChildScrollView(
@@ -195,19 +207,25 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                         child: Row(
                           children: _trendingHashtags.map((tag) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
+                              ),
                               child: ActionChip(
                                 label: Text('#$tag'),
                                 onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (context) => HashtagFeedScreen(hashtag: tag),
+                                      builder: (context) =>
+                                          HashtagFeedScreen(hashtag: tag),
                                     ),
                                   );
                                 },
-                                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                backgroundColor:
+                                    theme.colorScheme.surfaceContainerHighest,
                                 side: BorderSide.none,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
                                 labelStyle: TextStyle(
                                   color: theme.colorScheme.primary,
                                   fontSize: 12,
@@ -223,7 +241,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
                 // Talent Filter Chips
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -250,11 +271,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       if (_tabController.index > 0)
                         IconButton(
                           icon: Icon(
-                            _isGridView ? Icons.grid_view : Icons.view_agenda_outlined,
+                            _isGridView
+                                ? Icons.grid_view
+                                : Icons.view_agenda_outlined,
                             color: theme.colorScheme.primary,
                           ),
-                          onPressed: () => setState(() => _isGridView = !_isGridView),
-                          tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
+                          onPressed: () =>
+                              setState(() => _isGridView = !_isGridView),
+                          tooltip: _isGridView
+                              ? 'Switch to List'
+                              : 'Switch to Grid',
                         ),
                     ],
                   ),
@@ -317,7 +343,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     itemBuilder: (context, index) {
                       return PostWidget(
                         post: posts[index],
-                        currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                        currentUserId:
+                            FirebaseAuth.instance.currentUser?.uid ?? '',
                       );
                     },
                   ),
@@ -360,11 +387,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     );
   }
 
-  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})> _getTrendingFuture(
-    TrendingService service,
-  ) {
+  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})>
+  _getTrendingFuture(TrendingService service) {
     // Synchronize filters: apply _selectedTalentFilter to trending queries
-    final talent = _selectedTalentFilter == 'All' ? null : _selectedTalentFilter;
+    final talent = _selectedTalentFilter == 'All'
+        ? null
+        : _selectedTalentFilter;
 
     switch (_selectedTrendingRange) {
       case _TrendingTimeRange.today:
@@ -394,7 +422,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     if (_selectedTalentFilter != 'All') {
       query = query.where('talent', isEqualTo: _selectedTalentFilter);
     }
-    
+
     query = query.orderBy('createdAt', descending: true);
 
     return StreamBuilder<QuerySnapshot>(
@@ -406,17 +434,20 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
         if (snapshot.hasData) {
           final latestPosts = snapshot.data!.docs
-              .map((doc) =>
-                  PostModel.fromJson(doc.data() as Map<String, dynamic>))
+              .map(
+                (doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>),
+              )
               .toList();
 
           if (_cachedDiscoveryPosts == null || _cachedDiscoveryPosts!.isEmpty) {
             _cachedDiscoveryPosts = latestPosts;
           } else {
-            final existingIds =
-                _cachedDiscoveryPosts!.map((p) => p.postId).toSet();
-            final newItems =
-                latestPosts.where((p) => !existingIds.contains(p.postId)).toList();
+            final existingIds = _cachedDiscoveryPosts!
+                .map((p) => p.postId)
+                .toSet();
+            final newItems = latestPosts
+                .where((p) => !existingIds.contains(p.postId))
+                .toList();
             if (newItems.isNotEmpty) {
               // Prepend new items
               _cachedDiscoveryPosts!.insertAll(0, newItems);
@@ -441,9 +472,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         if (_searchController.text.isNotEmpty) {
           final searchTerm = _searchController.text.toLowerCase();
           searchedPosts = filteredPosts.where((post) {
-            final contentMatch = post.content.toLowerCase().contains(searchTerm);
-            final hashtagMatch = post.hashtags.any((tag) => tag.contains(searchTerm.replaceAll('#', '')));
-            final authorMatch = post.authorName.toLowerCase().contains(searchTerm);
+            final contentMatch = post.content.toLowerCase().contains(
+              searchTerm,
+            );
+            final hashtagMatch = post.hashtags.any(
+              (tag) => tag.contains(searchTerm.replaceAll('#', '')),
+            );
+            final authorMatch = post.authorName.toLowerCase().contains(
+              searchTerm,
+            );
             return contentMatch || hashtagMatch || authorMatch;
           }).toList();
         }

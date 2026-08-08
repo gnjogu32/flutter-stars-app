@@ -18,7 +18,7 @@ class _HashtagFeedScreenState extends State<HashtagFeedScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
-  
+
   final List<PostModel> _posts = [];
   bool _isLoading = false;
   bool _hasMore = true;
@@ -53,7 +53,8 @@ class _HashtagFeedScreenState extends State<HashtagFeedScreen> {
 
     try {
       final tag = widget.hashtag.toLowerCase().replaceAll('#', '');
-      Query query = _firestore.collection('posts')
+      Query query = _firestore
+          .collection('posts')
           .where('hashtags', arrayContains: tag)
           .orderBy('createdAt', descending: true)
           .limit(15);
@@ -63,7 +64,7 @@ class _HashtagFeedScreenState extends State<HashtagFeedScreen> {
       }
 
       final snapshot = await query.get();
-      
+
       final fetchedPosts = snapshot.docs
           .map((doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>))
           .toList();
@@ -89,69 +90,66 @@ class _HashtagFeedScreenState extends State<HashtagFeedScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('#${widget.hashtag}'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text('#${widget.hashtag}'), centerTitle: true),
       body: _posts.isEmpty && _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _posts.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.tag, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No posts with #${widget.hashtag} yet',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.tag, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No posts with #${widget.hashtag} yet',
+                    style: const TextStyle(color: Colors.grey),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: () async {
-                    setState(() {
-                      _posts.clear();
-                      _hasMore = true;
-                      _lastDocument = null;
-                    });
-                    await _loadPosts();
-                  },
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: _posts.length + (_hasMore ? 1 : 0),
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    itemBuilder: (context, index) {
-                      if (index == _posts.length) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-
-                      final post = _posts[index];
-                      return KeyedSubtree(
-                        key: ValueKey(post.postId),
-                        child: index < 15
-                            ? AnimationUtils.slideUpAnimation(
-                                duration: const Duration(milliseconds: 300),
-                                delayMilliseconds: index < 10 ? index * 30 : 0,
-                                child: PostWidget(
-                                  post: post,
-                                  currentUserId: _auth.currentUser?.uid ?? '',
-                                ),
-                              )
-                            : PostWidget(
-                                post: post,
-                                currentUserId: _auth.currentUser?.uid ?? '',
-                              ),
-                      );
-                    },
-                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: () async {
+                setState(() {
+                  _posts.clear();
+                  _hasMore = true;
+                  _lastDocument = null;
+                });
+                await _loadPosts();
+              },
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: _posts.length + (_hasMore ? 1 : 0),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
+                itemBuilder: (context, index) {
+                  if (index == _posts.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final post = _posts[index];
+                  return KeyedSubtree(
+                    key: ValueKey(post.postId),
+                    child: index < 15
+                        ? AnimationUtils.slideUpAnimation(
+                            duration: const Duration(milliseconds: 300),
+                            delayMilliseconds: index < 10 ? index * 30 : 0,
+                            child: PostWidget(
+                              post: post,
+                              currentUserId: _auth.currentUser?.uid ?? '',
+                            ),
+                          )
+                        : PostWidget(
+                            post: post,
+                            currentUserId: _auth.currentUser?.uid ?? '',
+                          ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

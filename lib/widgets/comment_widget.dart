@@ -472,7 +472,9 @@ class _CommentWidgetState extends State<CommentWidget> {
                             child: CachedNetworkImage(
                               imageUrl: widget.comment.imageUrl!,
                               placeholder: (context, url) => const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                               errorWidget: (context, url, error) =>
                                   const Icon(Icons.error),
@@ -825,7 +827,9 @@ class _ReplyItemState extends State<_ReplyItem> {
                               child: CachedNetworkImage(
                                 imageUrl: widget.reply.imageUrl!,
                                 placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                                 errorWidget: (context, url, error) =>
                                     const Icon(Icons.error),

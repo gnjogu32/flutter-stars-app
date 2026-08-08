@@ -122,8 +122,9 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
       if (!_preloadedControllers.containsKey(idx)) {
         final post = reels[idx];
         if (post.videoUrl != null && post.videoUrl!.isNotEmpty) {
-          final controller =
-              VideoPlayerController.networkUrl(Uri.parse(post.videoUrl!));
+          final controller = VideoPlayerController.networkUrl(
+            Uri.parse(post.videoUrl!),
+          );
           _preloadedControllers[idx] = controller;
           controller.initialize().then((_) {
             if (mounted) {
@@ -182,7 +183,9 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
               if (newItems.isNotEmpty) {
                 _cachedReels!.addAll(newItems);
                 // Sort by createdAt descending to ensure seamless additions
-                _cachedReels!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                _cachedReels!.sort(
+                  (a, b) => b.createdAt.compareTo(a.createdAt),
+                );
               }
             }
           }
@@ -483,16 +486,16 @@ class _ReelItemState extends State<_ReelItem>
             .collection('posts')
             .doc(widget.post.postId)
             .update({
-          'likes': FieldValue.arrayRemove([_activeUserId]),
-        });
+              'likes': FieldValue.arrayRemove([_activeUserId]),
+            });
         await AnalyticsService().trackUnlike(widget.post.postId, _activeUserId);
       } else {
         await FirebaseFirestore.instance
             .collection('posts')
             .doc(widget.post.postId)
             .update({
-          'likes': FieldValue.arrayUnion([_activeUserId]),
-        });
+              'likes': FieldValue.arrayUnion([_activeUserId]),
+            });
         await AnalyticsService().trackLike(
           widget.post.postId,
           _ownerId,
@@ -519,9 +522,9 @@ class _ReelItemState extends State<_ReelItem>
           _isLiked = wasLiked;
           _likeCount = wasLiked ? (_likeCount + 1) : (_likeCount - 1);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -550,13 +553,17 @@ class _ReelItemState extends State<_ReelItem>
           reposterImageUrl: currentUser.profileImageUrl,
           repostCaption: result,
         );
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Reposted! ✓')));
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Reposted! ✓')));
+        }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
       } finally {
         if (mounted) setState(() => _isReposting = false);
       }
@@ -590,8 +597,8 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _showMoreOptions() {
-    final ownerName =
-        (widget.post.originalAuthorName ?? widget.post.authorName).trim();
+    final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
+        .trim();
     final isAuthor = widget.post.authorId == _activeUserId;
     showModalBottomSheet(
       context: context,
@@ -619,8 +626,9 @@ class _ReelItemState extends State<_ReelItem>
                   title: const Text('Edit Post'),
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.of(context)
-                        .pushNamed('/edit-post', arguments: widget.post);
+                    Navigator.of(
+                      context,
+                    ).pushNamed('/edit-post', arguments: widget.post);
                   },
                 ),
                 ListTile(
@@ -656,7 +664,7 @@ class _ReelItemState extends State<_ReelItem>
                     if (confirmed == true) {
                       await PostService().deletePost(widget.post);
                       if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Post deleted')),
                         );
                       }
@@ -669,9 +677,11 @@ class _ReelItemState extends State<_ReelItem>
                   title: const Text('Report Post'),
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Post reported.')),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Post reported.')),
+                      );
+                    }
                   },
                 ),
                 ListTile(
@@ -786,8 +796,9 @@ class _ReelItemState extends State<_ReelItem>
       );
       return;
     }
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Downloading video...')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
     try {
       final client = HttpClient();
       final request = await client.getUrl(Uri.parse(widget.post.videoUrl!));
@@ -806,8 +817,9 @@ class _ReelItemState extends State<_ReelItem>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Download failed: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }
@@ -859,8 +871,8 @@ class _ReelItemState extends State<_ReelItem>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final ownerName =
-        (widget.post.originalAuthorName ?? widget.post.authorName).trim();
+    final ownerName = (widget.post.originalAuthorName ?? widget.post.authorName)
+        .trim();
     return VisibilityDetector(
       key: ValueKey('reel_vis_${widget.post.postId}_${widget.isActive}'),
       onVisibilityChanged: (info) {
@@ -1041,7 +1053,8 @@ class _ReelItemState extends State<_ReelItem>
                           onTap: widget.onOpenProfile,
                           child: CircleAvatar(
                             radius: 18,
-                            backgroundImage: (widget.post.originalAuthorImageUrl ??
+                            backgroundImage:
+                                (widget.post.originalAuthorImageUrl ??
                                         widget.post.authorImageUrl) !=
                                     null
                                 ? CachedNetworkImageProvider(
@@ -1049,7 +1062,8 @@ class _ReelItemState extends State<_ReelItem>
                                         widget.post.authorImageUrl!,
                                   )
                                 : null,
-                            child: (widget.post.originalAuthorImageUrl ??
+                            child:
+                                (widget.post.originalAuthorImageUrl ??
                                         widget.post.authorImageUrl) ==
                                     null
                                 ? const Icon(Icons.person)
@@ -1137,15 +1151,18 @@ class _ReelItemState extends State<_ReelItem>
                                   ValueListenableBuilder(
                                     valueListenable: _videoController,
                                     builder:
-                                        (context, VideoPlayerValue value, child) =>
-                                            Text(
-                                      '${_formatDuration(value.position)} / ${_formatDuration(value.duration)}',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                        (
+                                          context,
+                                          VideoPlayerValue value,
+                                          child,
+                                        ) => Text(
+                                          '${_formatDuration(value.position)} / ${_formatDuration(value.duration)}',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                   ),
                                   const SizedBox(width: 12),
                                   GestureDetector(

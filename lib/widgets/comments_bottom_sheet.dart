@@ -615,8 +615,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               ),
             ),
 
-            if (_isUploading)
-              const LinearProgressIndicator(minHeight: 2),
+            if (_isUploading) const LinearProgressIndicator(minHeight: 2),
 
             // Footer Interaction Area
             _buildMentionSuggestions(),

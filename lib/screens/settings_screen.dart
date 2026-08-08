@@ -72,7 +72,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ListTile(
                       leading: const Icon(Icons.bar_chart_outlined),
                       title: const Text('Content Analytics'),
-                      subtitle: const Text('Track your performance and engagement'),
+                      subtitle: const Text(
+                        'Track your performance and engagement',
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         Navigator.push(
@@ -86,9 +88,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     _buildSectionHeader(context, 'Notifications'),
                     SwitchListTile(
-                      secondary: const Icon(Icons.notifications_active_outlined),
+                      secondary: const Icon(
+                        Icons.notifications_active_outlined,
+                      ),
                       title: const Text('Enable Notifications'),
-                      subtitle: const Text('Receive alerts for likes, follows, etc.'),
+                      subtitle: const Text(
+                        'Receive alerts for likes, follows, etc.',
+                      ),
                       value: notificationsEnabled,
                       onChanged: (bool value) async {
                         await _userService.updateNotificationSettings(
@@ -182,7 +188,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     SwitchListTile(
                       secondary: const Icon(Icons.play_circle_outline),
                       title: const Text('Media Autoplay'),
-                      subtitle: const Text('Videos and audios play automatically in feeds'),
+                      subtitle: const Text(
+                        'Videos and audios play automatically in feeds',
+                      ),
                       value: autoPlayEnabled,
                       onChanged: (bool value) async {
                         await _userService.updateAutoPlaySettings(
@@ -204,8 +212,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ListTile(
                       leading: const Icon(Icons.info_outline),
                       title: const Text('Starpage Version'),
-                      trailing:
-                          Text('1.1.9+13', style: const TextStyle(color: Colors.grey)),
+                      trailing: Text(
+                        '1.1.9+13',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                     ),
 
                     const SizedBox(height: 32),

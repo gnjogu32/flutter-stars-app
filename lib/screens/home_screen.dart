@@ -119,7 +119,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refresh() async {
     try {
-      final Query query = _firestore
+      final query = _firestore
           .collection('posts')
           .orderBy('createdAt', descending: true)
           .limit(15);

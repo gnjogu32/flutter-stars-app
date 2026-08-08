@@ -57,7 +57,12 @@ class _ExpandableTextState extends flutter.State<ExpandableText> {
             flutter.GestureDetector(
               onTap: widget.onTap,
               child: flutter.RichText(
-                text: _buildTextSpan(text, widget.style, context, isExpanded: _expanded),
+                text: _buildTextSpan(
+                  text,
+                  widget.style,
+                  context,
+                  isExpanded: _expanded,
+                ),
                 maxLines: _expanded ? null : widget.trimLines,
                 overflow: _expanded
                     ? flutter.TextOverflow.visible
@@ -82,62 +87,76 @@ class _ExpandableTextState extends flutter.State<ExpandableText> {
     );
   }
 
-  TextSpan _buildTextSpan(String text, TextStyle? style, BuildContext context, {bool isExpanded = false}) {
+  TextSpan _buildTextSpan(
+    String text,
+    TextStyle? style,
+    BuildContext context, {
+    bool isExpanded = false,
+  }) {
     final List<TextSpan> spans = [];
     final theme = Theme.of(context);
-    final linkStyle = style?.copyWith(
-      color: theme.colorScheme.primary,
-      fontWeight: FontWeight.bold,
-    ) ?? TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold);
+    final linkStyle =
+        style?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ) ??
+        TextStyle(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        );
 
     final RegExp combinedRegex = RegExp(r'(@\w+|#\w+)');
     int lastMatchEnd = 0;
 
     combinedRegex.allMatches(text).forEach((match) {
       if (match.start > lastMatchEnd) {
-        spans.add(TextSpan(
-          text: text.substring(lastMatchEnd, match.start),
-          style: style,
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(lastMatchEnd, match.start),
+            style: style,
+          ),
+        );
       }
 
       final String matchText = match.group(0)!;
       final bool isHashtag = matchText.startsWith('#');
 
-      spans.add(TextSpan(
-        text: matchText,
-        style: linkStyle,
-        recognizer: TapGestureRecognizer()
-          ..onTap = () {
-            if (isHashtag) {
-              final tag = matchText.substring(1);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => HashtagFeedScreen(hashtag: tag),
-                ),
-              );
-            } else {
-              // Mention
-              final username = matchText.substring(1).toLowerCase();
-              _navigateToProfileByUsername(context, username);
-            }
-          },
-      ));
+      spans.add(
+        TextSpan(
+          text: matchText,
+          style: linkStyle,
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              if (isHashtag) {
+                final tag = matchText.substring(1);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => HashtagFeedScreen(hashtag: tag),
+                  ),
+                );
+              } else {
+                // Mention
+                final username = matchText.substring(1).toLowerCase();
+                _navigateToProfileByUsername(context, username);
+              }
+            },
+        ),
+      );
 
       lastMatchEnd = match.end;
     });
 
     if (lastMatchEnd < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastMatchEnd),
-        style: style,
-      ));
+      spans.add(TextSpan(text: text.substring(lastMatchEnd), style: style));
     }
 
     return TextSpan(children: spans);
   }
 
-  Future<void> _navigateToProfileByUsername(BuildContext context, String username) async {
+  Future<void> _navigateToProfileByUsername(
+    BuildContext context,
+    String username,
+  ) async {
     try {
       final snap = await FirebaseFirestore.instance
           .collection('users')
@@ -156,16 +175,16 @@ class _ExpandableTextState extends flutter.State<ExpandableText> {
         }
       } else {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('User @$username not found')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('User @$username not found')));
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }

@@ -320,11 +320,11 @@ class _PostWidgetState extends State<PostWidget>
       );
       await tempFile.writeAsBytes(bytes);
       await Gal.putVideo(tempFile.path, album: 'Starpage');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Video saved to gallery ✓')),
-      );
-    }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video saved to gallery ✓')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -447,7 +447,7 @@ class _PostWidgetState extends State<PostWidget>
           commentCount = data['commentCount'] ?? 0;
           repostCount = data['repostCount'] ?? 0;
           isLiked = likes.contains(widget.currentUserId);
-          
+
           // Side-effect controlled by mounted check to minimize rebuild loops
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_isLikeUpdating) {
@@ -555,9 +555,9 @@ class _PostWidgetState extends State<PostWidget>
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: isDark 
-                    ? [const Color(0xFF0F1116), const Color(0xFF1A1D23)]
-                    : [const Color(0xFFF5F5F7), const Color(0xFFEEEEEE)],
+                  colors: isDark
+                      ? [const Color(0xFF0F1116), const Color(0xFF1A1D23)]
+                      : [const Color(0xFFF5F5F7), const Color(0xFFEEEEEE)],
                 ),
               ),
               child: Center(
@@ -644,13 +644,15 @@ class _PostWidgetState extends State<PostWidget>
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (widget.post.videoUrl != null || widget.post.imageUrls.isNotEmpty)
+                if (widget.post.videoUrl != null ||
+                    widget.post.imageUrls.isNotEmpty)
                   ExpandableText(
                     widget.post.content,
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     trimLines: 3,
                   ),
-                if (widget.post.audioUrl != null && widget.post.audioUrl!.isNotEmpty)
+                if (widget.post.audioUrl != null &&
+                    widget.post.audioUrl!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: AudioPlayerWidget(audioUrl: widget.post.audioUrl!),
@@ -760,7 +762,10 @@ class _PostWidgetState extends State<PostWidget>
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Delete Post', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Delete Post',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _deletePost();
@@ -776,7 +781,10 @@ class _PostWidgetState extends State<PostWidget>
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.report_problem_outlined, color: Colors.orange),
+                leading: const Icon(
+                  Icons.report_problem_outlined,
+                  color: Colors.orange,
+                ),
                 title: const Text('Report Post'),
                 onTap: () {
                   Navigator.pop(context);
@@ -868,7 +876,7 @@ class _PostWidgetState extends State<PostWidget>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
-    
+
     if (widget.isImmersive) {
       return _buildImmersivePost(context);
     }
@@ -1168,17 +1176,20 @@ class _PostWidgetState extends State<PostWidget>
                                 fit: BoxFit.contain,
                                 placeholder: (context, url) => const SizedBox(
                                   height: 220,
-                                  child: Center(child: CircularProgressIndicator()),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
                                 ),
                               ),
                               if (_showLikeHeart)
                                 ScaleTransition(
-                                  scale: Tween<double>(begin: 0.0, end: 1.2).animate(
-                                    CurvedAnimation(
-                                      parent: _heartAnimationController,
-                                      curve: Curves.elasticOut,
-                                    ),
-                                  ),
+                                  scale: Tween<double>(begin: 0.0, end: 1.2)
+                                      .animate(
+                                        CurvedAnimation(
+                                          parent: _heartAnimationController,
+                                          curve: Curves.elasticOut,
+                                        ),
+                                      ),
                                   child: const Icon(
                                     Icons.favorite,
                                     color: Colors.white,
@@ -1237,12 +1248,13 @@ class _PostWidgetState extends State<PostWidget>
                                   ),
                                   if (_showLikeHeart)
                                     ScaleTransition(
-                                      scale: Tween<double>(begin: 0.0, end: 1.2).animate(
-                                        CurvedAnimation(
-                                          parent: _heartAnimationController,
-                                          curve: Curves.elasticOut,
-                                        ),
-                                      ),
+                                      scale: Tween<double>(begin: 0.0, end: 1.2)
+                                          .animate(
+                                            CurvedAnimation(
+                                              parent: _heartAnimationController,
+                                              curve: Curves.elasticOut,
+                                            ),
+                                          ),
                                       child: const Icon(
                                         Icons.favorite,
                                         color: Colors.white,

@@ -340,20 +340,22 @@ class _PostDetailsSheetState extends State<PostDetailsSheet>
                               child: CachedNetworkImage(
                                 imageUrl: url,
                                 fit: BoxFit.contain,
-                                placeholder: (context, url) =>
-                                    const Center(child: CircularProgressIndicator()),
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                                 errorWidget: (context, url, error) =>
                                     const Icon(Icons.broken_image),
                               ),
                             ),
                             if (_showLikeHeart)
                               ScaleTransition(
-                                scale: Tween<double>(begin: 0.0, end: 1.2).animate(
-                                  CurvedAnimation(
-                                    parent: _heartAnimationController,
-                                    curve: Curves.elasticOut,
-                                  ),
-                                ),
+                                scale: Tween<double>(begin: 0.0, end: 1.2)
+                                    .animate(
+                                      CurvedAnimation(
+                                        parent: _heartAnimationController,
+                                        curve: Curves.elasticOut,
+                                      ),
+                                    ),
                                 child: const Icon(
                                   Icons.favorite,
                                   color: Colors.white,

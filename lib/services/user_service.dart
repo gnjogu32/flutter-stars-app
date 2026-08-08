@@ -253,7 +253,7 @@ class UserService {
       if (displayName != null) updateData['displayName'] = displayName;
       if (username != null) updateData['username'] = username.toLowerCase();
       if (bio != null) updateData['bio'] = bio;
-      
+
       if (clearProfileImage) {
         updateData['profileImageUrl'] = FieldValue.delete();
       } else if (profileImageUrl != null) {
@@ -350,7 +350,10 @@ class UserService {
   // Check if a post is saved by a user
   Future<bool> isPostSaved(String userId, String postId) async {
     try {
-      final doc = await _firebaseFirestore.collection('users').doc(userId).get();
+      final doc = await _firebaseFirestore
+          .collection('users')
+          .doc(userId)
+          .get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         final List savedPosts = data['savedPosts'] as List? ?? [];

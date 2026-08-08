@@ -183,12 +183,12 @@ class PushNotificationService {
     try {
       // Small delay to ensure navigator/context is fully active if app just started
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       final post = await PostService().getPost(postId);
       if (post != null && context.mounted) {
         final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-        
-        // Ensure we don't have multiple sheets stacking if possible, 
+
+        // Ensure we don't have multiple sheets stacking if possible,
         // but simple showModalBottomSheet is usually fine for one-off deep links.
         showModalBottomSheet(
           context: context,

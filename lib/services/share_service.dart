@@ -6,7 +6,8 @@ class ShareService {
   /// Share post via native share dialog
   static Future<void> sharePost(PostModel post) async {
     final postUrl = AppConstants.postUrl(post.postId);
-    final text = '''
+    final text =
+        '''
 Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
 
 "${post.content}"
@@ -20,7 +21,8 @@ View on ${AppConstants.appName}: $postUrl''';
   /// Share post via WhatsApp
   static Future<void> shareViaWhatsApp(PostModel post) async {
     final postUrl = AppConstants.postUrl(post.postId);
-    final text = '''
+    final text =
+        '''
 Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
 
 "${post.content}"
@@ -33,7 +35,8 @@ View on ${AppConstants.appName}: $postUrl''';
   /// Share post via Twitter/X
   static Future<void> shareViaTwitter(PostModel post) async {
     final postUrl = AppConstants.postUrl(post.postId);
-    final text = 'Check out this post by ${post.authorName}: "${post.content}" on #${AppConstants.appName} ⭐ $postUrl';
+    final text =
+        'Check out this post by ${post.authorName}: "${post.content}" on #${AppConstants.appName} ⭐ $postUrl';
 
     await Clipboard.setData(ClipboardData(text: text));
   }
@@ -41,7 +44,8 @@ View on ${AppConstants.appName}: $postUrl''';
   /// Copy post to clipboard
   static Future<void> copyToClipboard(PostModel post) async {
     final postUrl = AppConstants.postUrl(post.postId);
-    final text = '''
+    final text =
+        '''
 ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}
 
 ${post.content}

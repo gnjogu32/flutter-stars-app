@@ -39,7 +39,7 @@ class _VideoGridThumbnailState extends State<VideoGridThumbnail> {
 
   Future<void> _initializeController() async {
     if (widget.videoUrl.isEmpty || _controller != null) return;
-    
+
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
     try {
       await _controller!.initialize();
@@ -64,7 +64,7 @@ class _VideoGridThumbnailState extends State<VideoGridThumbnail> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     if (!_isInitialized || _controller == null) {
       return Container(
         decoration: BoxDecoration(

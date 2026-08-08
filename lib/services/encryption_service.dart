@@ -38,7 +38,10 @@ class EncryptionService {
 
   Future<String?> getRecipientPublicKey(String recipientId) async {
     try {
-      final doc = await _firestore.collection('user_keys').doc(recipientId).get();
+      final doc = await _firestore
+          .collection('user_keys')
+          .doc(recipientId)
+          .get();
       return doc.data()?['publicKey'] as String?;
     } catch (e) {
       debugPrint('Error fetching public key: $e');
@@ -53,7 +56,9 @@ class EncryptionService {
     final privateKeyBase64 = await _storage.read(key: _privateKeyStorageKey);
     if (privateKeyBase64 == null) throw Exception('Identity keys not found');
 
-    final keyPair = await _algorithm.newKeyPairFromSeed(base64Decode(privateKeyBase64));
+    final keyPair = await _algorithm.newKeyPairFromSeed(
+      base64Decode(privateKeyBase64),
+    );
     final privateKey = await keyPair.extract();
 
     final recipientPublicKey = SimplePublicKey(
@@ -91,7 +96,9 @@ class EncryptionService {
     if (privateKeyBase64 == null) return '[Decryption Error: Keys Missing]';
 
     try {
-      final keyPair = await _algorithm.newKeyPairFromSeed(base64Decode(privateKeyBase64));
+      final keyPair = await _algorithm.newKeyPairFromSeed(
+        base64Decode(privateKeyBase64),
+      );
       final privateKey = await keyPair.extract();
 
       final senderPublicKey = SimplePublicKey(
@@ -108,12 +115,17 @@ class EncryptionService {
       final secretKey = await _cipher.newSecretKeyFromBytes(secretBytes);
 
       final concatenation = base64Decode(encryptedContent);
-      
+
       // cryptography's SecretBox.concatenation() usually appends MAC at the end
       final macLength = _cipher.macAlgorithm.macLength;
-      if (concatenation.length < macLength) throw Exception('Invalid ciphertext');
-      
-      final cipherText = concatenation.sublist(0, concatenation.length - macLength);
+      if (concatenation.length < macLength) {
+        throw Exception('Invalid ciphertext');
+      }
+
+      final cipherText = concatenation.sublist(
+        0,
+        concatenation.length - macLength,
+      );
       final macBytes = concatenation.sublist(concatenation.length - macLength);
 
       final secretBox = SecretBox(

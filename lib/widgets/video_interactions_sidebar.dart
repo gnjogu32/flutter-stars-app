@@ -286,7 +286,8 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
                 if (widget.currentUserId.isNotEmpty) {
                   _analyticsService.trackShare(
                     widget.post.postId,
-                    (widget.post.originalAuthorId ?? widget.post.authorId).trim(),
+                    (widget.post.originalAuthorId ?? widget.post.authorId)
+                        .trim(),
                     widget.currentUserId,
                   );
                 }
@@ -308,7 +309,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
                 title: const Text('Download Video'),
                 onTap: () {
                   Navigator.pop(context);
-                  // Video download logic handled by parent if needed, 
+                  // Video download logic handled by parent if needed,
                   // or just let it stay as a consistent UI option.
                 },
               ),
@@ -422,20 +423,16 @@ class _InteractionButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-            Icon(
-              icon,
-              color: iconColor ?? Colors.white,
-              size: 28,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              Icon(icon, color: iconColor ?? Colors.white, size: 28),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
             ],
           ),
         ),

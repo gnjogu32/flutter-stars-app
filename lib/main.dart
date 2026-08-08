@@ -44,7 +44,7 @@ Future<void> _initializeAppServices() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set up error handling to catch late initialization errors
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
@@ -56,7 +56,7 @@ void main() async {
   } catch (e) {
     debugPrint('Initialization error or timeout: $e');
   }
-  
+
   TimeUtils.init();
   runApp(const MyApp());
 }
@@ -156,7 +156,8 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignUpScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
-          '/trending': (context) => const MainApp(initialIndex: 2, initialSubIndex: 1),
+          '/trending': (context) =>
+              const MainApp(initialIndex: 2, initialSubIndex: 1),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/change-password': (context) => const ChangePasswordScreen(),
           '/notifications': (context) => const MainApp(initialIndex: 4),
@@ -171,13 +172,20 @@ class MyApp extends StatelessWidget {
               barrierColor: Colors.black,
               pageBuilder: (context, animation, secondaryAnimation) =>
                   CreatePostScreen(initialContent: initialContent),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                const begin = Offset(0.0, 1.0);
-                const end = Offset.zero;
-                const curve = Curves.easeOutCubic;
-                final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                return SlideTransition(position: animation.drive(tween), child: child);
-              },
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(0.0, 1.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeOutCubic;
+                    final tween = Tween(
+                      begin: begin,
+                      end: end,
+                    ).chain(CurveTween(curve: curve));
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: child,
+                    );
+                  },
             );
           }
           if (settings.name == '/edit-post') {

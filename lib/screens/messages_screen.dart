@@ -62,15 +62,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
         builder: (context) => ChatScreen(
           conversationId: conversation.conversationId,
           otherUserId: otherUserId,
-          otherUserName: otherUser?.displayName ?? conversation.otherUserName ?? 'User',
-          otherUserImageUrl: otherUser?.profileImageUrl ?? conversation.otherUserImageUrl,
+          otherUserName:
+              otherUser?.displayName ?? conversation.otherUserName ?? 'User',
+          otherUserImageUrl:
+              otherUser?.profileImageUrl ?? conversation.otherUserImageUrl,
         ),
       ),
     );
   }
 
   bool _canDeleteConversation(ConversationModel conversation) {
-    // Both participants can delete the chat for themselves, 
+    // Both participants can delete the chat for themselves,
     // but in our current ChatService.deleteConversation it deletes the document.
     // For now, let's allow anyone in the chat to delete the document.
     return conversation.participantIds.contains(_auth.currentUser?.uid);
@@ -355,11 +357,10 @@ class _ConversationItemState extends State<_ConversationItem>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final displayName = _otherUser?.displayName ??
-        widget.conversation.otherUserName ??
-        'User';
-    final imageUrl = _otherUser?.profileImageUrl ??
-        widget.conversation.otherUserImageUrl;
+    final displayName =
+        _otherUser?.displayName ?? widget.conversation.otherUserName ?? 'User';
+    final imageUrl =
+        _otherUser?.profileImageUrl ?? widget.conversation.otherUserImageUrl;
     final hasUnread = widget.conversation.unreadCount > 0;
 
     return AnimationUtils.scaleButtonAnimation(
@@ -368,15 +369,17 @@ class _ConversationItemState extends State<_ConversationItem>
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Card(
           elevation: hasUnread ? 2 : 0,
-          shadowColor: hasUnread ? theme.colorScheme.primary.withValues(alpha: 0.3) : null,
+          shadowColor: hasUnread
+              ? theme.colorScheme.primary.withValues(alpha: 0.3)
+              : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
               color: hasUnread
                   ? theme.colorScheme.primary.withValues(alpha: 0.5)
                   : (isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.grey.shade200),
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.grey.shade200),
               width: hasUnread ? 1.5 : 1,
             ),
           ),
@@ -400,7 +403,8 @@ class _ConversationItemState extends State<_ConversationItem>
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
                         backgroundImage: imageUrl != null
                             ? CachedNetworkImageProvider(imageUrl)
                             : null,
@@ -444,8 +448,9 @@ class _ConversationItemState extends State<_ConversationItem>
                       Text(
                         displayName,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight:
-                              hasUnread ? FontWeight.w900 : FontWeight.bold,
+                          fontWeight: hasUnread
+                              ? FontWeight.w900
+                              : FontWeight.bold,
                           color: hasUnread
                               ? theme.colorScheme.primary
                               : theme.colorScheme.onSurface,
@@ -456,16 +461,17 @@ class _ConversationItemState extends State<_ConversationItem>
                         hasUnread
                             ? 'Sent you a new message'
                             : (widget.conversation.lastMessage.isEmpty
-                                ? 'Start a conversation'
-                                : widget.conversation.lastMessage),
+                                  ? 'Start a conversation'
+                                  : widget.conversation.lastMessage),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: hasUnread
                               ? theme.colorScheme.primary.withValues(alpha: 0.8)
                               : theme.hintColor,
-                          fontWeight:
-                              hasUnread ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight: hasUnread
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -487,8 +493,9 @@ class _ConversationItemState extends State<_ConversationItem>
                             color: hasUnread
                                 ? theme.colorScheme.primary
                                 : theme.hintColor,
-                            fontWeight:
-                                hasUnread ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: hasUnread
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                         PopupMenuButton<String>(
@@ -516,13 +523,17 @@ class _ConversationItemState extends State<_ConversationItem>
                                 children: [
                                   Icon(
                                     Icons.delete_outline,
-                                    color: widget.canDelete ? Colors.red : Colors.grey,
+                                    color: widget.canDelete
+                                        ? Colors.red
+                                        : Colors.grey,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Delete chat',
                                     style: TextStyle(
-                                      color: widget.canDelete ? Colors.red : Colors.grey,
+                                      color: widget.canDelete
+                                          ? Colors.red
+                                          : Colors.grey,
                                     ),
                                   ),
                                 ],

@@ -144,8 +144,8 @@ class PostModel {
       audioUrl: data['audioUrl'],
       videoUrl: data['videoUrl'],
       talent: data['talent'],
-      postType: data['postType'] ??
-          (data['videoUrl'] != null ? 'video' : 'text'),
+      postType:
+          data['postType'] ?? (data['videoUrl'] != null ? 'video' : 'text'),
       likes: List<String>.from(data['likes'] ?? []),
       commentCount: data['commentCount'] ?? 0,
       repostCount: data['repostCount'] ?? 0,
@@ -198,7 +198,8 @@ class PostModel {
       originalPostId: originalPostId ?? this.originalPostId,
       originalAuthorId: originalAuthorId ?? this.originalAuthorId,
       originalAuthorName: originalAuthorName ?? this.originalAuthorName,
-      originalAuthorUsername: originalAuthorUsername ?? this.originalAuthorUsername,
+      originalAuthorUsername:
+          originalAuthorUsername ?? this.originalAuthorUsername,
       originalAuthorImageUrl:
           originalAuthorImageUrl ?? this.originalAuthorImageUrl,
       content: content ?? this.content,

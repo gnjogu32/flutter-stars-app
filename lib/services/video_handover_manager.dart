@@ -1,7 +1,8 @@
 import 'package:video_player/video_player.dart';
 
 class VideoHandoverManager {
-  static final VideoHandoverManager _instance = VideoHandoverManager._internal();
+  static final VideoHandoverManager _instance =
+      VideoHandoverManager._internal();
   factory VideoHandoverManager() => _instance;
   VideoHandoverManager._internal();
 

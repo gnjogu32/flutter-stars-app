@@ -206,37 +206,40 @@ class AnalyticsService {
         .where('authorId', isEqualTo: authorId)
         .snapshots()
         .map((snapshot) {
-      int totalViews = 0;
-      int totalLikes = 0;
-      int totalComments = 0;
-      int totalShares = 0;
-      int totalReposts = 0;
+          int totalViews = 0;
+          int totalLikes = 0;
+          int totalComments = 0;
+          int totalShares = 0;
+          int totalReposts = 0;
 
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        totalViews += (data['viewCount'] as int?) ?? 0;
-        totalLikes += (data['likeCount'] as int?) ?? 0;
-        totalComments += (data['commentCount'] as int?) ?? 0;
-        totalShares += (data['shareCount'] as int?) ?? 0;
-        totalReposts += (data['repostCount'] as int?) ?? 0;
-      }
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            totalViews += (data['viewCount'] as int?) ?? 0;
+            totalLikes += (data['likeCount'] as int?) ?? 0;
+            totalComments += (data['commentCount'] as int?) ?? 0;
+            totalShares += (data['shareCount'] as int?) ?? 0;
+            totalReposts += (data['repostCount'] as int?) ?? 0;
+          }
 
-      final avgEngagementRate = totalViews > 0 ? (totalLikes / totalViews) : 0.0;
+          final avgEngagementRate = totalViews > 0
+              ? (totalLikes / totalViews)
+              : 0.0;
 
-      return {
-        'totalPosts': snapshot.docs.length,
-        'totalViews': totalViews,
-        'totalLikes': totalLikes,
-        'totalComments': totalComments,
-        'totalShares': totalShares,
-        'totalReposts': totalReposts,
-        'totalEngagements':
-            totalLikes + totalComments + totalShares + totalReposts,
-        'avgEngagementRate': avgEngagementRate,
-        'avgViewsPerPost':
-            snapshot.docs.isNotEmpty ? totalViews ~/ snapshot.docs.length : 0,
-      };
-    });
+          return {
+            'totalPosts': snapshot.docs.length,
+            'totalViews': totalViews,
+            'totalLikes': totalLikes,
+            'totalComments': totalComments,
+            'totalShares': totalShares,
+            'totalReposts': totalReposts,
+            'totalEngagements':
+                totalLikes + totalComments + totalShares + totalReposts,
+            'avgEngagementRate': avgEngagementRate,
+            'avgViewsPerPost': snapshot.docs.isNotEmpty
+                ? totalViews ~/ snapshot.docs.length
+                : 0,
+          };
+        });
   }
 
   // Get time-series data for a specific metric (for charts)

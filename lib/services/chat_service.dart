@@ -38,7 +38,9 @@ class ChatService {
       String finalContent = content;
 
       // Try E2EE
-      final recipientPublicKey = await encryptionService.getRecipientPublicKey(recipientId);
+      final recipientPublicKey = await encryptionService.getRecipientPublicKey(
+        recipientId,
+      );
       if (recipientPublicKey != null && content.isNotEmpty) {
         try {
           final encrypted = await encryptionService.encryptMessage(
@@ -118,14 +120,18 @@ class ChatService {
       // Update conversation metadata
       final String lastMessageText = imageUrl != null
           ? '📷 Photo'
-          : (videoUrl != null ? '🎥 Video' : (isEncrypted ? '🔐 Encrypted message' : content));
+          : (videoUrl != null
+                ? '🎥 Video'
+                : (isEncrypted ? '🔐 Encrypted message' : content));
 
       await conversationRef.set({
         'lastMessage': lastMessageText,
         'lastSenderId': senderId,
         'lastMessageTime': now,
         'updatedAt': now,
-        'deletedBy': FieldValue.arrayRemove([recipientId]), // Restore for recipient if they deleted it
+        'deletedBy': FieldValue.arrayRemove([
+          recipientId,
+        ]), // Restore for recipient if they deleted it
       }, SetOptions(merge: true));
 
       // Attempt Notification (Fail-safe)
@@ -181,7 +187,9 @@ class ChatService {
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => ConversationModel.fromJson(doc.data()))
-              .where((conv) => !conv.deletedBy.contains(userId)) // Filter out deleted
+              .where(
+                (conv) => !conv.deletedBy.contains(userId),
+              ) // Filter out deleted
               .toList(),
         );
   }

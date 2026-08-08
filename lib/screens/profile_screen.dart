@@ -285,7 +285,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showShareOptions(String userId) {
     final theme = Theme.of(context);
     final profileUrl = AppConstants.profileUrl(userId);
-    final alternativeUrl = 'https://${AppConstants.secondaryDomain}/profile/$userId';
+    final alternativeUrl =
+        'https://${AppConstants.secondaryDomain}/profile/$userId';
 
     showModalBottomSheet(
       context: context,
@@ -330,7 +331,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ListTile(
               leading: const Icon(Icons.link_rounded),
               title: const Text('Copy Profile Link (.org)'),
-              subtitle: Text(alternativeUrl, style: const TextStyle(fontSize: 10)),
+              subtitle: Text(
+                alternativeUrl,
+                style: const TextStyle(fontSize: 10),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Clipboard.setData(ClipboardData(text: alternativeUrl));
@@ -344,7 +348,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: const Text('Copy Formatted Invite'),
               onTap: () {
                 Navigator.pop(context);
-                final shareText = 'Check out this talented star on ${AppConstants.appName}! ⭐\n\nProfile: $profileUrl';
+                final shareText =
+                    'Check out this talented star on ${AppConstants.appName}! ⭐\n\nProfile: $profileUrl';
                 Clipboard.setData(ClipboardData(text: shareText));
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(content: Text('Invite copied ✓')),
@@ -497,26 +502,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             .orderBy('createdAt', descending: true)
                             .snapshots(),
                   builder: (context, postsSnapshot) {
-                    final allPosts = (!postsSnapshot.hasData ||
+                    final allPosts =
+                        (!postsSnapshot.hasData ||
                             postsSnapshot.data!.docs.isEmpty)
                         ? <PostModel>[]
                         : postsSnapshot.data!.docs
-                            .map(
-                              (doc) => PostModel.fromJson(
-                                doc.data() as Map<String, dynamic>,
-                              ),
-                            )
-                            .toList();
+                              .map(
+                                (doc) => PostModel.fromJson(
+                                  doc.data() as Map<String, dynamic>,
+                                ),
+                              )
+                              .toList();
 
                     final filteredPosts = allPosts
                         .where(
-                          (post) => _matchesSelectedFolder(post, user.savedPosts),
+                          (post) =>
+                              _matchesSelectedFolder(post, user.savedPosts),
                         )
-                        .where((post) =>
-                            _searchQuery.isEmpty ||
-                            post.content
-                                .toLowerCase()
-                                .contains(_searchQuery.toLowerCase()))
+                        .where(
+                          (post) =>
+                              _searchQuery.isEmpty ||
+                              post.content.toLowerCase().contains(
+                                _searchQuery.toLowerCase(),
+                              ),
+                        )
                         .toList();
 
                     return CustomScrollView(
@@ -525,7 +534,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         SliverToBoxAdapter(
                           child: _buildProfileHeader(user, isOwnProfile),
                         ),
-                        SliverToBoxAdapter(child: Divider(key: _mediaSectionKey)),
+                        SliverToBoxAdapter(
+                          child: Divider(key: _mediaSectionKey),
+                        ),
                         SliverToBoxAdapter(
                           child: _buildFolderSection(
                             isOwnProfile,
@@ -555,9 +566,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   _selectedFolder == _ProfileMediaFolder.all
                                       ? 'No posts yet'
                                       : 'No ${_selectedFolder.name} posts yet',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(color: Colors.grey),
                                 ),
                               ),
@@ -569,11 +578,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 4,
-                                mainAxisSpacing: 4,
-                                childAspectRatio: 1,
-                              ),
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: 4,
+                                    mainAxisSpacing: 4,
+                                    childAspectRatio: 1,
+                                  ),
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) =>
                                     _buildGridPostItem(filteredPosts[index]),
@@ -623,16 +632,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: user.coverImageUrl == null || user.coverImageUrl!.isEmpty
               ? null
               : () => _openProfilePhotoViewer(
-                    user.coverImageUrl,
-                    '${user.displayName}\'s Cover',
-                    isOwnProfile,
-                  ),
+                  user.coverImageUrl,
+                  '${user.displayName}\'s Cover',
+                  isOwnProfile,
+                ),
           child: Container(
             width: double.infinity,
             height: 160,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              image: user.coverImageUrl != null && user.coverImageUrl!.isNotEmpty
+              image:
+                  user.coverImageUrl != null && user.coverImageUrl!.isNotEmpty
                   ? DecorationImage(
                       image: CachedNetworkImageProvider(user.coverImageUrl!),
                       fit: BoxFit.cover,
@@ -643,10 +653,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? Center(
                     child: Icon(
                       Icons.add_a_photo_outlined,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.3),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.3),
                       size: 40,
                     ),
                   )
@@ -661,7 +670,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // Profile Image
                 GestureDetector(
-                  onTap: user.profileImageUrl == null || user.profileImageUrl!.isEmpty
+                  onTap:
+                      user.profileImageUrl == null ||
+                          user.profileImageUrl!.isEmpty
                       ? null
                       : () => _openProfilePhotoViewer(
                           user.profileImageUrl,
@@ -700,9 +711,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (user.username != null)
                   Text(
                     '@${user.username}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.grey),
                   ),
                 // Talent
                 if (user.talent != null)
@@ -728,19 +739,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Joined ${DateFormat('MMMM yyyy').format(user.createdAt)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                       ),
                     ],
                   ),
                 ),
                 // Birthday
-                if (user.birthday != null && (user.birthdayPublic || isOwnProfile))
+                if (user.birthday != null &&
+                    (user.birthdayPublic || isOwnProfile))
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Row(
@@ -750,14 +766,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 4),
                         Text(
                           'Born ${DateFormat('MMMM dd, yyyy').format(user.birthday!)}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                         ),
                         if (isOwnProfile) ...[
                           const SizedBox(width: 8),
                           Icon(
-                            user.birthdayPublic ? Icons.visibility : Icons.visibility_off,
+                            user.birthdayPublic
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             size: 12,
                             color: Colors.grey,
                           ),
@@ -852,7 +870,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : () => _toggleFollow(user),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _isFollowing
-                                ? (Theme.of(context).brightness == Brightness.dark
+                                ? (Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Colors.grey[800]
                                       : Colors.grey[300])
                                 : Theme.of(context).colorScheme.primary,
@@ -861,7 +880,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : Text(
                                   _isFollowing ? 'Following' : 'Follow',
@@ -921,8 +942,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: _searchType == _ProfileSearchType.posts 
-                        ? 'Search posts...' 
+                    hintText: _searchType == _ProfileSearchType.posts
+                        ? 'Search posts...'
                         : 'Search stars...',
                     prefixIcon: const Icon(Icons.search, size: 20),
                     suffixIcon: _searchQuery.isNotEmpty
@@ -936,7 +957,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             },
                           )
                         : null,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 0,
+                      horizontal: 16,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
                       borderSide: BorderSide.none,
@@ -949,18 +973,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   children: [
                     FilterChip(
-                      label: const Text('Posts', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Posts',
+                        style: TextStyle(fontSize: 12),
+                      ),
                       selected: _searchType == _ProfileSearchType.posts,
                       onSelected: (selected) {
-                        if (selected) setState(() => _searchType = _ProfileSearchType.posts);
+                        if (selected) {
+                          setState(
+                            () => _searchType = _ProfileSearchType.posts,
+                          );
+                        }
                       },
                     ),
                     const SizedBox(width: 8),
                     FilterChip(
-                      label: const Text('Stars', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Stars',
+                        style: TextStyle(fontSize: 12),
+                      ),
                       selected: _searchType == _ProfileSearchType.stars,
                       onSelected: (selected) {
-                        if (selected) setState(() => _searchType = _ProfileSearchType.stars);
+                        if (selected) {
+                          setState(
+                            () => _searchType = _ProfileSearchType.stars,
+                          );
+                        }
                       },
                     ),
                   ],
@@ -1238,7 +1276,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         }
 
-        final users = snapshot.data?.docs
+        final users =
+            snapshot.data?.docs
                 .map((doc) => UserModel.fromFirestoreDoc(doc))
                 .toList() ??
             [];
@@ -1277,7 +1316,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : null,
           child: user.profileImageUrl == null ? const Icon(Icons.person) : null,
         ),
-        title: Text(user.displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          user.displayName,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Text(user.talent ?? 'Creative Star'),
         onTap: () {
           Navigator.of(context).push(

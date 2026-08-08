@@ -16,12 +16,17 @@ class RepostDialog extends StatefulWidget {
     required this.currentUserId,
   });
 
-  static Future<String?> show(BuildContext context, {required PostModel post, required String currentUserId}) {
+  static Future<String?> show(
+    BuildContext context, {
+    required PostModel post,
+    required String currentUserId,
+  }) {
     return showModalBottomSheet<String?>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => RepostDialog(post: post, currentUserId: currentUserId),
+      builder: (context) =>
+          RepostDialog(post: post, currentUserId: currentUserId),
     );
   }
 

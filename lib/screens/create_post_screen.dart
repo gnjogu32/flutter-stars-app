@@ -152,8 +152,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
-    final showFollowers =
-        'followers'.startsWith(_activeMentionQuery!.toLowerCase());
+    final showFollowers = 'followers'.startsWith(
+      _activeMentionQuery!.toLowerCase(),
+    );
 
     if (!showFollowers && _filteredMentionUsers.isEmpty) {
       return const SizedBox.shrink();
@@ -273,12 +274,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   void _showVideoFullScreenPreview() {
     if (_selectedVideo == null) return;
-    
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => _LocalVideoPreviewScreen(
-          file: File(_selectedVideo!.path),
-        ),
+        builder: (context) =>
+            _LocalVideoPreviewScreen(file: File(_selectedVideo!.path)),
       ),
     );
   }
@@ -385,7 +385,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           color: Colors.black54,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close, size: 16, color: Colors.white),
+                        child: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -427,7 +431,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, size: 16, color: Colors.white),
+                          child: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -489,137 +497,167 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         children: [
           // Extra padding for transparent AppBar
           SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight),
-              
-              // Talent Picker Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+
+          // Talent Picker Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundImage: _currentUserData?.profileImageUrl != null
+                      ? CachedNetworkImageProvider(
+                          _currentUserData!.profileImageUrl!,
+                        )
+                      : null,
+                  child: _currentUserData?.profileImageUrl == null
+                      ? const Icon(Icons.person, size: 18)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _showTalentPicker,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: theme.dividerColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _selectedTalent ?? 'Choose category',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: _selectedTalent == null
+                                  ? theme.hintColor
+                                  : theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            size: 18,
+                            color: theme.hintColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // Full Screen Typing Area
+          Expanded(
+            child: TextField(
+              controller: _contentController,
+              focusNode: _contentFocusNode,
+              maxLines: null,
+              minLines: null,
+              expands: true,
+              autofocus: widget.initialContent == null,
+              style: const TextStyle(fontSize: 18, height: 1.5),
+              textAlignVertical: TextAlignVertical.top,
+              decoration: const InputDecoration(
+                hintText: 'Share your creativity...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.all(16),
+                fillColor: Colors.transparent, // Override theme
+              ),
+            ),
+          ),
+
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 13),
+              ),
+            ),
+
+          _buildMentionSuggestions(),
+          _buildMediaReview(),
+
+          // Media Selection Toolbar
+          Material(
+            elevation: 8,
+            color: theme.colorScheme.surface.withValues(alpha: 0.8),
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: theme.dividerColor, width: 0.5),
+                  ),
+                ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundImage: _currentUserData?.profileImageUrl != null
-                          ? CachedNetworkImageProvider(_currentUserData!.profileImageUrl!)
-                          : null,
-                      child: _currentUserData?.profileImageUrl == null
-                          ? const Icon(Icons.person, size: 18)
-                          : null,
+                    IconButton(
+                      icon: Icon(
+                        Icons.image_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onPressed: () => _pickImage(ImageSource.gallery),
+                      tooltip: 'Add Images',
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _showTalentPicker,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _selectedTalent ?? 'Choose category',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: _selectedTalent == null ? theme.hintColor : theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(Icons.arrow_drop_down, size: 18, color: theme.hintColor),
-                            ],
-                          ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.camera_alt_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onPressed: () => _pickImage(ImageSource.camera),
+                      tooltip: 'Take Photo',
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.videocam_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onPressed: () => _pickVideo(ImageSource.gallery),
+                      tooltip: 'Add Video',
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.video_call_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onPressed: () => _pickVideo(ImageSource.camera),
+                      tooltip: 'Record Video',
+                    ),
+                    const Spacer(),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Text(
+                        '${_contentController.text.length}/280',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: _contentController.text.length > 280
+                              ? Colors.red
+                              : theme.hintColor,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Divider(height: 1),
-
-              // Full Screen Typing Area
-              Expanded(
-                child: TextField(
-                  controller: _contentController,
-                  focusNode: _contentFocusNode,
-                  maxLines: null,
-                  minLines: null,
-                  expands: true,
-                  autofocus: widget.initialContent == null,
-                  style: const TextStyle(fontSize: 18, height: 1.5),
-                  textAlignVertical: TextAlignVertical.top,
-                  decoration: const InputDecoration(
-                    hintText: 'Share your creativity...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
-                    fillColor: Colors.transparent, // Override theme
-                  ),
-                ),
-              ),
-
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 13),
-                  ),
-                ),
-
-              _buildMentionSuggestions(),
-              _buildMediaReview(),
-
-              // Media Selection Toolbar
-              Material(
-                elevation: 8,
-                color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                child: SafeArea(
-                  top: false,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.image_outlined, color: theme.colorScheme.primary),
-                          onPressed: () => _pickImage(ImageSource.gallery),
-                          tooltip: 'Add Images',
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.primary),
-                          onPressed: () => _pickImage(ImageSource.camera),
-                          tooltip: 'Take Photo',
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.videocam_outlined, color: theme.colorScheme.primary),
-                          onPressed: () => _pickVideo(ImageSource.gallery),
-                          tooltip: 'Add Video',
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.video_call_outlined, color: theme.colorScheme.primary),
-                          onPressed: () => _pickVideo(ImageSource.camera),
-                          tooltip: 'Record Video',
-                        ),
-                        const Spacer(),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Text(
-                            '${_contentController.text.length}/280',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: _contentController.text.length > 280 ? Colors.red : theme.hintColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
+        ],
+      ),
     );
   }
 
@@ -634,7 +672,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Choose Category', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Choose Category',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 12),
             Flexible(
               child: ListView.builder(
@@ -703,7 +744,8 @@ class _LocalVideoPreviewScreen extends StatefulWidget {
   const _LocalVideoPreviewScreen({required this.file});
 
   @override
-  State<_LocalVideoPreviewScreen> createState() => _LocalVideoPreviewScreenState();
+  State<_LocalVideoPreviewScreen> createState() =>
+      _LocalVideoPreviewScreenState();
 }
 
 class _LocalVideoPreviewScreenState extends State<_LocalVideoPreviewScreen> {
@@ -736,7 +778,10 @@ class _LocalVideoPreviewScreenState extends State<_LocalVideoPreviewScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Video Preview', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Video Preview',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: Center(
         child: _initialized
@@ -755,7 +800,11 @@ class _LocalVideoPreviewScreenState extends State<_LocalVideoPreviewScreen> {
                     children: [
                       VideoPlayer(_controller),
                       if (!_controller.value.isPlaying)
-                        const Icon(Icons.play_arrow, size: 80, color: Colors.white54),
+                        const Icon(
+                          Icons.play_arrow,
+                          size: 80,
+                          color: Colors.white54,
+                        ),
                     ],
                   ),
                 ),

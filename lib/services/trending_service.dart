@@ -5,10 +5,8 @@ class TrendingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Get trending posts based on likes and engagement (24 hours)
-  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})> getTrendingPosts({
-    int limit = 10,
-    DocumentSnapshot? lastDocument,
-  }) async {
+  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})>
+  getTrendingPosts({int limit = 10, DocumentSnapshot? lastDocument}) async {
     try {
       final now = DateTime.now();
       final twentyFourHoursAgo = now.subtract(const Duration(hours: 24));
@@ -53,7 +51,11 @@ class TrendingService {
 
   // Get trending posts by category/talent
   Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})>
-  getTrendingPostsByTalent({required String talent, int limit = 10, DocumentSnapshot? lastDocument}) async {
+  getTrendingPostsByTalent({
+    required String talent,
+    int limit = 10,
+    DocumentSnapshot? lastDocument,
+  }) async {
     try {
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
@@ -130,10 +132,8 @@ class TrendingService {
   }
 
   // Get top posts by likes
-  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})> getTopPostsByLikes({
-    int limit = 10,
-    DocumentSnapshot? lastDocument,
-  }) async {
+  Future<({List<PostModel> posts, DocumentSnapshot? lastDoc})>
+  getTopPostsByLikes({int limit = 10, DocumentSnapshot? lastDocument}) async {
     try {
       final now = DateTime.now();
       final thirtyDaysAgo = now.subtract(const Duration(days: 30));
