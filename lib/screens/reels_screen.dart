@@ -522,9 +522,11 @@ class _ReelItemState extends State<_ReelItem>
           _isLiked = wasLiked;
           _likeCount = wasLiked ? (_likeCount + 1) : (_likeCount - 1);
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Something went wrong. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Something went wrong. Please try again.'),
+          ),
+        );
       }
     } finally {
       if (mounted) {

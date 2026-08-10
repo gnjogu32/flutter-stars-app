@@ -832,9 +832,9 @@ class _UserCardState extends State<_UserCard>
     } catch (e) {
       if (mounted) {
         setState(() => _isFollowLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Unable to update follow state.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to update follow state.')),
+        );
       }
     }
   }

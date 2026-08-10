@@ -331,9 +331,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           _isSending = false;
           _isUploading = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to post comment.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to post comment.')),
+        );
       }
     }
   }
@@ -840,8 +840,8 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? const Center(child: Text('Unable to load GIFs.'))
-                      : GridView.builder(
+                  ? const Center(child: Text('Unable to load GIFs.'))
+                  : GridView.builder(
                       controller: scrollController,
                       padding: const EdgeInsets.all(8),
                       gridDelegate:
