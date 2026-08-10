@@ -469,6 +469,8 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                     style: TextStyle(color: Colors.red),
                   ),
                   onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
                     Navigator.pop(context);
                     final confirmed = await showDialog<bool>(
                       context: this.context,
@@ -495,12 +497,10 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                     if (confirmed == true) {
                       await PostService().deletePost(widget.post);
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(content: Text('Post deleted')),
                         );
-                        if (mounted) {
-                          Navigator.pop(context);
-                        }
+                        navigator.pop();
                       }
                     }
                   },
@@ -512,7 +512,8 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                   onTap: () {
                     Navigator.pop(context);
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      final messenger = ScaffoldMessenger.of(context);
+                      messenger.showSnackBar(
                         const SnackBar(content: Text('Post reported.')),
                       );
                     }
@@ -522,6 +523,7 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                   leading: const Icon(Icons.person_off_outlined),
                   title: Text('Mute $ownerName'),
                   onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     Navigator.pop(context);
                     if (widget.currentUserId != null) {
                       await UserService().muteAuthor(
@@ -530,7 +532,7 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                       );
                     }
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Muted $ownerName')),
                       );
                     }

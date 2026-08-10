@@ -1,0 +1,17 @@
+Workflow save created on 2026-08-08
+
+Project: flutter_stars_app
+Build command: flutter build apk --release
+APK output: build/app/outputs/flutter-apk/app-release.apk
+Distribution script: build_and_distribute_all.ps1
+
+Result summary:
+- APK build succeeded.
+- APK copied to build/latest-apk/app-release.apk.
+- Firebase App Distribution upload succeeded.
+- Release created: 1.1.9 (14).
+- Final tester-group distribution step reported a Firebase 404 error for the requested entity.
+
+Notes:
+- The workflow scripts were updated to resolve the APK from the current Flutter output path.
+- The release is available in Firebase App Distribution console.

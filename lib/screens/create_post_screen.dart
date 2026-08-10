@@ -213,7 +213,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       if (source == ImageSource.gallery) {
         final result = await FilePicker.pickFiles(
           type: FileType.image,
-          allowMultiple: true,
         );
         if (result != null && result.files.isNotEmpty) {
           final Map<String, Uint8List> newBytes = {};

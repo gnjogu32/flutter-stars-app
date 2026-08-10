@@ -2,7 +2,13 @@
 # PowerShell script to upload APK to Firebase App Distribution and notify testers
 $apkPath = "build/latest-apk/app-release.apk"
 $firebaseAppId = "1:246255479274:android:177b790682bb5b59862a93"
-$testerGroups = "testers"
+$testerGroups = $env:FIREBASE_GROUPS
+if ([string]::IsNullOrWhiteSpace($testerGroups)) {
+	$testerGroups = $env:FIREBASE_DISTRIBUTION_GROUP
+}
+if ([string]::IsNullOrWhiteSpace($testerGroups)) {
+	$testerGroups = "alpha,beta"
+}
 $releaseNotes = "Automated build and distribution"
 
 if (!(Test-Path $apkPath)) {

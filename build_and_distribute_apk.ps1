@@ -33,7 +33,14 @@ if ($latestApk -ne $null) {
     Copy-Item $latestApk.FullName $destPath -Force
     Write-Host "Copied latest APK to $destPath"
     # Step 3: Upload to Firebase App Distribution
-    firebase appdistribution:distribute $destPath --app 1:246255479274:android:177b790682bb5b59862a93 --groups testers --release-notes "Automated build and distribution"
+    $testerGroups = $env:FIREBASE_GROUPS
+    if ([string]::IsNullOrWhiteSpace($testerGroups)) {
+        $testerGroups = $env:FIREBASE_DISTRIBUTION_GROUP
+    }
+    if ([string]::IsNullOrWhiteSpace($testerGroups)) {
+        $testerGroups = "alpha,beta"
+    }
+    firebase appdistribution:distribute $destPath --app 1:246255479274:android:177b790682bb5b59862a93 --groups $testerGroups --release-notes "Automated build and distribution"
     Write-Host "Uploaded $destPath to Firebase App Distribution (testers group)"
 } else {
     Write-Host "No APK found in standard output locations."

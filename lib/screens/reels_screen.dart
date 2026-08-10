@@ -638,6 +638,7 @@ class _ReelItemState extends State<_ReelItem>
                     style: TextStyle(color: Colors.red),
                   ),
                   onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     Navigator.pop(context);
                     final confirmed = await showDialog<bool>(
                       context: this.context,
@@ -664,7 +665,7 @@ class _ReelItemState extends State<_ReelItem>
                     if (confirmed == true) {
                       await PostService().deletePost(widget.post);
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(content: Text('Post deleted')),
                         );
                       }
@@ -678,7 +679,8 @@ class _ReelItemState extends State<_ReelItem>
                   onTap: () {
                     Navigator.pop(context);
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      final messenger = ScaffoldMessenger.of(context);
+                      messenger.showSnackBar(
                         const SnackBar(content: Text('Post reported.')),
                       );
                     }
@@ -688,10 +690,11 @@ class _ReelItemState extends State<_ReelItem>
                   leading: const Icon(Icons.person_off_outlined),
                   title: Text('Mute $ownerName'),
                   onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     Navigator.pop(context);
                     await UserService().muteAuthor(_activeUserId, _ownerId);
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Muted $ownerName')),
                       );
                     }

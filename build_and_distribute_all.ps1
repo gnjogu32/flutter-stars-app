@@ -4,13 +4,24 @@
 Write-Host "Building APK..."
 
 flutter build apk --release
-$apkPath = "android/app/build/outputs/apk/release/app-release.apk"
+$possiblePaths = @(
+    "build/app/outputs/flutter-apk/app-release.apk",
+    "android/app/build/outputs/flutter-apk/app-release.apk",
+    "android/app/build/outputs/apk/release/app-release.apk"
+)
+$apkPath = $null
+foreach ($path in $possiblePaths) {
+    if (Test-Path $path) {
+        $apkPath = $path
+        break
+    }
+}
 if ($LASTEXITCODE -ne 0) {
-    if (!(Test-Path $apkPath)) {
+    if (-not $apkPath) {
         Write-Error "Flutter build failed and APK not found. Aborting."
         exit 1
     } else {
-        Write-Warning "Flutter build reported failure, but APK was found. Continuing..."
+        Write-Warning "Flutter build reported failure, but APK was found at $apkPath. Continuing..."
     }
 }
 

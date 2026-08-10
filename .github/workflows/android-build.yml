@@ -66,10 +66,9 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          FIREBASE_DISTRIBUTION_GROUP: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUP }}
         run: |
           APP_ID="${FIREBASE_APP_ID:-1:246255479274:android:177b790682bb5b59862a93}"
-          GROUP="${FIREBASE_DISTRIBUTION_GROUP:-alpha}"
+          GROUPS="alpha,beta"
 
           if [ -z "$FIREBASE_TOKEN" ]; then
             echo "::error::FIREBASE_TOKEN is not configured. Generate a token with 'firebase login:ci' or use a service account token with Firebase App Distribution Admin permissions."
@@ -79,7 +78,7 @@ jobs:
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
             --app "$APP_ID" \
             --token "$FIREBASE_TOKEN" \
-            --groups "$GROUP" \
+            --groups "$GROUPS" \
             --release-notes "Automated build and distribution from GitHub Actions"
       - name: Get APK size
         run: |
