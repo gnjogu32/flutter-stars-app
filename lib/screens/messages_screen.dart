@@ -209,7 +209,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  debugPrint('Conversations error: ${snapshot.error}');
+                  return const Center(child: Text('Unable to load chats.'));
                 }
 
                 var conversations = snapshot.data ?? [];

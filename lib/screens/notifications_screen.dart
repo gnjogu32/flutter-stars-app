@@ -94,7 +94,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            debugPrint('Notifications error: ${snapshot.error}');
+            return const Center(child: Text('Unable to load notifications.'));
           }
 
           final notifications = snapshot.data ?? [];

@@ -586,9 +586,9 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                 final postUrl = AppConstants.postUrl(widget.post.postId);
                 Clipboard.setData(ClipboardData(text: postUrl));
                 if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Link copied ✓')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Link copied ✓')),
+                  );
                 }
               },
             ),

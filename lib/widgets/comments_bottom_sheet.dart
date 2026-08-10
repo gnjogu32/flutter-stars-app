@@ -333,7 +333,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Failed to post comment.')));
       }
     }
   }
@@ -840,8 +840,8 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                  ? Center(child: Text('Error: $_error'))
-                  : GridView.builder(
+                      ? const Center(child: Text('Unable to load GIFs.'))
+                      : GridView.builder(
                       controller: scrollController,
                       padding: const EdgeInsets.all(8),
                       gridDelegate:

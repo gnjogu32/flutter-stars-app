@@ -524,7 +524,7 @@ class _ReelItemState extends State<_ReelItem>
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Something went wrong. Please try again.')));
       }
     } finally {
       if (mounted) {

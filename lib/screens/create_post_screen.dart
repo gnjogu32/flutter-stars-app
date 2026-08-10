@@ -211,9 +211,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     HapticFeedback.lightImpact();
     try {
       if (source == ImageSource.gallery) {
-        final result = await FilePicker.pickFiles(
-          type: FileType.image,
-        );
+        final result = await FilePicker.pickFiles(type: FileType.image);
         if (result != null && result.files.isNotEmpty) {
           final Map<String, Uint8List> newBytes = {};
           final List<XFile> pickedFiles = [];

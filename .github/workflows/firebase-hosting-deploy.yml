@@ -11,6 +11,7 @@ on:
 
 env:
   FLUTTER_VERSION: '3.44.0'
+  FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
 jobs:
   build-and-deploy:
@@ -62,6 +63,7 @@ jobs:
         run: flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=true
 
       - name: Deploy to Firebase Hosting
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -70,3 +72,7 @@ jobs:
           channelId: live
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+      - name: Skip Firebase Hosting deployment without credentials
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT == '' }}
+        run: echo "Skipping Firebase Hosting deployment because FIREBASE_SERVICE_ACCOUNT is not configured."

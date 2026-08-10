@@ -139,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Action failed. Please try again.')));
       }
     } finally {
       if (mounted) {
@@ -199,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Action failed. Please try again.')));
       }
     } finally {
       if (mounted) setState(() => _isLoadingBlock = false);

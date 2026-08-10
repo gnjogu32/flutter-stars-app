@@ -559,7 +559,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          debugPrint('Stars discovery error: ${snapshot.error}');
+          return const Center(child: Text('Unable to load stars.'));
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -833,7 +834,7 @@ class _UserCardState extends State<_UserCard>
         setState(() => _isFollowLoading = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Unable to update follow state.')));
       }
     }
   }
