@@ -62,8 +62,29 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=true
 
+      - name: Validate Firebase service account secret
+        id: firebase-sa-check
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT is missing. Skipping Firebase Hosting deployment."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! python3 -c "import json,os,sys; data=json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT','')); required=['type','project_id','private_key','client_email']; missing=[k for k in required if not data.get(k)]; ok=(data.get('type')=='service_account' and not missing); sys.exit(0 if ok else 1)"; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT is invalid. It must be a service_account key JSON with project_id, private_key, and client_email. Skipping Firebase Hosting deployment."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Firebase Hosting
-        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        if: steps.firebase-sa-check.outputs.ready == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -74,5 +95,5 @@ jobs:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
 
       - name: Skip Firebase Hosting deployment without credentials
-        if: ${{ env.FIREBASE_SERVICE_ACCOUNT == '' }}
-        run: echo "Skipping Firebase Hosting deployment because FIREBASE_SERVICE_ACCOUNT is not configured."
+        if: steps.firebase-sa-check.outputs.ready != 'true'
+        run: echo "Skipping Firebase Hosting deployment because FIREBASE_SERVICE_ACCOUNT is missing or invalid."
