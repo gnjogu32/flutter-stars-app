@@ -1,0 +1,22 @@
+# Firebase App Hosting configuration for Starpage Web
+version: v1beta
+
+# Build settings
+build:
+  # The root of the web project
+  root: .
+  # Specify the build command for Flutter Web
+  command: flutter build web --release --tree-shake-icons
+  # Environment variables for the build process
+  environmentVariables:
+    - variable: FLUTTER_VERSION
+      value: "3.44.0"
+
+# Runtime settings
+run:
+  # The output directory of the Flutter Web build
+  outputDirectory: build/web
+  # concurrency and memory limits if needed
+  concurrency: 80
+  cpu: 1
+  memory: 512Mi
