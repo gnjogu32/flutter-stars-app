@@ -45,7 +45,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -f "android/app/release-keystore.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
+          if [ -f "android/starpage-keystore-new.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::Release signing prerequisites missing (Keystore or Passwords). Skipping signed release APK build."
@@ -142,10 +142,10 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -f "android/app/release-keystore.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
+          if [ -f "android/starpage-keystore-new.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Release signing prerequisites missing. Skipping app bundle build."
+            echo "::warning::Release signing prerequisites missing (Keystore or Passwords). Skipping app bundle build."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
 

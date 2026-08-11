@@ -52,8 +52,22 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Check release signing prerequisites
+        id: release_signing_check
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -f "android/starpage-keystore-new.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Release signing prerequisites missing (Keystore or Passwords). Play Store deployment cannot proceed."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
       - name: Build App Bundle
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --android-skip-build-dependency-validation
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
