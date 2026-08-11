@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -53,21 +53,21 @@ jobs:
           fi
 
       - name: Analyze code
-        run: flutter analyze --android-skip-build-dependency-validation
+        run: flutter analyze
 
       - name: Run tests
         run: flutter test
 
       - name: Build APK (Release)
         if: steps.signing_check.outputs.ready == 'true'
-        run: flutter build apk --release --android-skip-build-dependency-validation
+        run: flutter build apk --release
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Build APK (Debug fallback)
         if: steps.signing_check.outputs.ready != 'true'
-        run: flutter build apk --debug --android-skip-build-dependency-validation
+        run: flutter build apk --debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -120,7 +120,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -151,7 +151,7 @@ jobs:
 
       - name: Build App Bundle
         if: steps.bundle_signing_check.outputs.ready == 'true'
-        run: flutter build appbundle --release --android-skip-build-dependency-validation
+        run: flutter build appbundle --release
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -163,3 +163,4 @@ jobs:
           name: android-app-bundle
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
+
