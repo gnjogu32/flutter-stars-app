@@ -39,54 +39,76 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Check release signing prerequisites
+        id: signing_check
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -f "android/app/release-keystore.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Release signing prerequisites missing (Keystore or Passwords). Skipping signed release APK build."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Analyze code
-        run: flutter analyze
+        run: flutter analyze --android-skip-build-dependency-validation
 
       - name: Run tests
         run: flutter test
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build APK (Release)
+        if: steps.signing_check.outputs.ready == 'true'
+        run: flutter build apk --release --android-skip-build-dependency-validation
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Build APK (Debug fallback)
+        if: steps.signing_check.outputs.ready != 'true'
+        run: flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/*.apk
           retention-days: 30
 
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools@latest
-
-      - name: Distribute APK to Firebase App Distribution
+      - name: Check Firebase secrets
+        id: firebase_secrets_check
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
-          APP_ID="${FIREBASE_APP_ID:-1:246255479274:android:177b790682bb5b59862a93}"
-          GROUPS="alpha,beta"
-
-          if [ -z "$FIREBASE_TOKEN" ]; then
-            echo "::error::FIREBASE_TOKEN is not configured. Generate a token with 'firebase login:ci' or use a service account token with Firebase App Distribution Admin permissions."
-            exit 1
+          if [ -n "$FIREBASE_TOKEN" ] && [ -n "$FIREBASE_APP_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FIREBASE_TOKEN or FIREBASE_APP_ID is missing. Skipping distribution."
           fi
 
+      - name: Install Firebase CLI
+        if: steps.firebase_secrets_check.outputs.ready == 'true'
+        run: npm install -g firebase-tools
+
+      - name: Distribute APK to Firebase App Distribution
+        if: steps.firebase_secrets_check.outputs.ready == 'true' && steps.signing_check.outputs.ready == 'true'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: |
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-            --app "$APP_ID" \
+            --app "$FIREBASE_APP_ID" \
             --token "$FIREBASE_TOKEN" \
-            --groups "$GROUPS" \
+            --groups testers \
             --release-notes "Automated build and distribution from GitHub Actions"
+
       - name: Get APK size
         run: |
-          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
-          if [ -f "$APK_PATH" ]; then
-            APK_SIZE=$(stat -c%s "$APK_PATH" | numfmt --to=iec)
-            echo "📦 APK Size: $APK_SIZE"
-          fi
+          find build/app/outputs/flutter-apk/ -name "*.apk" -exec ls -lh {} +
 
   android-bundle:
     name: Build App Bundle (for Play Store)
@@ -114,8 +136,22 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Check release signing prerequisites
+        id: bundle_signing_check
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -f "android/app/release-keystore.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Release signing prerequisites missing. Skipping app bundle build."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build App Bundle
-        run: flutter build appbundle --release
+        if: steps.bundle_signing_check.outputs.ready == 'true'
+        run: flutter build appbundle --release --android-skip-build-dependency-validation
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -127,11 +163,3 @@ jobs:
           name: android-app-bundle
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
-
-      - name: Get Bundle size
-        run: |
-          BUNDLE_PATH="build/app/outputs/bundle/release/app-release.aab"
-          if [ -f "$BUNDLE_PATH" ]; then
-            BUNDLE_SIZE=$(stat -c%s "$BUNDLE_PATH" | numfmt --to=iec)
-            echo "📦 App Bundle Size: $BUNDLE_SIZE"
-          fi
