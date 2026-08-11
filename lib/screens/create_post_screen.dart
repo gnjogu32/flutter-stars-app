@@ -247,10 +247,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     HapticFeedback.lightImpact();
     try {
       if (source == ImageSource.gallery) {
-        final result = await FilePicker.pickFiles(type: FileType.video);
-        if (result != null && result.files.single.path != null) {
+        final result = await FilePicker.pickFile(type: FileType.video);
+        if (result != null && result.path != null) {
           setState(() {
-            _selectedVideo = XFile(result.files.single.path!);
+            _selectedVideo = XFile(result.path!);
             _errorMessage = null;
           });
         }

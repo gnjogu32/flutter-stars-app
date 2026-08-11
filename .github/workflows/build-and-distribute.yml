@@ -43,7 +43,7 @@ jobs:
 
       - name: Run code analysis
         run: |
-          flutter analyze --android-skip-build-dependency-validation
+          flutter analyze
           dart pub global activate custom_lint
           dart pub global run custom_lint || true
 
