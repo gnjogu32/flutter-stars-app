@@ -60,16 +60,39 @@ jobs:
             echo "channel=live" >> $GITHUB_OUTPUT
           fi
 
+      - name: Validate Firebase service account
+        id: firebase_auth_check
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          service_account = os.environ.get("FIREBASE_SERVICE_ACCOUNT", "").strip()
+          ready = False
+          if service_account:
+              try:
+                  payload = json.loads(service_account)
+                  ready = bool(payload.get("client_email") and payload.get("private_key"))
+              except json.JSONDecodeError:
+                  ready = False
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"ready={'true' if ready else 'false'}\n")
+          PY
+
       - name: Authenticate to Google Cloud
+        if: steps.firebase_auth_check.outputs.ready == 'true'
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           project_id: starpage-ed409
 
       - name: Set up Cloud SDK
+        if: steps.firebase_auth_check.outputs.ready == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Preflight App Hosting checks
+        if: steps.firebase_auth_check.outputs.ready == 'true'
         run: |
           set -euo pipefail
 
@@ -101,6 +124,7 @@ jobs:
           fi
 
       - name: Deploy to Firebase App Hosting
+        if: steps.firebase_auth_check.outputs.ready == 'true'
         run: |
           gcloud firebase app-hosting backends deploy \
             --source=. \
@@ -110,8 +134,12 @@ jobs:
         env:
           GCLOUD_PROJECT: starpage-ed409
 
+      - name: Skip App Hosting deployment without valid credentials
+        if: steps.firebase_auth_check.outputs.ready != 'true'
+        run: echo "::warning::Skipping App Hosting deployment because FIREBASE_SERVICE_ACCOUNT is missing or malformed."
+
       - name: Comment on PR with deployment link
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.firebase_auth_check.outputs.ready == 'true'
         uses: actions/github-script@v7
         with:
           script: |

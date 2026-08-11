@@ -61,7 +61,28 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=true
 
+      - name: Validate Firebase service account
+        id: firebase_auth_check
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          service_account = os.environ.get("FIREBASE_SERVICE_ACCOUNT", "").strip()
+          ready = False
+          if service_account:
+              try:
+                  payload = json.loads(service_account)
+                  ready = bool(payload.get("client_email") and payload.get("private_key"))
+              except json.JSONDecodeError:
+                  ready = False
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"ready={'true' if ready else 'false'}\n")
+          PY
+
       - name: Deploy to Firebase Hosting
+        if: steps.firebase_auth_check.outputs.ready == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -70,3 +91,7 @@ jobs:
           channelId: live
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+      - name: Skip Firebase Hosting deployment without valid credentials
+        if: steps.firebase_auth_check.outputs.ready != 'true'
+        run: echo "::warning::Skipping Firebase Hosting deployment because FIREBASE_SERVICE_ACCOUNT is missing or malformed."
