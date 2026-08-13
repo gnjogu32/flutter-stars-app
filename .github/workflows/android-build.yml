@@ -20,7 +20,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -48,7 +48,7 @@ jobs:
           if [ -f "android/starpage-keystore-new.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Release signing prerequisites missing (Keystore or Passwords). Skipping signed release APK build."
+            echo "::notice::Release signing prerequisites missing (Keystore or Passwords). Skipping signed release APK build."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -87,7 +87,7 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::FIREBASE_TOKEN or FIREBASE_APP_ID is missing. Skipping distribution."
+            echo "::notice::FIREBASE_TOKEN or FIREBASE_APP_ID is missing. Skipping distribution."
           fi
 
       - name: Install Firebase CLI
@@ -117,7 +117,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -145,7 +145,7 @@ jobs:
           if [ -f "android/starpage-keystore-new.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Release signing prerequisites missing (Keystore or Passwords). Skipping app bundle build."
+            echo "::notice::Release signing prerequisites missing (Keystore or Passwords). Skipping app bundle build."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
 

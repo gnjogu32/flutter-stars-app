@@ -19,7 +19,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -47,7 +47,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -70,13 +70,13 @@ jobs:
           set -euo pipefail
 
           if [ -z "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
-            echo "::warning::FIREBASE_SERVICE_ACCOUNT is missing. Skipping Firebase Hosting deployment."
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT is missing. Skipping Firebase Hosting deployment."
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           if ! python3 -c "import json,os,sys; data=json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT','')); required=['type','project_id','private_key','client_email']; missing=[k for k in required if not data.get(k)]; ok=(data.get('type')=='service_account' and not missing); sys.exit(0 if ok else 1)"; then
-            echo "::warning::FIREBASE_SERVICE_ACCOUNT is invalid. It must be a service_account key JSON with project_id, private_key, and client_email. Skipping Firebase Hosting deployment."
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT is invalid. It must be a service_account key JSON with project_id, private_key, and client_email. Skipping Firebase Hosting deployment."
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
