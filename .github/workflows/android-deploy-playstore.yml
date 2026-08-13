@@ -1,5 +1,5 @@
-name: Android Deploy to Play Store
-
+﻿name: Android Deploy to Play Store`r`n# CI verification trigger: 2026-08-13`r`n
+# CI verification trigger: 2026-08-13
 on:
   workflow_dispatch:
     inputs:
@@ -130,3 +130,4 @@ jobs:
             const status = '${{ job.status }}';
             const track = '${{ github.event.inputs.track || 'internal' }}';
             console.log(`Android deployment to ${track} track: ${status}`);
+
