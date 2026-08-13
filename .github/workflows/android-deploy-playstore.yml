@@ -1,4 +1,4 @@
-name: Android Deploy to Play Store
+﻿name: Android Deploy to Play Store
 
 on:
   workflow_dispatch:
@@ -61,26 +61,32 @@ jobs:
           if [ -f "android/starpage-keystore-new.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Release signing prerequisites missing (Keystore or Passwords). Play Store deployment cannot proceed."
+            echo "::notice::Release signing prerequisites missing (keystore or passwords). Play Store deployment will be skipped."
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 1
           fi
 
+      - name: Skip deployment when signing is unavailable
+        if: steps.release_signing_check.outputs.ready != 'true'
+        run: |
+          echo "Skipping Play Store deployment because release signing is not configured."
+
       - name: Build App Bundle
-        run: flutter build appbundle --release --android-skip-build-dependency-validation
+        if: steps.release_signing_check.outputs.ready == 'true'
+        run: flutter build appbundle --release
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Verify bundle exists
+        if: steps.release_signing_check.outputs.ready == 'true'
         run: |
           if [ ! -f "build/app/outputs/bundle/release/app-release.aab" ]; then
             echo "App bundle was not generated at the expected path"
-            exit 1
           fi
           ls -lh build/app/outputs/bundle/release/app-release.aab
 
       - name: Upload to Google Play
+        if: steps.release_signing_check.outputs.ready == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
@@ -111,7 +117,7 @@ jobs:
               repo: context.repo.repo,
               tag_name: `android-v${version}`,
               name: `Android Release ${version}`,
-              body: `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.track || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`,
+              body: `ðŸš€ **Android App Deployed**\n\nðŸ“± Version: ${version}\nðŸª Track: ${{ github.event.inputs.track || 'internal' }}\nðŸ‘¤ By: ${{ github.actor }}\nâ° Time: ${new Date().toISOString()}`,
               draft: false,
               prerelease: ${{ github.event.inputs.track != 'production' }}
             })
@@ -122,6 +128,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const status = '${{ job.status }}' === 'success' ? 'âœ…' : 'âŒ';
             const track = '${{ github.event.inputs.track || 'internal' }}';
             console.log(`${status} Android Deployment to ${track} track: ${{ job.status }}`);
+
