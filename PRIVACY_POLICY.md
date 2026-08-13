@@ -170,7 +170,7 @@ For privacy questions or requests:
 **Email**: privacy@starpage.app  
 **Mail**: Starpage, Inc.  
          Privacy Department  
-         [Your Address]  
+         Available on request via privacy@starpage.app  
 
 **Response time**: 30 days
 
@@ -226,4 +226,4 @@ You can:
 
 ---
 
-For the most current version, visit: **https://starpage.me/privacy**
+For the most current version, visit: **https://starpage.app/privacy**
