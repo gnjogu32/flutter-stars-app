@@ -108,7 +108,7 @@ Before submission, prepare these:
 1. **Privacy Policy URL**
    - Create at: https://privacypolicygenerator.info
    - Host at: Firebase Hosting, GitHub Pages, or your website
-   - Example: https://starpage.app/privacy
+   - Example: https://starpage.me/privacy
 
 2. **Support Email**
    - Recommended: support@starpage.app

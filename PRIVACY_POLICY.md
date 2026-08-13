@@ -226,4 +226,4 @@ You can:
 
 ---
 
-For the most current version, visit: **https://starpage.app/privacy**
+For the most current version, visit: **https://starpage.me/privacy**
