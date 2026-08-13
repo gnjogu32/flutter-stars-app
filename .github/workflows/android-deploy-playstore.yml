@@ -1,4 +1,4 @@
-﻿name: Android Deploy to Play Store
+name: Android Deploy to Play Store
 
 on:
   workflow_dispatch:
