@@ -23,7 +23,7 @@ storeFile = file("starpage-keystore.jks")
 
 **After:** Correct relative path from android/app/
 ```kotlin
-storeFile = file("../starpage-keystore.jks")
+storeFile = file("../starpage-keystore-new.jks")
 ```
 
 ### ✅ 3. Implemented Properties File Loading
@@ -51,7 +51,7 @@ The following entries prevent accidental commits:
 storePassword=your_actual_keystore_password
 keyPassword=your_actual_key_password
 keyAlias=starpage
-storeFile=starpage-keystore.jks
+storeFile=starpage-keystore-new.jks
 ```
 
 2. **OR use environment variables:**
@@ -101,5 +101,5 @@ flutter build appbundle --release
 - [ ] Update `android/key.properties` with actual keystore password
 - [ ] Set environment variables in PowerShell or System Properties
 - [ ] Test release build: `flutter build apk --release`
-- [ ] Verify keystore file exists: `Test-Path android/starpage-keystore.jks`
+- [ ] Verify keystore file exists: `Test-Path android/starpage-keystore-new.jks`
 - [ ] Never commit `key.properties` to version control

@@ -1,19 +1,19 @@
-# Starpage Android Deployment Guide
+﻿# Starpage Android Deployment Guide
 
 ## Overview
 Your Starpage app is now configured for Android deployment with production-ready settings.
 
 ## What's Been Configured
 
-### ✅ Package Name
+### âœ… Package Name
 - **Old:** `com.example.flutter_stars_app`
 - **New:** `starpage.com`
 - Unique identifier for your app on Google Play
 
-### ✅ App Name
+### âœ… App Name
 - Display name changed to "Starpage" (visible to users)
 
-### ✅ Permissions Added
+### âœ… Permissions Added
 The following permissions have been configured for the app functionality:
 - `INTERNET` - Firebase communication
 - `ACCESS_NETWORK_STATE` - Network status check
@@ -23,12 +23,12 @@ The following permissions have been configured for the app functionality:
 - `READ_EXTERNAL_STORAGE` - Fallback for older Android versions
 - `WRITE_EXTERNAL_STORAGE` - Media storage access
 
-### ✅ Signing Configuration
+### âœ… Signing Configuration
 - Release build signing config created
 - ProGuard code obfuscation enabled
 - Resource shrinking enabled for smaller APK size
 
-### ✅ Build Optimization
+### âœ… Build Optimization
 - MinifyEnabled: Reduces APK size
 - ShrinkResources: Removes unused resources
 - ProGuard: Obfuscates code for security
@@ -41,7 +41,7 @@ The following permissions have been configured for the app functionality:
 Open PowerShell and run:
 
 ```powershell
-keytool -genkey -v -keystore starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 ```
 
 You'll be prompted to enter:
@@ -50,13 +50,13 @@ You'll be prompted to enter:
 - First name, last name, org, etc.
 
 ### Step 2: Store Keystore Securely
-Move the generated `starpage-keystore.jks` to: `android/`
+Move the generated `starpage-keystore-new.jks` to: `android/`
 ```
 flutter_stars_app/
-├── android/
-│   └── starpage-keystore.jks  ← Place keystore here
-├── android/app/
-└── ...
+â”œâ”€â”€ android/
+â”‚   â””â”€â”€ starpage-keystore-new.jks  â† Place keystore here
+â”œâ”€â”€ android/app/
+â””â”€â”€ ...
 ```
 
 ### Step 3: Configure Signing in build.gradle.kts
@@ -66,7 +66,7 @@ Uncomment and update this section in `android/app/build.gradle.kts`:
 ```kotlin
 signingConfigs {
     release {
-        storeFile = file("../starpage-keystore.jks")
+        storeFile = file("../starpage-keystore-new.jks")
         storePassword = System.getenv("KEYSTORE_PASSWORD")
         keyAlias = "starpage"
         keyPassword = System.getenv("KEY_PASSWORD")
@@ -83,7 +83,7 @@ $env:KEY_PASSWORD = "your_key_password"
 ```
 
 **Option B: Create global environment variables**
-1. Open System Properties → Environment Variables
+1. Open System Properties â†’ Environment Variables
 2. Add `KEYSTORE_PASSWORD` and `KEY_PASSWORD`
 3. Restart PowerShell
 
@@ -129,8 +129,8 @@ Output: `build/app/outputs/bundle/release/app-release.aab`
 
 ## Important Security Notes
 
-⚠️ **CRITICAL: Protect Your Keystore**
-- **Never** commit `starpage-keystore.jks` to git
+âš ï¸ **CRITICAL: Protect Your Keystore**
+- **Never** commit `starpage-keystore-new.jks` to git
 - **Never** share your keystore password
 - **Backup** your keystore securely
 - **Loss** of keystore means you cannot update your app
@@ -214,3 +214,4 @@ When ready, similar steps for iOS deployment:
 3. Build and upload to App Store
 
 Would you like help with iOS deployment next?
+

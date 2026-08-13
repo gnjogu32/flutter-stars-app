@@ -1,6 +1,6 @@
-# APK Build Status & Troubleshooting
+﻿# APK Build Status & Troubleshooting
 
-## Current Status: ⚠️ Build Issue - CMake Error
+## Current Status: âš ï¸ Build Issue - CMake Error
 
 ### Problem
 The Flutter Android build is failing with a CMake error during native code compilation. This is a known issue when building on Windows with certain Flutter/NDK configurations.
@@ -69,10 +69,10 @@ flutter build apk --release -v
 
 ---
 
-## What's Already Done ✅
+## What's Already Done âœ…
 
 - [x] Java JDK 17 installed
-- [x] Keystore generated (`android/starpage-keystore.jks`)
+- [x] Keystore generated (`android/starpage-keystore-new.jks`)
 - [x] key.properties configured
 - [x] build.gradle.kts updated for signing
 - [x] GitHub Actions workflows created
@@ -99,11 +99,11 @@ If build fails completely, you can:
 
 ## Files Generated
 
-- ✅ `android/starpage-keystore.jks` - Release signing key
-- ✅ `android/key.properties` - Signing configuration
-- ✅ `.github/workflows/` - CI/CD workflows (4 files)
-- ✅ `firebase.json` - Firebase hosting config
-- ✅ Documentation files - Setup guides
+- âœ… `android/starpage-keystore-new.jks` - Release signing key
+- âœ… `android/key.properties` - Signing configuration
+- âœ… `.github/workflows/` - CI/CD workflows (4 files)
+- âœ… `firebase.json` - Firebase hosting config
+- âœ… Documentation files - Setup guides
 
 ---
 
@@ -116,3 +116,4 @@ If build fails completely, you can:
 ---
 
 **Recommendation:** Start with Solution 1 (disable native assets) as it's the quickest and has worked for many users facing this CMake error.
+

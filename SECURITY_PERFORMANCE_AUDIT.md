@@ -63,8 +63,8 @@ keyAlias=starpage
 storeFile=starpage-keystore-new.jks
 "@ | Out-File android/key.properties -Encoding UTF8
 
-# 5. Delete old keystore
-Remove-Item android/starpage-keystore.jks
+# 5. Delete old keystores (if present)
+Remove-Item android/starpage-keystore*.jks -ErrorAction SilentlyContinue
 ```
 
 **Best Practices:**

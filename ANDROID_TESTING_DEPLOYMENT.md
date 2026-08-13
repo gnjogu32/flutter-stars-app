@@ -1,4 +1,4 @@
-# Android Testing & Deployment Complete Guide
+﻿# Android Testing & Deployment Complete Guide
 
 ## Part 1: Testing Setup
 
@@ -160,10 +160,10 @@ flutter pub get
 ```powershell
 flutter run --debug
 ```
-- ✓ App launches without crashes
-- ✓ All features responsive
-- ✓ Firebase connected
-- ✓ All permissions work
+- âœ“ App launches without crashes
+- âœ“ All features responsive
+- âœ“ Firebase connected
+- âœ“ All permissions work
 
 #### Step 3: Build and Test Release APK
 ```powershell
@@ -260,7 +260,7 @@ Create: `TESTING_CHECKLIST.md`
 
 ```powershell
 # Generate keystore - SAVE THE PASSWORDS
-keytool -genkey -v -keystore starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 
 # You'll be prompted for:
 # - Keystore password (e.g., StarPage@2024)
@@ -268,7 +268,7 @@ keytool -genkey -v -keystore starpage-keystore.jks -keyalg RSA -keysize 2048 -va
 # - First Name, Last Name, Organization, etc.
 ```
 
-Save keystore to: `android/starpage-keystore.jks`
+Save keystore to: `android/starpage-keystore-new.jks`
 
 ### Configure Environment Variables
 
@@ -280,7 +280,7 @@ $env:KEY_PASSWORD = "your_key_password"
 
 # Or set permanently:
 # 1. Press Win+R, type: sysdm.cpl
-# 2. Advanced → Environment Variables
+# 2. Advanced â†’ Environment Variables
 # 3. Add KEYSTORE_PASSWORD and KEY_PASSWORD
 # 4. Restart terminal
 ```
@@ -292,7 +292,7 @@ File: `android/app/build.gradle.kts`
 ```kotlin
 signingConfigs {
     release {
-        storeFile = file("../starpage-keystore.jks")
+        storeFile = file("../starpage-keystore-new.jks")
         storePassword = System.getenv("KEYSTORE_PASSWORD")
         keyAlias = "starpage"
         keyPassword = System.getenv("KEY_PASSWORD")
@@ -394,7 +394,7 @@ if ($BuildType -eq "apk") {
     flutter build apk --release --build-name=$VersionName --build-number=$VersionCode
     
     if ($?) {
-        Write-Host "✓ APK built successfully!" -ForegroundColor Green
+        Write-Host "âœ“ APK built successfully!" -ForegroundColor Green
         Write-Host "Location: build/app/outputs/flutter-release.apk"
     }
 } elseif ($BuildType -eq "aab") {
@@ -402,7 +402,7 @@ if ($BuildType -eq "apk") {
     flutter build appbundle --release --build-name=$VersionName --build-number=$VersionCode
     
     if ($?) {
-        Write-Host "✓ App Bundle built successfully!" -ForegroundColor Green
+        Write-Host "âœ“ App Bundle built successfully!" -ForegroundColor Green
         Write-Host "Location: build/app/outputs/bundle/release/app-release.aab"
     }
 }
@@ -420,7 +420,7 @@ if ($BuildType -eq "apk") {
 ### Issue: "Signing config not found"
 ```powershell
 # Verify keystore exists
-Test-Path android/starpage-keystore.jks
+Test-Path android/starpage-keystore-new.jks
 
 # Verify passwords are set
 $env:KEYSTORE_PASSWORD
@@ -430,7 +430,7 @@ $env:KEY_PASSWORD
 ### Issue: "Keystore password incorrect"
 ```powershell
 # Regenerate keystore if password lost
-keytool -genkey -v -keystore starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 ```
 
 ### Issue: "App crashes on release build"
@@ -476,10 +476,10 @@ version: 1.0.1+2  # Increase for updates
 ```
 
 **Versioning Strategy:**
-- `1.0.0` → First release
-- `1.0.1` → Bug fix (patch)
-- `1.1.0` → New feature (minor)
-- `2.0.0` → Major changes (major)
+- `1.0.0` â†’ First release
+- `1.0.1` â†’ Bug fix (patch)
+- `1.1.0` â†’ New feature (minor)
+- `2.0.0` â†’ Major changes (major)
 
 ---
 
@@ -510,8 +510,8 @@ adb shell getprop ro.build.version.release    # Check Android version
 
 ## Security Reminders
 
-⚠️ **CRITICAL**
-- Never commit `starpage-keystore.jks` to git
+âš ï¸ **CRITICAL**
+- Never commit `starpage-keystore-new.jks` to git
 - Never share keystore password
 - Backup keystore securely (USB drive, vault)
 - Loss of keystore = cannot update app on Play Store
@@ -528,10 +528,11 @@ android/*.keystore
 ---
 
 ## Next Steps
-1. ✓ Review testing setup above
-2. ✓ Create unit/widget tests for your features
-3. ✓ Generate release keystore
-4. ✓ Run through testing checklist
-5. ✓ Build APK and test on device
-6. ✓ Build App Bundle for Play Store
-7. ✓ Submit to Google Play Console
+1. âœ“ Review testing setup above
+2. âœ“ Create unit/widget tests for your features
+3. âœ“ Generate release keystore
+4. âœ“ Run through testing checklist
+5. âœ“ Build APK and test on device
+6. âœ“ Build App Bundle for Play Store
+7. âœ“ Submit to Google Play Console
+

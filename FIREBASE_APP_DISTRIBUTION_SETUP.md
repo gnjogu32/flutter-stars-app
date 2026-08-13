@@ -1,4 +1,4 @@
-# Firebase App Distribution Complete Setup Guide
+﻿# Firebase App Distribution Complete Setup Guide
 
 ## Overview
 Firebase App Distribution allows you to distribute test builds to testers and monitor their feedback. This guide covers:
@@ -28,12 +28,12 @@ Firebase App Distribution allows you to distribute test builds to testers and mo
 
 **Recommended Groups:**
 ```
-├── Alpha Testers
-│   └─ Early access, frequent updates, provide detailed feedback
-├── Beta Testers
-│   └─ Stable releases, weekly updates
-└── QA Team
-    └─ Internal testing, all builds
+â”œâ”€â”€ Alpha Testers
+â”‚   â””â”€ Early access, frequent updates, provide detailed feedback
+â”œâ”€â”€ Beta Testers
+â”‚   â””â”€ Stable releases, weekly updates
+â””â”€â”€ QA Team
+    â””â”€ Internal testing, all builds
 ```
 
 ### Step 3: Add Testers to Groups
@@ -60,7 +60,7 @@ Firebase App Distribution allows you to distribute test builds to testers and mo
 
 ### Step 5: Create Service Account for Automated Distribution
 
-1. Go to **Project Settings** → **Service Accounts** tab
+1. Go to **Project Settings** â†’ **Service Accounts** tab
 2. Click **Generate New Private Key**
 3. Click **Generate Key** to confirm
 4. A JSON file will download automatically
@@ -74,7 +74,7 @@ Firebase App Distribution allows you to distribute test builds to testers and mo
 ### Add Required Secrets to GitHub
 
 1. Go to your GitHub repository
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+2. Navigate to **Settings** â†’ **Secrets and variables** â†’ **Actions**
 3. Click **New repository secret**
 
 #### Secret 1: FIREBASE_APP_ID
@@ -125,12 +125,12 @@ Value: Alpha Testers,Beta Testers
 
 ### Verify Secrets Added
 
-1. Go to **Settings** → **Secrets and variables** → **Actions**
+1. Go to **Settings** â†’ **Secrets and variables** â†’ **Actions**
 2. You should see 4 secrets listed:
-   - ✅ FIREBASE_APP_ID
-   - ✅ FIREBASE_SERVICE_ACCOUNT
-   - ✅ FIREBASE_TESTERS
-   - ✅ FIREBASE_GROUPS
+   - âœ… FIREBASE_APP_ID
+   - âœ… FIREBASE_SERVICE_ACCOUNT
+   - âœ… FIREBASE_TESTERS
+   - âœ… FIREBASE_GROUPS
 
 ---
 
@@ -158,44 +158,44 @@ Your CI/CD pipeline is already configured in `.github/workflows/build-and-distri
 ### Workflow Process
 
 ```
-┌─────────────────────────────────────────┐
-│ 1. Event Triggered (Push/Tag/Manual)    │
-└────────────┬────────────────────────────┘
-             ↓
-┌─────────────────────────────────────────┐
-│ 2. Setup Environment                    │
-│    ├─ Java 17                           │
-│    ├─ Flutter 3.38.5                    │
-│    └─ Dependencies                      │
-└────────────┬────────────────────────────┘
-             ↓
-┌─────────────────────────────────────────┐
-│ 3. Run Tests & Analysis                 │
-│    ├─ flutter analyze                   │
-│    └─ flutter test                      │
-└────────────┬────────────────────────────┘
-             ↓
-┌─────────────────────────────────────────┐
-│ 4. Build APK                            │
-│    ├─ Debug (always)                    │
-│    └─ Release (on tag only)             │
-└────────────┬────────────────────────────┘
-             ↓
-┌─────────────────────────────────────────┐
-│ 5. Upload Artifacts                     │
-│    └─ Store APK for 30 days             │
-└────────────┬────────────────────────────┘
-             ↓
-┌─────────────────────────────────────────┐
-│ 6. Distribute to Firebase (Tag Only)    │
-│    ├─ Download release APK              │
-│    ├─ Send to Firebase                  │
-│    └─ Notify testers via email          │
-└────────────┬────────────────────────────┘
-             ↓
-┌─────────────────────────────────────────┐
-│ ✅ Complete - Testers notified          │
-└─────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ 1. Event Triggered (Push/Tag/Manual)    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+             â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ 2. Setup Environment                    â”‚
+â”‚    â”œâ”€ Java 17                           â”‚
+â”‚    â”œâ”€ Flutter 3.38.5                    â”‚
+â”‚    â””â”€ Dependencies                      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+             â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ 3. Run Tests & Analysis                 â”‚
+â”‚    â”œâ”€ flutter analyze                   â”‚
+â”‚    â””â”€ flutter test                      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+             â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ 4. Build APK                            â”‚
+â”‚    â”œâ”€ Debug (always)                    â”‚
+â”‚    â””â”€ Release (on tag only)             â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+             â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ 5. Upload Artifacts                     â”‚
+â”‚    â””â”€ Store APK for 30 days             â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+             â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ 6. Distribute to Firebase (Tag Only)    â”‚
+â”‚    â”œâ”€ Download release APK              â”‚
+â”‚    â”œâ”€ Send to Firebase                  â”‚
+â”‚    â””â”€ Notify testers via email          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+             â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ âœ… Complete - Testers notified          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -286,7 +286,7 @@ firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.ap
 
 ### Add New Tester
 
-1. Firebase Console → **App Distribution** → **Testers & Groups**
+1. Firebase Console â†’ **App Distribution** â†’ **Testers & Groups**
 2. Click group name to edit
 3. Click **Add testers**
 4. Enter email address
@@ -303,7 +303,7 @@ firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.ap
 
 When you add/remove testers, update GitHub Secret:
 
-1. Go to **Settings** → **Secrets and variables** → **Actions**
+1. Go to **Settings** â†’ **Secrets and variables** â†’ **Actions**
 2. Click **FIREBASE_TESTERS**
 3. Update the email list
 4. Click **Update secret**
@@ -363,7 +363,7 @@ firebase login
 ### Issue: "Testers not receiving emails"
 1. Check email addresses are correct
 2. Verify testers accepted invitation
-3. Go to Firebase Console → **Testers & Groups**
+3. Go to Firebase Console â†’ **Testers & Groups**
 4. Check tester status
 
 ### Issue: "Workflow fails at distribution step"
@@ -374,7 +374,7 @@ firebase login
 
 ### Issue: "APK not signed properly"
 - Ensure `KEYSTORE_PASSWORD` and `KEY_PASSWORD` environment variables are set
-- Check keystore file exists at `android/starpage-keystore.jks`
+- Check keystore file exists at `android/starpage-keystore-new.jks`
 - Verify signing config in `android/app/build.gradle.kts`
 
 ---
@@ -404,7 +404,7 @@ git tag -a v1.0.0 -m "Version 1.0.0"
 git push origin v1.0.0
 
 # View GitHub Actions status
-# Navigate to: GitHub → Repository → Actions tab
+# Navigate to: GitHub â†’ Repository â†’ Actions tab
 ```
 
 ### Useful Links
@@ -446,4 +446,5 @@ git push origin v1.0.0
 **Setup Time**: ~30 minutes
 **Automated Releases**: Every tag push automatically distributes to testers
 **Support**: See troubleshooting section or Firebase documentation
+
 

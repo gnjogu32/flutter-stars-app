@@ -1,4 +1,4 @@
-# Pre-Deployment Testing Checklist
+﻿# Pre-Deployment Testing Checklist
 
 ## Quick Start
 
@@ -11,13 +11,13 @@ Or follow this manual checklist.
 
 ---
 
-## ✓ PHASE 1: Local Build & Setup
+## âœ“ PHASE 1: Local Build & Setup
 
 ### Prerequisites
 - [ ] Flutter SDK installed and updated
 - [ ] Android SDK installed (API 21+)
 - [ ] Device connected via USB or Android emulator running
-- [ ] Keystore generated and placed at `android/starpage-keystore.jks`
+- [ ] Keystore generated and placed at `android/starpage-keystore-new.jks`
 - [ ] Environment variables `KEYSTORE_PASSWORD` and `KEY_PASSWORD` set
 
 ### Build Verification
@@ -38,7 +38,7 @@ Test-Path build/app/outputs/flutter-release.apk
 
 ---
 
-## ✓ PHASE 2: Unit & Widget Tests
+## âœ“ PHASE 2: Unit & Widget Tests
 
 ### Run Tests
 ```powershell
@@ -66,7 +66,7 @@ Test coverage should include:
 
 ---
 
-## ✓ PHASE 3: Device Testing
+## âœ“ PHASE 3: Device Testing
 
 ### Device Setup
 ```powershell
@@ -99,7 +99,7 @@ adb install build/app/outputs/flutter-release.apk
 
 ---
 
-## ✓ PHASE 4: Authentication Testing
+## âœ“ PHASE 4: Authentication Testing
 
 ### Sign Up Flow
 ```
@@ -174,7 +174,7 @@ adb install build/app/outputs/flutter-release.apk
 
 ---
 
-## ✓ PHASE 5: UI & Navigation Testing
+## âœ“ PHASE 5: UI & Navigation Testing
 
 ### App Launch
 ```
@@ -241,7 +241,7 @@ adb install build/app/outputs/flutter-release.apk
 
 ---
 
-## ✓ PHASE 6: Performance Testing
+## âœ“ PHASE 6: Performance Testing
 
 ### App Responsiveness
 - [ ] All button taps respond within 100ms
@@ -276,7 +276,7 @@ Test on various connections:
 
 ---
 
-## ✓ PHASE 7: Permissions Testing
+## âœ“ PHASE 7: Permissions Testing
 
 ### Camera Permission
 ```
@@ -334,7 +334,7 @@ Test on various connections:
 
 ---
 
-## ✓ PHASE 8: Firebase Integration
+## âœ“ PHASE 8: Firebase Integration
 
 ### Authentication
 - [ ] User creation in Firebase Auth
@@ -373,7 +373,7 @@ Test on various connections:
 
 ---
 
-## ✓ PHASE 9: Data & Security
+## âœ“ PHASE 9: Data & Security
 
 ### Sensitive Data
 ```powershell
@@ -407,7 +407,7 @@ adb logcat | Select-String "password|email|token|key"
 
 ---
 
-## ✓ PHASE 10: Network Conditions
+## âœ“ PHASE 10: Network Conditions
 
 ### Good Network (WiFi)
 - [ ] All features work smoothly
@@ -449,7 +449,7 @@ adb shell setprop net.change 1
 
 ---
 
-## ✓ PHASE 11: Edge Cases & Error Handling
+## âœ“ PHASE 11: Edge Cases & Error Handling
 
 ### Text Input
 - [ ] Very long text fields handled
@@ -479,7 +479,7 @@ adb shell setprop net.change 1
 ### Force Stop & Restart
 ```
 1. Open app
-2. Go to Settings → Apps → Starpage
+2. Go to Settings â†’ Apps â†’ Starpage
 3. Tap "Force Stop"
 4. Reopen app
 ```
@@ -501,7 +501,7 @@ adb shell setprop net.change 1
 
 ---
 
-## ✓ PHASE 12: Localization (if applicable)
+## âœ“ PHASE 12: Localization (if applicable)
 
 - [ ] All UI text translated
 - [ ] Date/time formats correct
@@ -511,7 +511,7 @@ adb shell setprop net.change 1
 
 ---
 
-## ✓ PHASE 13: Release Build Specific
+## âœ“ PHASE 13: Release Build Specific
 
 ### Debug Artifacts
 ```powershell
@@ -542,7 +542,7 @@ keytool -printcert -jarfile build/app/outputs/flutter-release.apk
 
 ---
 
-## ✓ PHASE 14: Version Management
+## âœ“ PHASE 14: Version Management
 
 ### Version Bumping
 - [ ] Version name updated in pubspec.yaml
@@ -565,7 +565,7 @@ version: 1.0.1+2  # Increment both
 
 ---
 
-## ✓ PHASE 15: Final Sign-Off
+## âœ“ PHASE 15: Final Sign-Off
 
 ### Pre-Release Checklist
 - [ ] All phases tested and passed
@@ -585,7 +585,7 @@ version: 1.0.1+2  # Increment both
 - [ ] Backup of keystore verified
 
 ### Go/No-Go Decision
-- [ ] **GO:** All checks passed ✓
+- [ ] **GO:** All checks passed âœ“
 - [ ] **NO-GO:** Issues found (list below)
 
 Issues found (if any):
@@ -653,7 +653,7 @@ adb shell dumpsys meminfo starpage.com
 
 - **Tester Name:** _________________
 - **Date:** _________________
-- **Status:** ✓ PASS / ✗ FAIL
+- **Status:** âœ“ PASS / âœ— FAIL
 - **Notes:** _____________________
 
 ---
@@ -669,3 +669,4 @@ adb shell dumpsys meminfo starpage.com
 
 **Last Updated:** December 2025
 **Starpage Version:** 1.0.0
+

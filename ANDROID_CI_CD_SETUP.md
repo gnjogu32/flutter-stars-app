@@ -1,4 +1,4 @@
-# Android CI/CD Setup & Deployment Guide
+﻿# Android CI/CD Setup & Deployment Guide
 
 ## Overview
 Complete CI/CD pipeline for building, testing, and deploying your Flutter Android app to Google Play Store.
@@ -38,7 +38,7 @@ Open PowerShell and run:
 cd android
 
 # Generate keystore (valid for 10 years)
-keytool -genkey -v -keystore starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 ```
 
 **You'll be prompted for:**
@@ -51,7 +51,7 @@ keytool -genkey -v -keystore starpage-keystore.jks -keyalg RSA -keysize 2048 -va
 ### Step 2: Add GitHub Secrets
 
 Go to your GitHub repository:
-**Settings → Secrets and variables → Actions → New repository secret**
+**Settings â†’ Secrets and variables â†’ Actions â†’ New repository secret**
 
 Add these secrets:
 
@@ -71,7 +71,7 @@ Edit [android/app/build.gradle.kts](android/app/build.gradle.kts):
 ```kotlin
 signingConfigs {
     release {
-        storeFile = file("../starpage-keystore.jks")
+        storeFile = file("../starpage-keystore-new.jks")
         storePassword = System.getenv("KEYSTORE_PASSWORD")
         keyAlias = "starpage"
         keyPassword = System.getenv("KEY_PASSWORD")
@@ -91,18 +91,18 @@ buildTypes {
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
-3. **APIs & Services → Service Accounts**
+3. **APIs & Services â†’ Service Accounts**
 4. **Create Service Account**
    - Name: "Github-Play-Store"
-   - Role: Basic → Editor
-5. **Create Key → JSON**
+   - Role: Basic â†’ Editor
+5. **Create Key â†’ JSON**
 6. Download the JSON file
 
 #### B. Grant Play Store Permissions
 
 1. Go to [Google Play Console](https://play.google.com/console)
 2. Select your app (Starpage)
-3. **Settings → User and permissions**
+3. **Settings â†’ User and permissions**
 4. **Invite user**
    - Email: (from your service account JSON - `client_email` field)
    - Permissions: Admin (all permissions)
@@ -110,7 +110,7 @@ buildTypes {
 #### C. Add Service Account to GitHub
 
 1. Copy entire JSON file contents
-2. GitHub → **Settings → Secrets → New secret**
+2. GitHub â†’ **Settings â†’ Secrets â†’ New secret**
 3. Name: `PLAY_STORE_SERVICE_ACCOUNT`
 4. Paste JSON content
 
@@ -120,24 +120,24 @@ For Play Store release notes:
 
 ```
 whats-new/
-├── en-US/
-│   └── default.txt
-├── es-ES/
-│   └── default.txt
-└── (other languages)
+â”œâ”€â”€ en-US/
+â”‚   â””â”€â”€ default.txt
+â”œâ”€â”€ es-ES/
+â”‚   â””â”€â”€ default.txt
+â””â”€â”€ (other languages)
 ```
 
 Example content:
 ```
-🎉 New Features
+ðŸŽ‰ New Features
 - Feature 1
 - Feature 2
 
-🐛 Bug Fixes
+ðŸ› Bug Fixes
 - Fixed issue X
 - Fixed issue Y
 
-✨ Improvements
+âœ¨ Improvements
 - Better performance
 ```
 
@@ -169,7 +169,7 @@ After workflows complete, find artifacts in GitHub Actions:
    - Creates GitHub release
 
 ### Option 2: Manual Play Store Deployment
-1. Go to GitHub **Actions → Android Deploy to Play Store**
+1. Go to GitHub **Actions â†’ Android Deploy to Play Store**
 2. Click **Run workflow**
 3. Select track: internal, alpha, beta, or production
 4. Workflow builds and deploys
@@ -267,14 +267,14 @@ Tests run automatically on:
 
 ## Best Practices
 
-✅ **Do:**
+âœ… **Do:**
 - Always test locally before pushing
 - Use semantic versioning (1.0.0)
 - Keep release notes updated
 - Monitor Google Play Console reviews
 - Test on multiple API levels
 
-❌ **Don't:**
+âŒ **Don't:**
 - Commit keystore files to Git
 - Reuse same version code
 - Deploy without testing
@@ -298,9 +298,9 @@ Tests run automatically on:
 ## Google Play Store Console Links
 
 - [Starpage App Page](https://play.google.com/console/u/0/developers)
-- [Release Management](https://play.google.com/console/u/0/developers) → Starpage → Releases
-- [Test Tracks](https://play.google.com/console/u/0/developers) → Internal, Alpha, Beta
-- [Analytics](https://play.google.com/console/u/0/developers) → Analytics
+- [Release Management](https://play.google.com/console/u/0/developers) â†’ Starpage â†’ Releases
+- [Test Tracks](https://play.google.com/console/u/0/developers) â†’ Internal, Alpha, Beta
+- [Analytics](https://play.google.com/console/u/0/developers) â†’ Analytics
 
 ---
 
@@ -323,4 +323,5 @@ Tests run automatically on:
 - [ ] Tests passing locally
 - [ ] Firebase configured for app signing
 
-Done! You're ready to deploy Android releases. 🚀
+Done! You're ready to deploy Android releases. ðŸš€
+

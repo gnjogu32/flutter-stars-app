@@ -1,4 +1,4 @@
-# Android Release Signing Setup Guide
+﻿# Android Release Signing Setup Guide
 
 ## Step-by-Step Keystore Generation
 
@@ -7,7 +7,7 @@
 Open PowerShell in your project root and run:
 
 ```powershell
-keytool -genkey -v -keystore android/starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore android/starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 ```
 
 You'll be prompted for:
@@ -23,12 +23,12 @@ What is the two-letter country code for this unit? [US]
 Is CN=Starpage Creator, OU=Social Media, O=Starpage Inc., L=Your City, ST=Your State, C=US correct? [yes]
 ```
 
-⚠️ **IMPORTANT: Write down these passwords and save them securely!**
+âš ï¸ **IMPORTANT: Write down these passwords and save them securely!**
 
 ### Step 2: Verify Keystore was Created
 
 ```powershell
-Test-Path android/starpage-keystore.jks
+Test-Path android/starpage-keystore-new.jks
 # Should output: True
 ```
 
@@ -82,7 +82,7 @@ Find the `signingConfigs` block and update the release configuration:
 ```kotlin
 signingConfigs {
     release {
-        storeFile = file("../starpage-keystore.jks")
+        storeFile = file("../starpage-keystore-new.jks")
         storePassword = System.getenv("KEYSTORE_PASSWORD")
         keyAlias = "starpage"
         keyPassword = System.getenv("KEY_PASSWORD")
@@ -90,9 +90,9 @@ signingConfigs {
 }
 ```
 
-⚠️ If you see this, uncomment it first:
+âš ï¸ If you see this, uncomment it first:
 ```kotlin
-// storeFile = file("../starpage-keystore.jks")
+// storeFile = file("../starpage-keystore-new.jks")
 // storePassword = System.getenv("KEYSTORE_PASSWORD")
 // keyAlias = "starpage"
 // keyPassword = System.getenv("KEY_PASSWORD")
@@ -119,10 +119,10 @@ Built build/app/outputs/flutter-release.apk (XX.X MB)
 
 ```powershell
 # Check file exists
-Test-Path android/starpage-keystore.jks
+Test-Path android/starpage-keystore-new.jks
 
 # If not found, regenerate:
-keytool -genkey -v -keystore android/starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore android/starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 ```
 
 ### Issue: "Keystore password incorrect"
@@ -131,10 +131,10 @@ The keystore file becomes corrupted. Regenerate:
 
 ```powershell
 # Remove old keystore
-Remove-Item android/starpage-keystore.jks
+Remove-Item android/starpage-keystore-new.jks
 
 # Generate new one
-keytool -genkey -v -keystore android/starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore android/starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 ```
 
 **WARNING:** You'll need to upload a new app to Google Play. You cannot update an existing app with a different keystore.
@@ -174,7 +174,7 @@ buildTypes {
 
 ```powershell
 # List all keys in keystore
-keytool -list -v -keystore android/starpage-keystore.jks -alias starpage
+keytool -list -v -keystore android/starpage-keystore-new.jks -alias starpage
 
 # You'll need to enter keystore password when prompted
 ```
@@ -185,15 +185,15 @@ Create a secure backup:
 
 ```powershell
 # Copy to external drive or cloud storage
-Copy-Item android/starpage-keystore.jks "D:\Backups\starpage-keystore.jks"
+Copy-Item android/starpage-keystore-new.jks "D:\Backups\starpage-keystore-new.jks"
 ```
 
-⚠️ **CRITICAL:** Store backup in a secure location. If you lose this file, you cannot update your app on Google Play.
+âš ï¸ **CRITICAL:** Store backup in a secure location. If you lose this file, you cannot update your app on Google Play.
 
 ### Export Certificate Fingerprint (for OAuth/Firebase)
 
 ```powershell
-keytool -list -v -keystore android/starpage-keystore.jks -alias starpage
+keytool -list -v -keystore android/starpage-keystore-new.jks -alias starpage
 ```
 
 Look for these values (needed for Firebase/Google Sign-In):
@@ -218,19 +218,19 @@ SHA-256: AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90
 
 ## Security Best Practices
 
-### Do's ✓
-- ✓ Store keystore passwords securely (password manager)
-- ✓ Backup keystore to encrypted external storage
-- ✓ Use strong passwords (15+ characters)
-- ✓ Keep keystore file private
-- ✓ Use environment variables (never hardcode passwords)
+### Do's âœ“
+- âœ“ Store keystore passwords securely (password manager)
+- âœ“ Backup keystore to encrypted external storage
+- âœ“ Use strong passwords (15+ characters)
+- âœ“ Keep keystore file private
+- âœ“ Use environment variables (never hardcode passwords)
 
-### Don'ts ✗
-- ✗ Commit `starpage-keystore.jks` to git
-- ✗ Share keystore password with anyone
-- ✗ Hardcode password in build.gradle.kts
-- ✗ Store password in plain text files
-- ✗ Lose the keystore file
+### Don'ts âœ—
+- âœ— Commit `starpage-keystore-new.jks` to git
+- âœ— Share keystore password with anyone
+- âœ— Hardcode password in build.gradle.kts
+- âœ— Store password in plain text files
+- âœ— Lose the keystore file
 
 ### Add to .gitignore
 
@@ -294,3 +294,4 @@ flutter build appbundle --release --build-name=1.0.1 --build-number=2
 ```
 
 The signing happens automatically with environment variables set.
+

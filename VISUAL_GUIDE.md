@@ -1,242 +1,242 @@
-# Android Testing & Deployment - Visual Guide
+﻿# Android Testing & Deployment - Visual Guide
 
-## 📊 Complete System Overview
+## ðŸ“Š Complete System Overview
 
 ```
                     STARPAGE ANDROID
               TESTING & DEPLOYMENT SYSTEM
                     
-┌──────────────────────────────────────────────────────────┐
-│                    YOUR APP                              │
-│              flutter_stars_app v1.0.0+1                  │
-│            (starpage.com on Android)                 │
-└──────────────────────────────────────────────────────────┘
-                            ↓
-        ┌───────────────────┬───────────────────┐
-        ↓                   ↓                   ↓
-    ┌─────────┐        ┌─────────┐        ┌──────────┐
-    │  TESTS  │        │  BUILD  │        │ DEPLOY   │
-    └─────────┘        └─────────┘        └──────────┘
-        ↓                   ↓                   ↓
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    YOUR APP                              â”‚
+â”‚              flutter_stars_app v1.0.0+1                  â”‚
+â”‚            (starpage.com on Android)                 â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                            â†“
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â†“                   â†“                   â†“
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚  TESTS  â”‚        â”‚  BUILD  â”‚        â”‚ DEPLOY   â”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+        â†“                   â†“                   â†“
     [Step 1]           [Step 2]             [Step 3]
 ```
 
 ---
 
-## 🎯 Testing Phase (Development → Release)
+## ðŸŽ¯ Testing Phase (Development â†’ Release)
 
 ### Phase 1: Setup
 ```
-┌─────────────────────────────────────────┐
-│ Generate Keystore (KEYSTORE_SETUP.md)   │
-│ ├─ keytool command                      │
-│ ├─ Set environment variables            │
-│ └─ Update build.gradle.kts              │
-└─────────────┬───────────────────────────┘
-              ↓
-        ✓ Ready for building
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Generate Keystore (KEYSTORE_SETUP.md)   â”‚
+â”‚ â”œâ”€ keytool command                      â”‚
+â”‚ â”œâ”€ Set environment variables            â”‚
+â”‚ â””â”€ Update build.gradle.kts              â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+              â†“
+        âœ“ Ready for building
 ```
 
 ### Phase 2: Unit & Widget Tests
 ```
-┌─────────────────────────────────────────┐
-│ Test Execution (flutter test)            │
-│ ├─ Unit Tests                           │
-│ ├─ Widget Tests                         │
-│ ├─ Integration Tests (optional)         │
-│ └─ Coverage Report                      │
-└─────────────┬───────────────────────────┘
-              ↓
-        ✓ Code quality verified
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Test Execution (flutter test)            â”‚
+â”‚ â”œâ”€ Unit Tests                           â”‚
+â”‚ â”œâ”€ Widget Tests                         â”‚
+â”‚ â”œâ”€ Integration Tests (optional)         â”‚
+â”‚ â””â”€ Coverage Report                      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+              â†“
+        âœ“ Code quality verified
 ```
 
 ### Phase 3: Local Device Testing
 ```
-┌─────────────────────────────────────────┐
-│ Manual Testing (TESTING_CHECKLIST.md)   │
-│ ├─ Authentication flows                 │
-│ ├─ UI/Navigation                        │
-│ ├─ Firebase integration                 │
-│ ├─ Permissions                          │
-│ └─ Performance                          │
-└─────────────┬───────────────────────────┘
-              ↓
-        ✓ Features validated
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Manual Testing (TESTING_CHECKLIST.md)   â”‚
+â”‚ â”œâ”€ Authentication flows                 â”‚
+â”‚ â”œâ”€ UI/Navigation                        â”‚
+â”‚ â”œâ”€ Firebase integration                 â”‚
+â”‚ â”œâ”€ Permissions                          â”‚
+â”‚ â””â”€ Performance                          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+              â†“
+        âœ“ Features validated
 ```
 
 ### Phase 4: Release Build Testing
 ```
-┌─────────────────────────────────────────┐
-│ Build Release APK (build-apk.ps1)       │
-│ ├─ Check prerequisites                  │
-│ ├─ Clean project                        │
-│ ├─ Build with signing                   │
-│ └─ Verify output                        │
-└─────────────┬───────────────────────────┘
-              ↓
-        ✓ APK ready for testing
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Build Release APK (build-apk.ps1)       â”‚
+â”‚ â”œâ”€ Check prerequisites                  â”‚
+â”‚ â”œâ”€ Clean project                        â”‚
+â”‚ â”œâ”€ Build with signing                   â”‚
+â”‚ â””â”€ Verify output                        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+              â†“
+        âœ“ APK ready for testing
 ```
 
 ---
 
-## 🏗️ Build System Architecture
+## ðŸ—ï¸ Build System Architecture
 
 ```
                     BUILD PROCESS
                         
-┌─────────────────────────────────────────┐
-│          build-apk.ps1 Script            │
-└──────────────┬──────────────────────────┘
-               │
-    ┌──────────┼──────────┐
-    ↓          ↓          ↓
-┌────────┐ ┌──────────┐ ┌──────────┐
-│ Check  │ │  Clean   │ │  Build   │
-│  Env   │ │ Project  │ │  APK     │
-└────────┘ └──────────┘ └──────────┘
-    │          │          │
-    └──────────┼──────────┘
-               ↓
-        ┌─────────────────┐
-        │ Signing Config  │
-        │ (Auto from Env) │
-        └────────┬────────┘
-                 ↓
-        ┌─────────────────┐
-        │   APK Output    │
-        │ flutter-        │
-        │ release.apk     │
-        └─────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚          build-apk.ps1 Script            â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+               â”‚
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+    â†“          â†“          â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Check  â”‚ â”‚  Clean   â”‚ â”‚  Build   â”‚
+â”‚  Env   â”‚ â”‚ Project  â”‚ â”‚  APK     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+    â”‚          â”‚          â”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+               â†“
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â”‚ Signing Config  â”‚
+        â”‚ (Auto from Env) â”‚
+        â””â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                 â†“
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â”‚   APK Output    â”‚
+        â”‚ flutter-        â”‚
+        â”‚ release.apk     â”‚
+        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
 
-## 📦 Deployment Pipeline
+## ðŸ“¦ Deployment Pipeline
 
 ```
         DEBUG BUILD          RELEASE BUILD        GOOGLE PLAY
         
-┌──────────────┐         ┌──────────────┐      ┌────────────┐
-│ Debug APK    │ ──────→ │ Release APK  │ ───→ │ App Bundle │
-│ (Testing)    │ flutter │ (Testing)    │ .ps1 │ (Play      │
-│              │ run     │              │      │  Store)    │
-└──────────────┘         └──────────────┘      └────────────┘
-       ↓                        ↓                     ↓
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”         â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Debug APK    â”‚ â”€â”€â”€â”€â”€â”€â†’ â”‚ Release APK  â”‚ â”€â”€â”€â†’ â”‚ App Bundle â”‚
+â”‚ (Testing)    â”‚ flutter â”‚ (Testing)    â”‚ .ps1 â”‚ (Play      â”‚
+â”‚              â”‚ run     â”‚              â”‚      â”‚  Store)    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜         â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+       â†“                        â†“                     â†“
   Device Test           Device Test            Submit for
   Manual Check          Automated              Review
                         Checklist
 
-     DONE ✓                DONE ✓              PUBLISHED ✓
+     DONE âœ“                DONE âœ“              PUBLISHED âœ“
 ```
 
 ---
 
-## 🔄 Continuous Workflow
+## ðŸ”„ Continuous Workflow
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                 DAILY WORKFLOW                          │
-└─────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                 DAILY WORKFLOW                          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 Write Code
-    ↓
+    â†“
 Run Tests
-    ├─ .\scripts\run-tests.ps1
-    └─ ✓ All tests pass
-    ↓
+    â”œâ”€ .\scripts\run-tests.ps1
+    â””â”€ âœ“ All tests pass
+    â†“
 Build Debug
-    ├─ flutter build apk --debug
-    └─ ✓ APK created
-    ↓
+    â”œâ”€ flutter build apk --debug
+    â””â”€ âœ“ APK created
+    â†“
 Test on Device
-    ├─ adb install build/app/outputs/flutter-debug.apk
-    ├─ Manual testing
-    └─ ✓ Features work
-    ↓
-Ready for Release? ──NO→ (Go back to Write Code)
-    │
+    â”œâ”€ adb install build/app/outputs/flutter-debug.apk
+    â”œâ”€ Manual testing
+    â””â”€ âœ“ Features work
+    â†“
+Ready for Release? â”€â”€NOâ†’ (Go back to Write Code)
+    â”‚
    YES
-    ↓
-┌─────────────────────────────────────────────────────────┐
-│             RELEASE WORKFLOW                            │
-└─────────────────────────────────────────────────────────┘
+    â†“
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚             RELEASE WORKFLOW                            â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 Run Full Tests
-    ├─ .\scripts\run-tests.ps1 -CoverageReport $true
-    └─ ✓ 70%+ coverage
-    ↓
+    â”œâ”€ .\scripts\run-tests.ps1 -CoverageReport $true
+    â””â”€ âœ“ 70%+ coverage
+    â†“
 Build Release APK
-    ├─ .\scripts\build-apk.ps1
-    └─ ✓ APK signed & optimized
-    ↓
+    â”œâ”€ .\scripts\build-apk.ps1
+    â””â”€ âœ“ APK signed & optimized
+    â†“
 Device Testing (Release)
-    ├─ .\scripts\deployment-checklist.ps1
-    └─ ✓ All 15 phases pass
-    ↓
+    â”œâ”€ .\scripts\deployment-checklist.ps1
+    â””â”€ âœ“ All 15 phases pass
+    â†“
 Build App Bundle
-    ├─ .\scripts\build-appbundle.ps1
-    └─ ✓ AAB created for Play Store
-    ↓
+    â”œâ”€ .\scripts\build-appbundle.ps1
+    â””â”€ âœ“ AAB created for Play Store
+    â†“
 Upload to Play Store
-    ├─ Create new release
-    ├─ Upload AAB file
-    ├─ Add screenshots & info
-    └─ Submit for review ✓
-    ↓
+    â”œâ”€ Create new release
+    â”œâ”€ Upload AAB file
+    â”œâ”€ Add screenshots & info
+    â””â”€ Submit for review âœ“
+    â†“
     Monitor Release
-        └─ ✓ Live on Play Store
+        â””â”€ âœ“ Live on Play Store
 ```
 
 ---
 
-## 📁 File Organization
+## ðŸ“ File Organization
 
 ```
 flutter_stars_app/
-│
-├── 📄 ANDROID_QUICK_START.md ──────→ START HERE
-│
-├── 📚 Documentation
-│   ├── ANDROID_TESTING_DEPLOYMENT.md (7 parts)
-│   ├── KEYSTORE_SETUP_GUIDE.md (setup & security)
-│   ├── TESTING_CHECKLIST.md (15 phases)
-│   ├── ANDROID_SETUP_SUMMARY.md (this summary)
-│   └── ANDROID_DEPLOYMENT.md (overview)
-│
-├── 🛠️ scripts/ (Automation)
-│   ├── build-apk.ps1 ──────────→ Build APK
-│   ├── build-appbundle.ps1 ───→ Build for Play Store
-│   ├── run-tests.ps1 ─────────→ Run tests + coverage
-│   └── deployment-checklist.ps1 → Interactive checklist
-│
-├── ⚙️ android/ (Build Configuration)
-│   ├── starpage-keystore.jks (Generate this!)
-│   ├── build.gradle.kts (Root config)
-│   └── app/
-│       ├── build.gradle.kts (Update signing)
-│       ├── proguard-rules.pro (Code obfuscation)
-│       └── src/main/AndroidManifest.xml (Permissions)
-│
-├── 📦 lib/ (Flutter Code)
-│   ├── main.dart
-│   ├── models/
-│   ├── screens/
-│   ├── services/
-│   └── widgets/
-│
-└── 🧪 test/ (Test Code)
-    ├── widget_test.dart
-    └── (Add more tests here)
+â”‚
+â”œâ”€â”€ ðŸ“„ ANDROID_QUICK_START.md â”€â”€â”€â”€â”€â”€â†’ START HERE
+â”‚
+â”œâ”€â”€ ðŸ“š Documentation
+â”‚   â”œâ”€â”€ ANDROID_TESTING_DEPLOYMENT.md (7 parts)
+â”‚   â”œâ”€â”€ KEYSTORE_SETUP_GUIDE.md (setup & security)
+â”‚   â”œâ”€â”€ TESTING_CHECKLIST.md (15 phases)
+â”‚   â”œâ”€â”€ ANDROID_SETUP_SUMMARY.md (this summary)
+â”‚   â””â”€â”€ ANDROID_DEPLOYMENT.md (overview)
+â”‚
+â”œâ”€â”€ ðŸ› ï¸ scripts/ (Automation)
+â”‚   â”œâ”€â”€ build-apk.ps1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â†’ Build APK
+â”‚   â”œâ”€â”€ build-appbundle.ps1 â”€â”€â”€â†’ Build for Play Store
+â”‚   â”œâ”€â”€ run-tests.ps1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â†’ Run tests + coverage
+â”‚   â””â”€â”€ deployment-checklist.ps1 â†’ Interactive checklist
+â”‚
+â”œâ”€â”€ âš™ï¸ android/ (Build Configuration)
+â”‚   â”œâ”€â”€ starpage-keystore-new.jks (Generate this!)
+â”‚   â”œâ”€â”€ build.gradle.kts (Root config)
+â”‚   â””â”€â”€ app/
+â”‚       â”œâ”€â”€ build.gradle.kts (Update signing)
+â”‚       â”œâ”€â”€ proguard-rules.pro (Code obfuscation)
+â”‚       â””â”€â”€ src/main/AndroidManifest.xml (Permissions)
+â”‚
+â”œâ”€â”€ ðŸ“¦ lib/ (Flutter Code)
+â”‚   â”œâ”€â”€ main.dart
+â”‚   â”œâ”€â”€ models/
+â”‚   â”œâ”€â”€ screens/
+â”‚   â”œâ”€â”€ services/
+â”‚   â””â”€â”€ widgets/
+â”‚
+â””â”€â”€ ðŸ§ª test/ (Test Code)
+    â”œâ”€â”€ widget_test.dart
+    â””â”€â”€ (Add more tests here)
 ```
 
 ---
 
-## 🚀 Command Quick Reference
+## ðŸš€ Command Quick Reference
 
 ### One-Liner Commands
 ```powershell
 # Setup
-keytool -genkey -v -keystore android/starpage-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
+keytool -genkey -v -keystore android/starpage-keystore-new.jks -keyalg RSA -keysize 2048 -validity 10000 -alias starpage
 
 # Testing
 flutter test
@@ -258,144 +258,144 @@ flutter pub get
 
 ---
 
-## 🎯 Testing Phases Overview
+## ðŸŽ¯ Testing Phases Overview
 
 ```
-PHASE 1  ├─→ Local Build & Setup
-         │    └─ Keystore, environment, gradle
-         ├─→ Environment: Development
+PHASE 1  â”œâ”€â†’ Local Build & Setup
+         â”‚    â””â”€ Keystore, environment, gradle
+         â”œâ”€â†’ Environment: Development
          
-PHASE 2  ├─→ Unit & Widget Tests
-         │    └─ Code quality, UI components
-         ├─→ Environment: Dart VM
+PHASE 2  â”œâ”€â†’ Unit & Widget Tests
+         â”‚    â””â”€ Code quality, UI components
+         â”œâ”€â†’ Environment: Dart VM
          
-PHASE 3  ├─→ Device Testing
-         │    └─ Multiple devices, API levels
-         ├─→ Environment: Physical devices
+PHASE 3  â”œâ”€â†’ Device Testing
+         â”‚    â””â”€ Multiple devices, API levels
+         â”œâ”€â†’ Environment: Physical devices
          
-PHASE 4  ├─→ UI & Navigation
-         │    └─ Screen flows, back button
-         ├─→ Environment: Release APK
+PHASE 4  â”œâ”€â†’ UI & Navigation
+         â”‚    â””â”€ Screen flows, back button
+         â”œâ”€â†’ Environment: Release APK
          
-PHASE 5  ├─→ Performance
-         │    └─ Memory, battery, responsiveness
-         ├─→ Environment: Release APK
+PHASE 5  â”œâ”€â†’ Performance
+         â”‚    â””â”€ Memory, battery, responsiveness
+         â”œâ”€â†’ Environment: Release APK
          
-PHASE 6  ├─→ Permissions
-         │    └─ Camera, storage, location
-         ├─→ Environment: Release APK
+PHASE 6  â”œâ”€â†’ Permissions
+         â”‚    â””â”€ Camera, storage, location
+         â”œâ”€â†’ Environment: Release APK
          
-PHASE 7  ├─→ Firebase Integration
-         │    └─ Auth, Firestore, Storage
-         ├─→ Environment: Production DB
+PHASE 7  â”œâ”€â†’ Firebase Integration
+         â”‚    â””â”€ Auth, Firestore, Storage
+         â”œâ”€â†’ Environment: Production DB
          
 ... (7 more phases)
 
-PHASE 15 └─→ Final Sign-Off
-              └─ All checks passed = READY FOR RELEASE
+PHASE 15 â””â”€â†’ Final Sign-Off
+              â””â”€ All checks passed = READY FOR RELEASE
 ```
 
 ---
 
-## 🔐 Security Model
+## ðŸ” Security Model
 
 ```
 Passwords
-    ├─ Keystore Password
-    │   ├─ Generated: keytool command
-    │   ├─ Stored: Environment variable
-    │   └─ Used: App signing
-    │
-    └─ Key Password
-        ├─ Generated: keytool command
-        ├─ Stored: Environment variable
-        └─ Used: Key access
+    â”œâ”€ Keystore Password
+    â”‚   â”œâ”€ Generated: keytool command
+    â”‚   â”œâ”€ Stored: Environment variable
+    â”‚   â””â”€ Used: App signing
+    â”‚
+    â””â”€ Key Password
+        â”œâ”€ Generated: keytool command
+        â”œâ”€ Stored: Environment variable
+        â””â”€ Used: Key access
         
 Keystore File
-    ├─ Location: android/starpage-keystore.jks
-    ├─ Backup: External drive/vault
-    ├─ Permissions: Read-only
-    └─ Git: ✗ Never commit
+    â”œâ”€ Location: android/starpage-keystore-new.jks
+    â”œâ”€ Backup: External drive/vault
+    â”œâ”€ Permissions: Read-only
+    â””â”€ Git: âœ— Never commit
     
 Certificates
-    ├─ Validity: 10,000 days
-    ├─ Algorithm: RSA 2048-bit
-    ├─ Alias: starpage
-    └─ Fingerprints: SHA1, SHA-256
+    â”œâ”€ Validity: 10,000 days
+    â”œâ”€ Algorithm: RSA 2048-bit
+    â”œâ”€ Alias: starpage
+    â””â”€ Fingerprints: SHA1, SHA-256
 ```
 
 ---
 
-## ✅ Pre-Release Checklist (At a Glance)
+## âœ… Pre-Release Checklist (At a Glance)
 
 ```
 BUILD READY?
-├─ ✓ Keystore generated
-├─ ✓ Environment variables set
-├─ ✓ build.gradle updated
-└─ ✓ Signing verified
+â”œâ”€ âœ“ Keystore generated
+â”œâ”€ âœ“ Environment variables set
+â”œâ”€ âœ“ build.gradle updated
+â””â”€ âœ“ Signing verified
 
 TESTS PASSING?
-├─ ✓ Unit tests ≥70% coverage
-├─ ✓ Widget tests passing
-├─ ✓ Device tests passing
-└─ ✓ No crashes found
+â”œâ”€ âœ“ Unit tests â‰¥70% coverage
+â”œâ”€ âœ“ Widget tests passing
+â”œâ”€ âœ“ Device tests passing
+â””â”€ âœ“ No crashes found
 
 FEATURES WORKING?
-├─ ✓ Authentication flows
-├─ ✓ UI/Navigation
-├─ ✓ Firebase operations
-├─ ✓ Permissions handling
-└─ ✓ Network resilience
+â”œâ”€ âœ“ Authentication flows
+â”œâ”€ âœ“ UI/Navigation
+â”œâ”€ âœ“ Firebase operations
+â”œâ”€ âœ“ Permissions handling
+â””â”€ âœ“ Network resilience
 
 SECURITY OK?
-├─ ✓ No debug logs
-├─ ✓ No hardcoded keys
-├─ ✓ ProGuard enabled
-├─ ✓ Keystore secured
-└─ ✓ Rules configured
+â”œâ”€ âœ“ No debug logs
+â”œâ”€ âœ“ No hardcoded keys
+â”œâ”€ âœ“ ProGuard enabled
+â”œâ”€ âœ“ Keystore secured
+â””â”€ âœ“ Rules configured
 
 READY TO RELEASE?
-└─ ✓✓✓ YES → DEPLOY TO PLAY STORE
+â””â”€ âœ“âœ“âœ“ YES â†’ DEPLOY TO PLAY STORE
 ```
 
 ---
 
-## 🎓 Learning Path
+## ðŸŽ“ Learning Path
 
 ```
       Start (You are here)
-          ↓
+          â†“
     READ QUICK START
     (5 min read)
-          ↓
+          â†“
     SETUP KEYSTORE
     (10 min setup)
-          ↓
+          â†“
     RUN FIRST TEST
     (5 min run)
-          ↓
+          â†“
     BUILD FIRST APK
     (15 min build)
-          ↓
+          â†“
     TEST ON DEVICE
     (30 min manual)
-          ↓
+          â†“
     COMPLETE CHECKLIST
     (2-3 hours full test)
-          ↓
+          â†“
     BUILD APP BUNDLE
     (15 min build)
-          ↓
+          â†“
     UPLOAD TO PLAY STORE
     (30 min setup)
-          ↓
-    ✓✓✓ PUBLISHED ✓✓✓
+          â†“
+    âœ“âœ“âœ“ PUBLISHED âœ“âœ“âœ“
 ```
 
 ---
 
-## 📊 Timeline Estimate
+## ðŸ“Š Timeline Estimate
 
 | Task | Time | Dependency |
 |------|------|------------|
@@ -413,28 +413,28 @@ READY TO RELEASE?
 
 ---
 
-## 🎯 Success Indicators
+## ðŸŽ¯ Success Indicators
 
 ```
-✓ All unit tests pass (flutter test)
-✓ APK builds successfully (build-apk.ps1)
-✓ App installs on device (adb install)
-✓ Features work in release mode
-✓ No debug logs visible
-✓ Performance is smooth
-✓ All 15 test phases pass
-✓ App Bundle created (build-appbundle.ps1)
-✓ Google Play submission accepted
-✓ App is live and downloadable
+âœ“ All unit tests pass (flutter test)
+âœ“ APK builds successfully (build-apk.ps1)
+âœ“ App installs on device (adb install)
+âœ“ Features work in release mode
+âœ“ No debug logs visible
+âœ“ Performance is smooth
+âœ“ All 15 test phases pass
+âœ“ App Bundle created (build-appbundle.ps1)
+âœ“ Google Play submission accepted
+âœ“ App is live and downloadable
 ```
 
 ---
 
-## 📞 Troubleshooting Quick Links
+## ðŸ“ž Troubleshooting Quick Links
 
 | Problem | Solution |
 |---------|----------|
-| Keystore not found | KEYSTORE_SETUP_GUIDE.md → Step 1 |
+| Keystore not found | KEYSTORE_SETUP_GUIDE.md â†’ Step 1 |
 | Signing fails | Check env variables, restart PowerShell |
 | Tests fail | flutter clean && flutter pub get |
 | Build hangs | Cancel, clean, retry |
@@ -444,19 +444,19 @@ READY TO RELEASE?
 
 ---
 
-## 🎉 You Have Everything You Need!
+## ðŸŽ‰ You Have Everything You Need!
 
 ```
-✓ Comprehensive documentation (4 guides)
-✓ Automation scripts (4 tools)
-✓ Test framework setup
-✓ Build system configured
-✓ Security best practices
-✓ Deployment procedures
-✓ Pre-release checklist
-✓ Troubleshooting guide
+âœ“ Comprehensive documentation (4 guides)
+âœ“ Automation scripts (4 tools)
+âœ“ Test framework setup
+âœ“ Build system configured
+âœ“ Security best practices
+âœ“ Deployment procedures
+âœ“ Pre-release checklist
+âœ“ Troubleshooting guide
 
-READY TO DEPLOY YOUR APP! 🚀
+READY TO DEPLOY YOUR APP! ðŸš€
 ```
 
 ---
@@ -464,4 +464,5 @@ READY TO DEPLOY YOUR APP! 🚀
 **Created:** December 2025  
 **For:** Starpage (starpage.com)  
 **Version:** 1.0.0+1  
-**Status:** ✅ Complete Setup
+**Status:** âœ… Complete Setup
+
