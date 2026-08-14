@@ -152,7 +152,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `✅ Deployed to App Hosting!\n\n🔗 Preview: https://${{ steps.deploy-channel.outputs.channel }}--flutter-stars-web-starpage-ed409.web.app`
+              body: `✅ Deployed to App Hosting!\n\n🔗 Live: https://starpage.me\n🔗 Preview: https://${{ steps.deploy-channel.outputs.channel }}--flutter-stars-web-starpage-ed409.web.app`
             })
 
       - name: Post deployment status

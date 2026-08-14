@@ -78,6 +78,6 @@ jobs:
         run: |
           echo "✅ Deployment successful!"
           echo "🌍 Environment: ${{ inputs.environment }}"
-          echo "🚀 URL: https://starpage-ed409.web.app"
+          echo "🚀 URL: https://starpage.me"
           echo "👤 Deployed by: ${{ github.actor }}"
           echo "⏰ Time: $(date)"
