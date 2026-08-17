@@ -14,13 +14,32 @@
     ],
     "rewrites": [
       {
+        "source": "/privacy",
+        "destination": "/privacy.html"
+      },
+      {
+        "source": "/delete-account",
+        "destination": "/delete-account.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
     ],
     "cleanUrls": true,
     "trailingSlashBehavior": "REMOVE",
-    "redirects": [],
+    "redirects": [
+      {
+        "source": "/privacy.html",
+        "destination": "/privacy",
+        "type": 301
+      },
+      {
+        "source": "/delete-account.html",
+        "destination": "/delete-account",
+        "type": 301
+      }
+    ],
     "errorPage": "/404.html",
     "headers": [
       {
