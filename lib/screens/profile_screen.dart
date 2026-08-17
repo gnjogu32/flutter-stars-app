@@ -526,6 +526,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _searchQuery.toLowerCase(),
                               ),
                         )
+                        .where((post) {
+                          // Visibility logic: 'followers' posts only visible to author and followers
+                          if (post.visibility == 'followers') {
+                            final isAuthor = post.authorId == _auth.currentUser?.uid;
+                            return isAuthor || _isFollowing;
+                          }
+                          return true;
+                        })
                         .toList();
 
                     return CustomScrollView(

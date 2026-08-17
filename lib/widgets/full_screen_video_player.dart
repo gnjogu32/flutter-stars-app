@@ -385,7 +385,10 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
     );
   }
 
-  Future<void> _repostToFeed({String caption = ''}) async {
+  Future<void> _repostToFeed({
+    String caption = '',
+    String visibility = 'public',
+  }) async {
     if (_isReposting || widget.currentUserId == null) return;
     setState(() => _isReposting = true);
     try {
@@ -398,6 +401,7 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
         reposterUsername: user.username,
         reposterImageUrl: user.profileImageUrl,
         repostCaption: caption,
+        visibility: visibility,
       );
       if (mounted) {
         ScaffoldMessenger.of(
@@ -423,7 +427,7 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
     );
 
     if (result != null) {
-      _repostToFeed(caption: result.trim());
+      _repostToFeed(caption: result.caption, visibility: result.visibility);
     }
   }
 

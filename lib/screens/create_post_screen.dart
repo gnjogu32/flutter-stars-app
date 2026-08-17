@@ -30,6 +30,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final Map<String, Uint8List> _imageBytes = {};
   XFile? _selectedVideo;
   String? _selectedTalent;
+  String _visibility = 'public'; // 'public' or 'followers'
   bool _isLoading = false;
   String? _errorMessage;
   List<UserModel> _mentionableUsers = const [];
@@ -327,6 +328,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         imageFiles: List.from(_selectedImages),
         imageBytes: Map.from(_imageBytes),
         talent: _selectedTalent,
+        visibility: _visibility,
         videoFile: _selectedVideo,
       );
       if (mounted) {
@@ -551,6 +553,44 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _showVisibilityPicker,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.dividerColor.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _visibility == 'public'
+                              ? Icons.public
+                              : Icons.people_outline,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _visibility == 'public' ? 'Public' : 'Followers',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -690,6 +730,53 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVisibilityPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Who can see this post?',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.public),
+              title: const Text('Public'),
+              subtitle: const Text('Anyone can see this post'),
+              onTap: () {
+                setState(() => _visibility = 'public');
+                Navigator.pop(context);
+              },
+              trailing: _visibility == 'public'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('Followers Only'),
+              subtitle: const Text('Only your followers can see this post'),
+              onTap: () {
+                setState(() => _visibility = 'followers');
+                Navigator.pop(context);
+              },
+              trailing: _visibility == 'followers'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+            ),
+            const SizedBox(height: 12),
           ],
         ),
       ),

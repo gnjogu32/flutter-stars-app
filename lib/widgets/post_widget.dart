@@ -187,11 +187,14 @@ class _PostWidgetState extends State<PostWidget>
     );
 
     if (result != null && mounted) {
-      await _repostToFeed(caption: result.trim());
+      await _repostToFeed(caption: result.caption, visibility: result.visibility);
     }
   }
 
-  Future<void> _repostToFeed({String caption = ''}) async {
+  Future<void> _repostToFeed({
+    String caption = '',
+    String visibility = 'public',
+  }) async {
     if (_isReposting) return;
     if (widget.currentUserId.isEmpty) {
       await AuthGuard.show(context);
@@ -211,6 +214,7 @@ class _PostWidgetState extends State<PostWidget>
         reposterUsername: currentUser.username,
         reposterImageUrl: currentUser.profileImageUrl,
         repostCaption: caption,
+        visibility: visibility,
       );
 
       if (mounted) {

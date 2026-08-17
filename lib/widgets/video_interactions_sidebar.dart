@@ -193,11 +193,14 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
     );
 
     if (result != null && mounted) {
-      _confirmRepostToFeed(result);
+      _confirmRepostToFeed(result.caption, visibility: result.visibility);
     }
   }
 
-  Future<void> _confirmRepostToFeed(String caption) async {
+  Future<void> _confirmRepostToFeed(
+    String caption, {
+    String visibility = 'public',
+  }) async {
     try {
       final userService = UserService();
       final postService = PostService();
@@ -211,6 +214,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
         reposterUsername: currentUser.username,
         reposterImageUrl: currentUser.profileImageUrl,
         repostCaption: caption,
+        visibility: visibility,
       );
 
       if (mounted) {

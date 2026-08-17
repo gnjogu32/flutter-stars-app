@@ -187,7 +187,9 @@ class HomeScreenState extends State<HomeScreen> {
               final List<String> mutedPosts;
               final List<String> mutedAuthors;
               final List<String> blockedUsers;
+              final List<String> following;
               final bool autoPlayEnabled;
+              final String currentUserId = _auth.currentUser?.uid ?? 'guest';
 
               if (userSnapshot.hasData && userSnapshot.data!.exists) {
                 final userData =
@@ -199,18 +201,30 @@ class HomeScreenState extends State<HomeScreen> {
                 blockedUsers = List<String>.from(
                   userData['blockedUsers'] ?? [],
                 );
+                following = List<String>.from(userData['following'] ?? []);
                 autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
               } else {
                 mutedPosts = [];
                 mutedAuthors = [];
                 blockedUsers = [];
+                following = [];
                 autoPlayEnabled = true;
               }
 
               final filteredPosts = _posts.where((post) {
-                return !mutedPosts.contains(post.postId) &&
-                    !mutedAuthors.contains(post.authorId) &&
-                    !blockedUsers.contains(post.authorId);
+                final isMuted = mutedPosts.contains(post.postId) ||
+                    mutedAuthors.contains(post.authorId) ||
+                    blockedUsers.contains(post.authorId);
+                if (isMuted) return false;
+
+                // Visibility logic: 'followers' posts only visible to author and followers
+                if (post.visibility == 'followers') {
+                  final isAuthor = post.authorId == currentUserId;
+                  final isFollowing = following.contains(post.authorId);
+                  return isAuthor || isFollowing;
+                }
+
+                return true;
               }).toList();
 
               if (filteredPosts.isEmpty) {

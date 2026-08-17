@@ -31,6 +31,7 @@ class PostService {
     required List<XFile> imageFiles,
     required Map<String, Uint8List> imageBytes, // Pre-loaded bytes
     required String? talent,
+    String visibility = 'public',
     XFile? videoFile,
     FilePickerResult? audioFileResult,
   }) async {
@@ -142,6 +143,7 @@ class PostService {
         talent: talent,
         postType: postType,
         hashtags: hashtags,
+        visibility: visibility,
         createdAt: now,
         updatedAt: now,
       );
@@ -186,6 +188,7 @@ class PostService {
     String? reposterUsername,
     required String? reposterImageUrl,
     String? repostCaption,
+    String visibility = 'public',
   }) async {
     try {
       final currentUser = _auth.currentUser;
@@ -221,6 +224,7 @@ class PostService {
         audioUrl: originalPost.audioUrl,
         videoUrl: originalPost.videoUrl,
         talent: originalPost.talent,
+        visibility: visibility,
         repostCount: 0,
         createdAt: now,
         updatedAt: now,

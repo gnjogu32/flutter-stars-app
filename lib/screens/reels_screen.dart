@@ -151,110 +151,141 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore
-            .collection('posts')
-            .where('postType', isEqualTo: 'video')
-            .orderBy('createdAt', descending: true)
-            .limit(50)
+            .collection('users')
+            .doc(currentUserId.isEmpty ? 'guest' : currentUserId)
             .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            debugPrint('Reels stream error: ${snapshot.error}');
+        builder: (context, userSnapshot) {
+          final List<String> following;
+          if (userSnapshot.hasData && userSnapshot.data!.exists) {
+            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+            following = List<String>.from(userData['following'] ?? []);
+          } else {
+            following = [];
           }
 
-          if (snapshot.hasData) {
-            final latestReels = (snapshot.data?.docs ?? [])
-                .map(
-                  (doc) =>
-                      PostModel.fromJson(doc.data() as Map<String, dynamic>),
-                )
-                .where((post) => (post.videoUrl ?? '').trim().isNotEmpty)
-                .toList();
-            if (_cachedReels == null || _cachedReels!.isEmpty) {
-              _cachedReels = latestReels;
-            } else {
-              final existingIds = _cachedReels!.map((r) => r.postId).toSet();
-              final newItems = latestReels
-                  .where((r) => !existingIds.contains(r.postId))
-                  .toList();
-              if (newItems.isNotEmpty) {
-                _cachedReels!.addAll(newItems);
-                // Sort by createdAt descending to ensure seamless additions
-                _cachedReels!.sort(
-                  (a, b) => b.createdAt.compareTo(a.createdAt),
+          return StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('posts')
+                .where('postType', isEqualTo: 'video')
+                .orderBy('createdAt', descending: true)
+                .limit(50)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                debugPrint('Reels stream error: ${snapshot.error}');
+              }
+
+              if (snapshot.hasData) {
+                final latestReels = (snapshot.data?.docs ?? [])
+                    .map(
+                      (doc) => PostModel.fromJson(
+                        doc.data() as Map<String, dynamic>,
+                      ),
+                    )
+                    .where((post) {
+                      final hasUrl = (post.videoUrl ?? '').trim().isNotEmpty;
+                      if (!hasUrl) return false;
+
+                      // Visibility logic: 'followers' posts only visible to author and followers
+                      if (post.visibility == 'followers') {
+                        final isAuthor = post.authorId == currentUserId;
+                        final isFollowing = following.contains(post.authorId);
+                        return isAuthor || isFollowing;
+                      }
+                      return true;
+                    })
+                    .toList();
+                if (_cachedReels == null || _cachedReels!.isEmpty) {
+                  _cachedReels = latestReels;
+                } else {
+                  final existingIds =
+                      _cachedReels!.map((r) => r.postId).toSet();
+                  final newItems = latestReels
+                      .where((r) => !existingIds.contains(r.postId))
+                      .toList();
+                  if (newItems.isNotEmpty) {
+                    _cachedReels!.addAll(newItems);
+                    // Sort by createdAt descending to ensure seamless additions
+                    _cachedReels!.sort(
+                      (a, b) => b.createdAt.compareTo(a.createdAt),
+                    );
+                  }
+                }
+              }
+              final reels = _cachedReels ?? [];
+              if (reels.isEmpty) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                }
+                return const Center(
+                  child: Text(
+                    'No reels yet',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
                 );
               }
-            }
-          }
-          final reels = _cachedReels ?? [];
-          if (reels.isEmpty) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              );
-            }
-            return const Center(
-              child: Text(
-                'No reels yet',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            );
-          }
-          final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-          return Stack(
-            children: [
-              PageView.builder(
-                controller: _pageController,
-                scrollDirection: Axis.vertical,
-                physics: const BouncingScrollPhysics(),
-                onPageChanged: (index) {
-                  setState(() => _activeIndex = index);
-                  _preloadAdjacent(index, reels);
-                },
-                itemCount: reels.length,
-                itemBuilder: (context, index) {
-                  final reel = reels[index];
-                  return _ReelItem(
-                    key: ValueKey('reel_${reel.postId}_$index'),
-                    post: reel,
-                    isActive: _tabVisible && index == _activeIndex,
-                    currentUserId: currentUserId,
-                    preloadedController: _preloadedControllers[index],
-                    onOpenProfile: () {
-                      final userId = (reel.originalAuthorId ?? reel.authorId)
-                          .trim();
-                      if (userId.isEmpty) {
-                        return;
-                      }
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ProfileScreen(userId: userId),
-                        ),
+              return Stack(
+                children: [
+                  PageView.builder(
+                    controller: _pageController,
+                    scrollDirection: Axis.vertical,
+                    physics: const BouncingScrollPhysics(),
+                    onPageChanged: (index) {
+                      setState(() => _activeIndex = index);
+                      _preloadAdjacent(index, reels);
+                    },
+                    itemCount: reels.length,
+                    itemBuilder: (context, index) {
+                      final reel = reels[index];
+                      return _ReelItem(
+                        key: ValueKey('reel_${reel.postId}_$index'),
+                        post: reel,
+                        isActive: _tabVisible && index == _activeIndex,
+                        currentUserId: currentUserId,
+                        preloadedController: _preloadedControllers[index],
+                        onOpenProfile: () {
+                          final userId = (reel.originalAuthorId ??
+                                  reel.authorId)
+                              .trim();
+                          if (userId.isEmpty) {
+                            return;
+                          }
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ProfileScreen(userId: userId),
+                            ),
+                          );
+                        },
                       );
                     },
-                  );
-                },
-              ),
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 12,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Text(
-                    'Vistas',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
+                  ),
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 12,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Text(
+                        'Vistas',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           );
         },
       ),
@@ -553,7 +584,8 @@ class _ReelItemState extends State<_ReelItem>
           reposterName: currentUser.displayName,
           reposterUsername: currentUser.username,
           reposterImageUrl: currentUser.profileImageUrl,
-          repostCaption: result,
+          repostCaption: result.caption,
+          visibility: result.visibility,
         );
         if (mounted) {
           ScaffoldMessenger.of(

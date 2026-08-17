@@ -31,6 +31,7 @@ enum _TrendingTimeRange { today, week, topLiked }
 class _DiscoverScreenState extends State<DiscoverScreen>
     with SingleTickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   late TabController _tabController;
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
@@ -425,119 +426,150 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
     query = query.orderBy('createdAt', descending: true);
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          debugPrint('Discover posts error: ${snapshot.error}');
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore
+          .collection('users')
+          .doc(_auth.currentUser?.uid ?? 'guest')
+          .snapshots(),
+      builder: (context, userSnapshot) {
+        final List<String> following;
+        final String currentUserId = _auth.currentUser?.uid ?? 'guest';
+
+        if (userSnapshot.hasData && userSnapshot.data!.exists) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+          following = List<String>.from(userData['following'] ?? []);
+        } else {
+          following = [];
         }
 
-        if (snapshot.hasData) {
-          final latestPosts = snapshot.data!.docs
-              .map(
-                (doc) => PostModel.fromJson(doc.data() as Map<String, dynamic>),
-              )
-              .toList();
-
-          if (_cachedDiscoveryPosts == null || _cachedDiscoveryPosts!.isEmpty) {
-            _cachedDiscoveryPosts = latestPosts;
-          } else {
-            final existingIds = _cachedDiscoveryPosts!
-                .map((p) => p.postId)
-                .toSet();
-            final newItems = latestPosts
-                .where((p) => !existingIds.contains(p.postId))
-                .toList();
-            if (newItems.isNotEmpty) {
-              // Prepend new items
-              _cachedDiscoveryPosts!.insertAll(0, newItems);
+        return StreamBuilder<QuerySnapshot>(
+          stream: query.snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              debugPrint('Discover posts error: ${snapshot.error}');
             }
-          }
-        }
 
-        final filteredPosts = _cachedDiscoveryPosts ?? [];
+            if (snapshot.hasData) {
+              final latestPosts = snapshot.data!.docs
+                  .map(
+                    (doc) =>
+                        PostModel.fromJson(doc.data() as Map<String, dynamic>),
+                  )
+                  .toList();
 
-        if (filteredPosts.isEmpty) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return const Center(
-            child: Text('No posts found matching your search.'),
-          );
-        }
+              if (_cachedDiscoveryPosts == null ||
+                  _cachedDiscoveryPosts!.isEmpty) {
+                _cachedDiscoveryPosts = latestPosts;
+              } else {
+                final existingIds = _cachedDiscoveryPosts!
+                    .map((p) => p.postId)
+                    .toSet();
+                final newItems = latestPosts
+                    .where((p) => !existingIds.contains(p.postId))
+                    .toList();
+                if (newItems.isNotEmpty) {
+                  // Prepend new items
+                  _cachedDiscoveryPosts!.insertAll(0, newItems);
+                }
+              }
+            }
 
-        var searchedPosts = filteredPosts;
+            final allFetchedPosts = _cachedDiscoveryPosts ?? [];
 
-        // Apply search filter (Keyword or Hashtag)
-        if (_searchController.text.isNotEmpty) {
-          final searchTerm = _searchController.text.toLowerCase();
-          searchedPosts = filteredPosts.where((post) {
-            final contentMatch = post.content.toLowerCase().contains(
-              searchTerm,
-            );
-            final hashtagMatch = post.hashtags.any(
-              (tag) => tag.contains(searchTerm.replaceAll('#', '')),
-            );
-            final authorMatch = post.authorName.toLowerCase().contains(
-              searchTerm,
-            );
-            return contentMatch || hashtagMatch || authorMatch;
-          }).toList();
-        }
+            // Filter by visibility
+            final visiblePosts = allFetchedPosts.where((post) {
+              if (post.visibility == 'followers') {
+                final isAuthor = post.authorId == currentUserId;
+                final isFollowing = following.contains(post.authorId);
+                return isAuthor || isFollowing;
+              }
+              return true;
+            }).toList();
 
-        if (searchedPosts.isEmpty) {
-          return const Center(
-            child: Text('No posts found matching your search.'),
-          );
-        }
-
-        if (!_isGridView) {
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {
-                _cachedDiscoveryPosts = null;
-              });
-              await Future.delayed(const Duration(milliseconds: 400));
-            },
-            child: ListView.builder(
-              itemCount: searchedPosts.length,
-              padding: EdgeInsets.zero,
-              itemBuilder: (context, index) {
-                return PostWidget(
-                  post: searchedPosts[index],
-                  currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
-                );
-              },
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {
-              _cachedDiscoveryPosts = null;
-            });
-            await Future.delayed(const Duration(milliseconds: 400));
-          },
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 2,
-              mainAxisSpacing: 2,
-              childAspectRatio: 1,
-            ),
-            itemCount: searchedPosts.length,
-            padding: EdgeInsets.zero,
-            itemBuilder: (context, index) {
-              final post = searchedPosts[index];
-              return _DiscoveryGridItem(
-                post: post,
-                allPosts: searchedPosts,
-                initialIndex: index,
-                isTabVisible: _isTabVisible && _tabController.index == 2,
+            if (visiblePosts.isEmpty) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return const Center(
+                child: Text('No posts found matching your search.'),
               );
-            },
-          ),
+            }
+
+            var searchedPosts = visiblePosts;
+
+            // Apply search filter (Keyword or Hashtag)
+            if (_searchController.text.isNotEmpty) {
+              final searchTerm = _searchController.text.toLowerCase();
+              searchedPosts = visiblePosts.where((post) {
+                final contentMatch = post.content.toLowerCase().contains(
+                  searchTerm,
+                );
+                final hashtagMatch = post.hashtags.any(
+                  (tag) => tag.contains(searchTerm.replaceAll('#', '')),
+                );
+                final authorMatch = post.authorName.toLowerCase().contains(
+                  searchTerm,
+                );
+                return contentMatch || hashtagMatch || authorMatch;
+              }).toList();
+            }
+
+            if (searchedPosts.isEmpty) {
+              return const Center(
+                child: Text('No posts found matching your search.'),
+              );
+            }
+
+            if (!_isGridView) {
+              return RefreshIndicator(
+                onRefresh: () async {
+                  setState(() {
+                    _cachedDiscoveryPosts = null;
+                  });
+                  await Future.delayed(const Duration(milliseconds: 400));
+                },
+                child: ListView.builder(
+                  itemCount: searchedPosts.length,
+                  padding: EdgeInsets.zero,
+                  itemBuilder: (context, index) {
+                    return PostWidget(
+                      post: searchedPosts[index],
+                      currentUserId:
+                          FirebaseAuth.instance.currentUser?.uid ?? '',
+                    );
+                  },
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                setState(() {
+                  _cachedDiscoveryPosts = null;
+                });
+                await Future.delayed(const Duration(milliseconds: 400));
+              },
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 2,
+                  mainAxisSpacing: 2,
+                  childAspectRatio: 1,
+                ),
+                itemCount: searchedPosts.length,
+                padding: EdgeInsets.zero,
+                itemBuilder: (context, index) {
+                  final post = searchedPosts[index];
+                  return _DiscoveryGridItem(
+                    post: post,
+                    allPosts: searchedPosts,
+                    initialIndex: index,
+                    isTabVisible: _isTabVisible && _tabController.index == 2,
+                  );
+                },
+              ),
+            );
+          },
         );
       },
     );
@@ -623,7 +655,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                 itemCount: filteredUsers.length,
                 itemBuilder: (context, index) {
                   final user = filteredUsers[index];
-                  return _buildUserCard(user);
+                  return _UserCard(user: user);
                 },
               ),
             );
@@ -631,10 +663,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         );
       },
     );
-  }
-
-  Widget _buildUserCard(UserModel user) {
-    return _UserCard(user: user);
   }
 }
 

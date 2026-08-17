@@ -150,11 +150,14 @@ class _PostDetailsSheetState extends State<PostDetailsSheet>
     );
 
     if (result != null && mounted) {
-      await _repostToFeed(caption: result.trim());
+      await _repostToFeed(caption: result.caption, visibility: result.visibility);
     }
   }
 
-  Future<void> _repostToFeed({String caption = ''}) async {
+  Future<void> _repostToFeed({
+    String caption = '',
+    String visibility = 'public',
+  }) async {
     if (_isReposting) return;
     setState(() => _isReposting = true);
     try {
@@ -170,6 +173,7 @@ class _PostDetailsSheetState extends State<PostDetailsSheet>
         reposterUsername: currentUser.username,
         reposterImageUrl: currentUser.profileImageUrl,
         repostCaption: caption,
+        visibility: visibility,
       );
       if (mounted) {
         ScaffoldMessenger.of(

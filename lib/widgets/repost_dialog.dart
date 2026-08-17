@@ -6,6 +6,13 @@ import '../services/user_service.dart';
 import '../utils/mention_utils.dart';
 import 'keyboard_prompt_banner.dart';
 
+class RepostResult {
+  final String caption;
+  final String visibility;
+
+  RepostResult({required this.caption, required this.visibility});
+}
+
 class RepostDialog extends StatefulWidget {
   final PostModel post;
   final String currentUserId;
@@ -16,12 +23,12 @@ class RepostDialog extends StatefulWidget {
     required this.currentUserId,
   });
 
-  static Future<String?> show(
+  static Future<RepostResult?> show(
     BuildContext context, {
     required PostModel post,
     required String currentUserId,
   }) {
-    return showModalBottomSheet<String?>(
+    return showModalBottomSheet<RepostResult?>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -43,6 +50,7 @@ class _RepostDialogState extends State<RepostDialog> {
   List<UserModel> _filteredMentionUsers = [];
   String? _activeMentionQuery;
   bool _isLoadingMentionUsers = false;
+  String _visibility = 'public'; // 'public' or 'followers'
 
   @override
   void initState() {
@@ -271,7 +279,10 @@ class _RepostDialogState extends State<RepostDialog> {
                             ElevatedButton(
                               onPressed: () => Navigator.pop(
                                 context,
-                                _textController.text.trim(),
+                                RepostResult(
+                                  caption: _textController.text.trim(),
+                                  visibility: _visibility,
+                                ),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.colorScheme.primary,
@@ -289,6 +300,40 @@ class _RepostDialogState extends State<RepostDialog> {
                           ],
                         ),
                       ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: Row(
+                          children: [
+                            const Text(
+                              'Visibility:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ActionChip(
+                              avatar: Icon(
+                                _visibility == 'public'
+                                    ? Icons.public
+                                    : Icons.people_outline,
+                                size: 14,
+                                color: theme.colorScheme.primary,
+                              ),
+                              label: Text(
+                                _visibility == 'public'
+                                    ? 'Public'
+                                    : 'Followers',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              onPressed: _showVisibilityPicker,
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 8),
                     ],
                   ),
@@ -296,6 +341,53 @@ class _RepostDialogState extends State<RepostDialog> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showVisibilityPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Who can see this repost?',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.public),
+              title: const Text('Public'),
+              subtitle: const Text('Anyone can see this repost'),
+              onTap: () {
+                setState(() => _visibility = 'public');
+                Navigator.pop(context);
+              },
+              trailing: _visibility == 'public'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('Followers Only'),
+              subtitle: const Text('Only your followers can see this repost'),
+              onTap: () {
+                setState(() => _visibility = 'followers');
+                Navigator.pop(context);
+              },
+              trailing: _visibility == 'followers'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
       ),
     );
