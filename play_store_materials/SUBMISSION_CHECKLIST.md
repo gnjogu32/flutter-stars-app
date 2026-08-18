@@ -111,7 +111,7 @@ Before submission, prepare these:
    - Example: https://starpage.me/privacy
 
 2. **Support Email**
-   - Recommended: support@starpage.app
+   - Recommended: support@starpage.me
    - Alternative: Use personal email
 
 3. **Website (Optional)**
