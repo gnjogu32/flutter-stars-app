@@ -84,8 +84,6 @@ function New-ShowcaseImage {
     $titleFont = $null
     $subFont = $null
     $detailFont = $null
-    $topCaptionFont = $null
-    $topSubFont = $null
 
     try {
         $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
@@ -152,61 +150,39 @@ function New-ShowcaseImage {
         Draw-RoundedRect -Graphics $g -Brush $notchBrush -X $notchX -Y $notchY -W $notchW -H $notchH -R 13
         $notchBrush.Dispose()
 
-        # Caption block (background)
-        $titleFont = New-Object System.Drawing.Font('Segoe UI', 62, [System.Drawing.FontStyle]::Bold)
-        $subFont = New-Object System.Drawing.Font('Segoe UI', 28, [System.Drawing.FontStyle]::Regular)
-        $detailFont = New-Object System.Drawing.Font('Segoe UI', 22, [System.Drawing.FontStyle]::Regular)
-
-        $titleBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-        $subBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(238, 223, 234, 255))
-
-        $g.DrawString($Title, $titleFont, $titleBrush, 82, 62)
-        $g.DrawString($Subtitle, $subFont, $subBrush, 86, 146)
-        $g.DrawString('Starpage', $detailFont, $subBrush, 88, 191)
-
-        $titleBrush.Dispose()
-        $subBrush.Dispose()
-
-        # Strong top caption banner for Play Store standout style.
-        $captionX = 58
-        $captionY = 28
-        $captionW = $canvasW - 116
-        $captionH = 176
-        $captionBg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 8, 12, 24))
-        Draw-RoundedRect -Graphics $g -Brush $captionBg -X $captionX -Y $captionY -W $captionW -H $captionH -R 38
+        # Single caption treatment: keep the polished top caption block and avoid a duplicate overlay.
+        $captionX = 72
+        $captionY = 34
+        $captionW = $canvasW - 144
+        $captionH = 150
+        $captionBg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(132, 10, 16, 34))
+        Draw-RoundedRect -Graphics $g -Brush $captionBg -X $captionX -Y $captionY -W $captionW -H $captionH -R 34
         $captionBg.Dispose()
 
-        $captionBorder = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(220, 122, 185, 255), 3)
-        Draw-RoundedRectBorder -Graphics $g -Pen $captionBorder -X $captionX -Y $captionY -W $captionW -H $captionH -R 38
-        $captionBorder.Dispose()
-
-        $topCaptionFont = New-Object System.Drawing.Font('Segoe UI', 44, [System.Drawing.FontStyle]::Bold)
-        $topSubFont = New-Object System.Drawing.Font('Segoe UI', 23, [System.Drawing.FontStyle]::Bold)
-        $topTitleBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 255, 255, 255))
-        $topSubBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 218, 235, 255))
+        $captionTitleFont = New-Object System.Drawing.Font('Segoe UI', 34, [System.Drawing.FontStyle]::Bold)
+        $captionSubFont = New-Object System.Drawing.Font('Segoe UI', 20, [System.Drawing.FontStyle]::Regular)
+        $captionTitleBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+        $captionSubBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(230, 228, 236, 255))
 
         $sf = New-Object System.Drawing.StringFormat
         $sf.Alignment = [System.Drawing.StringAlignment]::Center
-        $sf.LineAlignment = [System.Drawing.StringAlignment]::Center
+        $sf.LineAlignment = [System.Drawing.StringAlignment]::Near
         $sf.Trimming = [System.Drawing.StringTrimming]::EllipsisWord
 
-        $titleRect = New-Object System.Drawing.RectangleF(($captionX + 28), ($captionY + 20), ($captionW - 56), 82)
-        $subRect = New-Object System.Drawing.RectangleF(($captionX + 30), ($captionY + 102), ($captionW - 60), 56)
+        $titleRect = New-Object System.Drawing.RectangleF(($captionX + 24), ($captionY + 24), ($captionW - 48), 52)
+        $subRect = New-Object System.Drawing.RectangleF(($captionX + 30), ($captionY + 80), ($captionW - 60), 44)
 
-        $g.DrawString($Title.ToUpperInvariant(), $topCaptionFont, $topTitleBrush, $titleRect, $sf)
-        $g.DrawString($Subtitle, $topSubFont, $topSubBrush, $subRect, $sf)
+        $g.DrawString($Title, $captionTitleFont, $captionTitleBrush, $titleRect, $sf)
+        $g.DrawString($Subtitle, $captionSubFont, $captionSubBrush, $subRect, $sf)
 
-        $topTitleBrush.Dispose()
-        $topSubBrush.Dispose()
+        $captionTitleBrush.Dispose()
+        $captionSubBrush.Dispose()
+        $captionTitleFont.Dispose()
+        $captionSubFont.Dispose()
         $sf.Dispose()
 
         $bmp.Save($OutFile, [System.Drawing.Imaging.ImageFormat]::Png)
     } finally {
-        if ($topSubFont) { $topSubFont.Dispose() }
-        if ($topCaptionFont) { $topCaptionFont.Dispose() }
-        if ($detailFont) { $detailFont.Dispose() }
-        if ($subFont) { $subFont.Dispose() }
-        if ($titleFont) { $titleFont.Dispose() }
         if ($src) { $src.Dispose() }
         if ($g) { $g.Dispose() }
         if ($bmp) { $bmp.Dispose() }

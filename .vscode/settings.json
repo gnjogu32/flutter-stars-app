@@ -31,5 +31,7 @@
     "java.import.gradle.arguments": "--stacktrace",
     "java.import.gradle.offline.enabled": false,
     "java.errors.incompleteClasspath.severity": "ignore",
-    "java.project.importOnFirstTimeStartup": "automatic"
+    "java.project.importOnFirstTimeStartup": "automatic",
+    "dart.flutterSdkPath": "C:\\src\\flutter",
+    "flutter.sdkPath": "C:\\src\\flutter"
 }

@@ -7,12 +7,6 @@ import '../models/user_model.dart';
 import 'notification_service.dart';
 
 class UserService {
-  // Stub for getMentionableUsers to unblock build
-  Future<List<UserModel>> getMentionableUsers() async {
-    // TODO: Implement logic to return mentionable users
-    return getAllUsers();
-  }
-
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
 
   // Get user by UID

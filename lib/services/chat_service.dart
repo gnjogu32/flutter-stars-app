@@ -154,7 +154,7 @@ class ChatService {
           );
         }
       } catch (e) {
-        if (kDebugMode) print('Notification delivery skipped: $e');
+        debugPrint('Notification delivery skipped: $e');
       }
     } catch (e) {
       rethrow;
@@ -458,7 +458,7 @@ class ChatService {
         await typingStatusRef.delete();
       }
     } catch (e) {
-      if (kDebugMode) print('Error setting typing status: $e');
+      debugPrint('Error setting typing status: $e');
     }
   }
 

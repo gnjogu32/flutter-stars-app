@@ -1,4 +1,4 @@
-# Play Store Submission Checklist
+# Play Store Submission Checklist - Starpage
 
 ## 📋 Pre-Submission Checklist
 
@@ -11,29 +11,31 @@
 ### ✅ Phase 2: Text Content (COMPLETED)
 - [x] Short description (80 characters)
 - [x] Full description (4000 characters)
-- [x] Release notes prepared
-- [ ] Privacy policy URL ready
-- [ ] Support email configured
+- [x] Release notes prepared (v1.1.9)
+- [x] Privacy policy URL ready: https://starpage.me/privacy
+- [x] Data deletion URL ready: https://starpage.me/delete-account
+- [x] Support email configured: support@starpage.me
 
 ### ✅ Phase 3: Graphics Materials
-- [ ] App icon created (512x512 PNG)
-- [ ] Feature graphic created (1024x500 PNG/JPG)
-- [ ] Screenshots captured (5-8 at 1080x1920)
-- [ ] All graphics reviewed for quality
+- [x] App icon ready (assets/icon.png)
+- [ ] Feature graphic (1024x500 PNG/JPG) - *Recommendation: Use stadium cover photo*
+- [x] Screenshots captured (from CPH2719)
+- [ ] Graphics framed and polished
 - [ ] Files organized in play_store_materials/graphics/
 
 ### ✅ Phase 4: App Build
-- [ ] Release APK built: `flutter build apk --release`
-- [ ] APK signed with keystore
-- [ ] APK tested on device
-- [ ] All features working
-- [ ] No critical bugs
+- [x] Release build optimized: `flutter build apk --release`
+- [x] APK signed with production keystore: `starpage-keystore-new.jks`
+- [x] APK tested on device: Verified on CPH2719
+- [x] 100% Analysis Pass: `flutter analyze` returns no issues
+- [x] All automated tests passed
 
 ### ✅ Phase 5: App Information
-- [ ] App name: "Starpage"
-- [ ] Category: Social
+- [x] App name: "Starpage"
+- [x] Package Name: `com.starpage.app`
+- [ ] Category: Social / Entertainment
 - [ ] Content rating questionnaire completed
-- [ ] Target audience defined
+- [ ] Target audience defined (13+)
 - [ ] Supported countries/regions selected
 
 ### ✅ Phase 6: Store Listing
@@ -43,91 +45,49 @@
 - [ ] App details verified
 
 ### ✅ Phase 7: Technical Requirements
-- [ ] Min SDK: API 21 (Android 5.0)
-- [ ] Target SDK: API 34+
-- [ ] 64-bit support enabled
-- [ ] App permissions justified
-- [ ] Privacy policy compliant
-
-### ✅ Phase 8: Final Review
-- [ ] All sections marked as complete
-- [ ] Preview looks correct
-- [ ] Ready for submission
+- [x] Min SDK: API 24 (Android 7.0)
+- [x] Target SDK: API 36 (Android 16 Support)
+- [x] 64-bit support enabled
+- [x] App permissions audited
+- [x] Privacy policy compliant & Live at starpage.me
+- [x] Digital Asset Links: https://starpage.me/.well-known/assetlinks.json
 
 ---
 
 ## 📱 Current Status
 
-**Project**: Starpage Social Media App
-**Version**: 1.0.0
-**Build Number**: 1
-**Package**: starpage.com
+**Project**: Starpage Social Media Platform
+**Version**: 1.1.9
+**Build Number**: 15
+**Package**: com.starpage.app
+**Domain**: starpage.me
 
 **Completed**:
-- ✅ Text content written
-- ✅ Folder structure created
-- ✅ Firebase configured
-- ✅ App fully functional
+- ✅ Text content updated (Visibility features + Custom Domain)
+- ✅ Privacy & Deletion URLs verified live
+- ✅ CI/CD Workflows synchronized and fixed
+- ✅ Critical features (Reels, Discover, Chat) verified stable
+- ✅ Zero-issue code analysis
 
 **In Progress**:
-- ⏳ Graphics creation
+- ⏳ Graphic polish (Framing captured screenshots)
 
 **Pending**:
-- ⏳ Play Store account
-- ⏳ Upload and submission
+- ⏳ Play Store upload and submission
 
 ---
 
-## 🎯 Quick Action Items
+## 🎯 Final Verification Actions
 
-### Today:
-1. Create app icon (512x512)
-2. Take 5-8 screenshots
-3. Create feature graphic (1024x500)
+### Done Today:
+1. Updated release notes for v1.1.9+15.
+2. Verified starpage.me DNS propagation.
+3. Aligned all CI/CD paths with production keystore.
+4. Generated assetlinks.json template.
 
-### This Week:
-1. Create Play Store developer account
-2. Host privacy policy
-3. Build final release APK
-4. Submit for review
+### Next Steps for Submission:
+1. Framing the captured screenshots with device borders.
+2. Replace placeholder SHA-256 in `assetlinks.json` once obtained from Play Console.
+3. Submit for Google Review.
 
-### Estimated Timeline:
-- Graphics creation: 2-3 hours
-- Account setup: 30 minutes
-- Upload and submission: 1 hour
-- Google review: 1-3 days
-
-**Total to launch**: ~1 week
-
----
-
-## 📧 Required URLs
-
-Before submission, prepare these:
-
-1. **Privacy Policy URL**
-   - Create at: https://privacypolicygenerator.info
-   - Host at: Firebase Hosting, GitHub Pages, or your website
-   - Example: https://starpage.me/privacy
-
-2. **Support Email**
-   - Recommended: support@starpage.me
-   - Alternative: Use personal email
-
-3. **Website (Optional)**
-   - Can use Firebase Hosting URL
-   - Example: https://starpage-ed409.web.app
-
----
-
-## 🚀 When You're Ready
-
-1. Create Google Play Developer account: https://play.google.com/console
-2. Click "Create app"
-3. Fill in basic information
-4. Upload APK
-5. Complete store listing
-6. Submit for review
-
-**Good luck! 🎉**
-
+**Total to launch**: Ready for upload. 🎉

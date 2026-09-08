@@ -113,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      if (kDebugMode) print('Error checking follow status: $e');
+      debugPrint('Error checking follow status: $e');
     }
   }
 

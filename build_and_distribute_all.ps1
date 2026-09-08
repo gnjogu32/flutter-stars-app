@@ -3,7 +3,12 @@
 # Step 1: Build APK
 Write-Host "Building APK..."
 
-flutter build apk --release
+$flutterExe = "C:\src\flutter\bin\flutter.bat"
+if (-not (Test-Path $flutterExe)) {
+    $flutterExe = "flutter"
+}
+
+& $flutterExe build apk --release
 $possiblePaths = @(
     "build/app/outputs/flutter-apk/app-release.apk",
     "android/app/build/outputs/flutter-apk/app-release.apk",
