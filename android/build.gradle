@@ -1,0 +1,38 @@
+// Root build.gradle (Groovy)
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// Global enforcement of NDK and SDK versions for subprojects
+gradle.projectsEvaluated {
+    rootProject.subprojects.forEach { subproject ->
+        if (subproject.extensions.findByName("android") != null) {
+            if (subproject.extensions.findByName("flutter") == null) {
+                subproject.extensions.add("flutter", [
+                    compileSdkVersion: 36,
+                    minSdkVersion: 24,
+                    targetSdkVersion: 36,
+                    ndkVersion: "28.2.13676358"
+                ])
+            }
+        }
+    }
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

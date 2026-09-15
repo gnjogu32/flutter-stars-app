@@ -1,4 +1,4 @@
-name: Preview Deploy on Pull Request
+﻿name: Preview Deploy on Pull Request
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -60,7 +60,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 **Preview Deployed!**\n\n📱 Preview URL: ${{ steps.deploy.outputs.details_url }}\n\nThis preview will be available for 7 days.`
+              body: `ðŸš€ **Preview Deployed!**\n\nðŸ“± Preview URL: ${{ steps.deploy.outputs.details_url }}\n\nThis preview will be available for 7 days.`
             })
 
       - name: Add Preview Label
@@ -75,3 +75,4 @@ jobs:
               repo: context.repo.repo,
               labels: ['preview-deployed']
             })
+

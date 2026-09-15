@@ -1,4 +1,4 @@
-name: Manual Deploy to Hosting
+﻿name: Manual Deploy to Hosting
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -76,8 +76,9 @@ jobs:
       - name: Post Success Message
         if: success()
         run: |
-          echo "✅ Deployment successful!"
-          echo "🌍 Environment: ${{ inputs.environment }}"
-          echo "🚀 URL: https://starpage.me"
-          echo "👤 Deployed by: ${{ github.actor }}"
-          echo "⏰ Time: $(date)"
+          echo "âœ… Deployment successful!"
+          echo "ðŸŒ Environment: ${{ inputs.environment }}"
+          echo "ðŸš€ URL: https://starpage.me"
+          echo "ðŸ‘¤ Deployed by: ${{ github.actor }}"
+          echo "â° Time: $(date)"
+

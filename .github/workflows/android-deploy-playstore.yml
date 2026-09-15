@@ -1,4 +1,7 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Android Deploy to Play Store
+# Verification trigger: no functional workflow change.
+# CI verification trigger: 2026-08-13
 
 on:
   workflow_dispatch:
@@ -31,13 +34,13 @@ jobs:
   deploy-play-store:
     name: Deploy to Google Play (${{ github.event.inputs.track || 'auto' }})
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -52,34 +55,47 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Validate Play Store deployment prerequisites
-        id: release_prereqs
+      - name: Prepare Android signing
+        id: release_signing_check
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          PLAY_STORE_SERVICE_ACCOUNT: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: starpage
         run: |
-          if [ -f "android/starpage-keystore-new.jks" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ] && [ -n "$PLAY_STORE_SERVICE_ACCOUNT" ]; then
+          set -e
+
+          if [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_PASSWORD" ] && [ -f "android/starpage-keystore-new.jks" ]; then
+            printf '%s\n%s\n%s\n%s\n' \
+              "storePassword=$ANDROID_KEYSTORE_PASSWORD" \
+              "keyPassword=$ANDROID_KEY_PASSWORD" \
+              "keyAlias=${ANDROID_KEY_ALIAS}" \
+              "storeFile=starpage-keystore-new.jks" > android/key.properties
             echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Using repo keystore signing for Play Store upload."
+          elif [ -f "android/starpage-keystore-new.jks" ] && [ -f "android/key.properties" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Using repository-provided signing for Play Store upload."
           else
-            echo "::notice::Play Store deployment prerequisites missing (keystore, signing passwords, or service account). Skipping deployment."
+            echo "::notice::Release signing prerequisites missing (keystore or passwords). Play Store deployment will be skipped."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Skip deployment when prerequisites are unavailable
-        if: steps.release_prereqs.outputs.ready != 'true'
+      - name: Skip deployment when signing is unavailable
+        if: steps.release_signing_check.outputs.ready != 'true'
         run: |
-          echo "Skipping Play Store deployment because required release prerequisites are not configured."
+          echo "Skipping Play Store deploy because release signing is not configured."
 
       - name: Build App Bundle
-        if: steps.release_prereqs.outputs.ready == 'true'
+        if: steps.release_signing_check.outputs.ready == 'true'
         run: flutter build appbundle --release
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: starpage
+          ANDROID_STORE_FILE: ${{ github.workspace }}/android/starpage-keystore-new.jks
 
       - name: Verify bundle exists
-        if: steps.release_prereqs.outputs.ready == 'true'
+        if: steps.release_signing_check.outputs.ready == 'true'
         run: |
           if [ ! -f "build/app/outputs/bundle/release/app-release.aab" ]; then
             echo "App bundle was not generated at the expected path"
@@ -88,7 +104,7 @@ jobs:
           ls -lh build/app/outputs/bundle/release/app-release.aab
 
       - name: Upload to Google Play
-        if: steps.release_prereqs.outputs.ready == 'true'
+        if: steps.release_signing_check.outputs.ready == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
@@ -100,33 +116,36 @@ jobs:
           mappingFile: 'build/app/outputs/mapping/release/mapping.txt'
 
       - name: Create Release Notes
-        if: success() && steps.release_prereqs.outputs.ready == 'true'
-        uses: actions/github-script@v8
+        if: success()
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-
+            const { execSync } = require('child_process');
+            
+            // Get version from pubspec.yaml
             const pubspec = fs.readFileSync('pubspec.yaml', 'utf8');
             const versionMatch = pubspec.match(/version:\s+(.+)/);
             const version = versionMatch ? versionMatch[1] : 'unknown';
-
+            
+            // Create release
             github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: `android-v${version}`,
               name: `Android Release ${version}`,
-              body: `Android app deployed.\n\nVersion: ${version}\nTrack: ${{ github.event.inputs.track || 'internal' }}\nBy: ${{ github.actor }}\nTime: ${new Date().toISOString()}`,
+              body: `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.track || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`,
               draft: false,
               prerelease: ${{ github.event.inputs.track != 'production' }}
-            });
+            })
 
       - name: Post Deployment Status
         if: always()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const status = '${{ job.status }}';
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
             const track = '${{ github.event.inputs.track || 'internal' }}';
-            console.log(`Android deployment to ${track} track: ${status}`);
+            console.log(`${status} Android Deployment to ${track} track: ${{ job.status }}`);

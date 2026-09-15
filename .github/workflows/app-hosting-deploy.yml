@@ -1,4 +1,4 @@
-name: Deploy to Firebase App Hosting
+﻿name: Deploy to Firebase App Hosting
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -152,7 +152,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `✅ Deployed to App Hosting!\n\n🔗 Live: https://starpage.me\n🔗 Preview: https://${{ steps.deploy-channel.outputs.channel }}--flutter-stars-web-starpage-ed409.web.app`
+              body: `âœ… Deployed to App Hosting!\n\nðŸ”— Live: https://starpage.me\nðŸ”— Preview: https://${{ steps.deploy-channel.outputs.channel }}--flutter-stars-web-starpage-ed409.web.app`
             })
 
       - name: Post deployment status
@@ -160,5 +160,6 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const status = '${{ job.status }}' === 'success' ? 'âœ…' : 'âŒ';
             console.log(`${status} Deployment Status: ${{ job.status }}`);
+

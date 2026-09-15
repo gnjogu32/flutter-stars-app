@@ -1,4 +1,4 @@
-name: Automated Testing Suite
+﻿name: Automated Testing Suite
 
 permissions:
   contents: read
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Detect relevant file changes
         id: filter
@@ -54,7 +54,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -112,7 +112,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -170,10 +170,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -195,10 +195,10 @@ jobs:
       - name: Verify build artifacts
         run: |
           if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
-            echo "✅ APK build successful"
+            echo "âœ… APK build successful"
             ls -lh build/app/outputs/flutter-apk/app-debug.apk
           else
-            echo "❌ APK build failed. Artifact not found at expected path: build/app/outputs/flutter-apk/app-debug.apk"
+            echo "âŒ APK build failed. Artifact not found at expected path: build/app/outputs/flutter-apk/app-debug.apk"
             echo "Current build directory contents:"
             find build -maxdepth 5 || true
             exit 1
@@ -221,7 +221,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -239,10 +239,10 @@ jobs:
       - name: Check build artifacts
         run: |
           if [ -d "build/web" ]; then
-            echo "✅ Web build successful"
+            echo "âœ… Web build successful"
             du -sh build/web/
           else
-            echo "❌ Web build failed"
+            echo "âŒ Web build failed"
             exit 1
           fi
 
@@ -257,7 +257,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -309,9 +309,10 @@ jobs:
     steps:
       - name: Send failure notification
         run: |
-          echo "⚠️ Test Pipeline Failed!"
+          echo "âš ï¸ Test Pipeline Failed!"
           echo "Repository: ${{ github.repository }}"
           echo "Branch: ${{ github.ref }}"
           echo "Commit: ${{ github.sha }}"
           echo "Author: ${{ github.actor }}"
           echo "Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+

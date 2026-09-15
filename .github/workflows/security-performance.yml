@@ -1,4 +1,4 @@
-name: Security & Performance Checks
+﻿name: Security & Performance Checks
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -51,7 +51,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -69,11 +69,11 @@ jobs:
       - name: Check build size
         run: |
           if [ ! -d "build/web" ]; then
-            echo "❌ Web build directory not found!"
+            echo "âŒ Web build directory not found!"
             exit 1
           fi
           
-          echo "📦 Web Build Size Report"
+          echo "ðŸ“¦ Web Build Size Report"
           echo "========================"
           du -sh build/web/
           du -sh build/web/* | sort -h
@@ -89,10 +89,10 @@ jobs:
             
             # Warn if over 5 MB
             if (( $(echo "$MAIN_SIZE_MB > 5" | bc -l) )); then
-              echo "⚠️  Warning: main.dart.js is larger than 5 MB"
+              echo "âš ï¸  Warning: main.dart.js is larger than 5 MB"
             fi
           else
-            echo "⚠️  main.dart.js not found in build/web/"
+            echo "âš ï¸  main.dart.js not found in build/web/"
           fi
 
   lighthouse-check:
@@ -101,7 +101,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -124,3 +124,4 @@ jobs:
           runs: 3
           configPath: './lighthouserc.json'
         continue-on-error: true
+

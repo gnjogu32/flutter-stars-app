@@ -1,4 +1,4 @@
-name: Deploy to Firebase Hosting
+﻿name: Deploy to Firebase Hosting
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -47,7 +47,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -97,3 +97,4 @@ jobs:
       - name: Skip Firebase Hosting deployment without credentials
         if: steps.firebase-sa-check.outputs.ready != 'true'
         run: echo "Skipping Firebase Hosting deployment because FIREBASE_SERVICE_ACCOUNT is missing or invalid."
+

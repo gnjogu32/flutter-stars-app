@@ -1,0 +1,93 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
+}
+
+android {
+    namespace "com.starpage.app"
+    compileSdk 36
+    ndkVersion "28.2.13676358"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    defaultConfig {
+        applicationId "com.starpage.app"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = 15
+        versionName = "1.1.9"
+    }
+
+    signingConfigs {
+        release {
+            def keystoreProperties = new Properties()
+            def keystorePropertiesFile = rootProject.file('key.properties')
+            if (!keystorePropertiesFile.exists()) {
+                keystorePropertiesFile = file('../key.properties')
+            }
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(keystorePropertiesFile.newDataInputStream())
+            }
+
+            def envOrProperty = { String name, String envName, String fallback = null ->
+                def value = keystoreProperties.getProperty(name)
+                if (value == null || value.trim().isEmpty()) {
+                    value = System.getenv(envName)
+                }
+                if (value == null || value.trim().isEmpty()) {
+                    value = fallback
+                }
+                return value?.trim()
+            }
+
+            def keyAliasValue = envOrProperty('keyAlias', 'ANDROID_KEY_ALIAS', 'starpage')
+            def keyPasswordValue = envOrProperty('keyPassword', 'ANDROID_KEY_PASSWORD')
+            def storePasswordValue = envOrProperty('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
+            def storeFilePath = envOrProperty('storeFile', 'ANDROID_STORE_FILE', 'starpage-keystore-new.jks')
+
+            if (keyAliasValue) {
+                keyAlias = keyAliasValue
+            }
+            if (keyPasswordValue) {
+                keyPassword = keyPasswordValue
+            }
+            if (storePasswordValue) {
+                storePassword = storePasswordValue
+            }
+            if (storeFilePath) {
+                storeFile = file(storeFilePath).isAbsolute() ? file(storeFilePath) : rootProject.file(storeFilePath)
+            }
+
+            if (signingConfigs.release.storeFile?.exists()) {
+                println "Release signing resolved: storeFile=${storeFilePath}, keyAlias=${keyAliasValue}"
+            } else {
+                println "Warning: Release signing file not found at ${storeFilePath}"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    implementation platform('com.google.firebase:firebase-bom:34.13.0')
+    implementation 'com.google.firebase:firebase-analytics'
+}
