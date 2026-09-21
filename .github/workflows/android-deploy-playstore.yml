@@ -133,8 +133,8 @@ jobs:
             github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `android-v${version}`,
-              name: `Android Release ${version}`,
+              tag_name: `android-v${version}-build${context.runNumber}`,
+              name: `Android Release ${version} (Build ${context.runNumber})`,
               body: `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.track || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`,
               draft: false,
               prerelease: ${{ github.event.inputs.track != 'production' }}
