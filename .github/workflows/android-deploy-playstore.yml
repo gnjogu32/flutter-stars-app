@@ -22,7 +22,7 @@ on:
     paths:
       - '.github/workflows/android-deploy-playstore.yml'
       - 'pubspec.yaml'
-      - 'android/app/build.gradle.kts'
+      - 'android/app/build.gradle'
 
 env:
   FLUTTER_VERSION: '3.44.0'
