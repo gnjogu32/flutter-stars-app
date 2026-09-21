@@ -1,15 +1,5 @@
 // Root build.gradle (Groovy)
 
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.google.gms:google-services:4.4.2'
-    }
-}
-
 allprojects {
     repositories {
         google()
@@ -23,9 +13,9 @@ gradle.projectsEvaluated {
         if (subproject.extensions.findByName("android") != null) {
             if (subproject.extensions.findByName("flutter") == null) {
                 subproject.extensions.add("flutter", [
-                    compileSdkVersion: 36,
+                    compileSdkVersion: 34,
                     minSdkVersion: 24,
-                    targetSdkVersion: 36,
+                    targetSdkVersion: 34,
                     ndkVersion: "28.2.13676358"
                 ])
             }

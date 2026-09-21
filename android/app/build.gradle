@@ -5,9 +5,10 @@ plugins {
     id "com.google.gms.google-services"
 }
 
+
 android {
     namespace "com.starpage.app"
-    compileSdk 36
+    compileSdk 35
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -23,9 +24,9 @@ android {
     defaultConfig {
         applicationId "com.starpage.app"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 15
-        versionName = "1.1.9"
+        targetSdk = 35
+        versionCode = 16
+        versionName = "1.1.10"
     }
 
     signingConfigs {

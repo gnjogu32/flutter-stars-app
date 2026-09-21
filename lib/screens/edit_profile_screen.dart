@@ -106,9 +106,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickProfileImageFromGallery() async {
     try {
-      final file = await fp.FilePicker.pickFile(type: fp.FileType.image);
-      if (file != null && file.path != null) {
-        final path = file.path!;
+      final result = await fp.FilePicker.pickFiles(type: fp.FileType.image);
+      if (result.isNotEmpty && result.single.path != null) {
+        final path = result.single.path!;
         final bytes = await File(path).readAsBytes();
         setState(() {
           _selectedProfileImage = XFile(path);
@@ -162,9 +162,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickCoverImageFromGallery() async {
     try {
-      final file = await fp.FilePicker.pickFile(type: fp.FileType.image);
-      if (file != null && file.path != null) {
-        final path = file.path!;
+      final result = await fp.FilePicker.pickFiles(type: fp.FileType.image);
+      if (result.isNotEmpty && result.single.path != null) {
+        final path = result.single.path!;
         final bytes = await File(path).readAsBytes();
         setState(() {
           _selectedCoverImage = XFile(path);

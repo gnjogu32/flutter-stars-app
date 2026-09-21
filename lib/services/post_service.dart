@@ -33,7 +33,7 @@ class PostService {
     required String? talent,
     String visibility = 'public',
     XFile? videoFile,
-    FilePickerResult? audioFileResult,
+    List<PlatformFile>? audioFileResult,
   }) async {
     try {
       // Validate input
@@ -64,11 +64,11 @@ class PostService {
 
       // Upload audio if present
       if (audioFileResult != null &&
-          audioFileResult.files.single.path != null) {
-        final audioFile = File(audioFileResult.files.single.path!);
+          audioFileResult.single.path != null) {
+        final audioFile = File(audioFileResult.single.path!);
         final storageRef = FirebaseStorage.instance.ref();
         final audioRef = storageRef.child(
-          'posts/audios/${DateTime.now().millisecondsSinceEpoch}_${audioFileResult.files.single.name}',
+          'posts/audios/${DateTime.now().millisecondsSinceEpoch}_${audioFileResult.single.name}',
         );
         final uploadTask = audioRef.putFile(audioFile);
         final snapshot = await uploadTask.whenComplete(() {});

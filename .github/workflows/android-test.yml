@@ -103,7 +103,7 @@ jobs:
             echo "tests_exist=true" >> $GITHUB_OUTPUT
           else
             echo "tests_exist=false" >> $GITHUB_OUTPUT
-            echo "âš ï¸  No Espresso tests found in android/app/src/androidTest"
+            echo "No Espresso tests found in android/app/src/androidTest"
           fi
 
       - name: Run Espresso tests
@@ -121,4 +121,3 @@ jobs:
           path: android/app/build/outputs/androidTest-results/
           retention-days: 30
         continue-on-error: true
-

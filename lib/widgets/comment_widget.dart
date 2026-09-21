@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/comment_model.dart';
@@ -43,8 +43,7 @@ class _CommentWidgetState extends State<CommentWidget> {
     _isLiked = widget.comment.isLikedBy(widget.currentUserId);
     _loadCurrentUser();
   }
-$env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-17"
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+
   Future<void> _loadCurrentUser() async {
     if (widget.currentUserId.isNotEmpty) {
       final user = await _userService.getUser(widget.currentUserId);

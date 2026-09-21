@@ -212,19 +212,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     HapticFeedback.lightImpact();
     try {
       if (source == ImageSource.gallery) {
-        final result = await FilePicker.pickFiles(type: FileType.image);
-        if (result != null && result.files.isNotEmpty) {
+        final pickedFiles = await FilePicker.pickFiles(type: FileType.image);
+        if (pickedFiles.isNotEmpty) {
           final Map<String, Uint8List> newBytes = {};
-          final List<XFile> pickedFiles = [];
-          for (final file in result.files) {
+          final List<XFile> newXFiles = [];
+          for (final file in pickedFiles) {
             if (file.path == null) continue;
             if (_imageBytes.containsKey(file.path)) continue;
             final xFile = XFile(file.path!);
-            pickedFiles.add(xFile);
+            newXFiles.add(xFile);
             newBytes[file.path!] = await xFile.readAsBytes();
           }
           setState(() {
-            _selectedImages.addAll(pickedFiles);
+            _selectedImages.addAll(newXFiles);
             _imageBytes.addAll(newBytes);
           });
         }
@@ -248,10 +248,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     HapticFeedback.lightImpact();
     try {
       if (source == ImageSource.gallery) {
-        final result = await FilePicker.pickFile(type: FileType.video);
-        if (result != null && result.path != null) {
+        final pickedVideo = await FilePicker.pickFiles(type: FileType.video);
+        if (pickedVideo.isNotEmpty && pickedVideo.single.path != null) {
           setState(() {
-            _selectedVideo = XFile(result.path!);
+            _selectedVideo = XFile(pickedVideo.single.path!);
             _errorMessage = null;
           });
         }
