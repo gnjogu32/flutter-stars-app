@@ -103,7 +103,7 @@ jobs:
             echo "tests_exist=true" >> $GITHUB_OUTPUT
           else
             echo "tests_exist=false" >> $GITHUB_OUTPUT
-            echo "No Espresso tests found in android/app/src/androidTest"
+            echo "NOTICE: No Espresso tests found in android/app/src/androidTest"
           fi
 
       - name: Run Espresso tests

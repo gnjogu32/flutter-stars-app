@@ -195,10 +195,10 @@ jobs:
       - name: Verify build artifacts
         run: |
           if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
-            echo "APK build successful"
+            echo "SUCCESS: APK build successful"
             ls -lh build/app/outputs/flutter-apk/app-debug.apk
           else
-            echo "APK build failed. Artifact not found at expected path: build/app/outputs/flutter-apk/app-debug.apk"
+            echo "ERROR: APK build failed. Artifact not found at expected path: build/app/outputs/flutter-apk/app-debug.apk"
             echo "Current build directory contents:"
             find build -maxdepth 5 || true
             exit 1
@@ -239,10 +239,10 @@ jobs:
       - name: Check build artifacts
         run: |
           if [ -d "build/web" ]; then
-            echo "Web build successful"
+            echo "SUCCESS: Web build successful"
             du -sh build/web/
           else
-            echo "Web build failed"
+            echo "ERROR: Web build failed"
             exit 1
           fi
 
@@ -309,7 +309,7 @@ jobs:
     steps:
       - name: Send failure notification
         run: |
-          echo "Test Pipeline Failed!"
+          echo "Pipeline Failed!"
           echo "Repository: ${{ github.repository }}"
           echo "Branch: ${{ github.ref }}"
           echo "Commit: ${{ github.sha }}"
