@@ -7,19 +7,26 @@ allprojects {
     }
 }
 
-// Global enforcement of NDK and SDK versions for subprojects
-gradle.projectsEvaluated {
-    rootProject.subprojects.forEach { subproject ->
-        if (subproject.extensions.findByName("android") != null) {
-            if (subproject.extensions.findByName("flutter") == null) {
-                subproject.extensions.add("flutter", [
-                    compileSdkVersion: 34,
-                    minSdkVersion: 24,
-                    targetSdkVersion: 34,
-                    ndkVersion: "28.2.13676358"
-                ])
-            }
+def flutterCompatibilityExtension = [
+    compileSdkVersion: 34,
+    minSdkVersion: 24,
+    targetSdkVersion: 34,
+    ndkVersion: "28.2.13676358"
+]
+
+subprojects { subproject ->
+    def addFlutterCompatibilityExtension = {
+        if (subproject.extensions.findByName("flutter") == null) {
+            subproject.extensions.add("flutter", flutterCompatibilityExtension)
         }
+    }
+
+    subproject.pluginManager.withPlugin("com.android.application") {
+        addFlutterCompatibilityExtension()
+    }
+
+    subproject.pluginManager.withPlugin("com.android.library") {
+        addFlutterCompatibilityExtension()
     }
 }
 
