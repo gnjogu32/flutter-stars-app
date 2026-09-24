@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
 import '../models/post_model.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
@@ -150,7 +151,10 @@ class _PostDetailsSheetState extends State<PostDetailsSheet>
     );
 
     if (result != null && mounted) {
-      await _repostToFeed(caption: result.caption, visibility: result.visibility);
+      await _repostToFeed(
+        caption: result.caption,
+        visibility: result.visibility,
+      );
     }
   }
 
@@ -182,9 +186,8 @@ class _PostDetailsSheetState extends State<PostDetailsSheet>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error reposting: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error reposting: $e')));
       }
     } finally {
       if (mounted) setState(() => _isReposting = false);
