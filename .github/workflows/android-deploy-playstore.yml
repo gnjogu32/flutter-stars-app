@@ -37,10 +37,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -60,25 +60,41 @@ jobs:
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ANDROID_KEY_ALIAS: starpage
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'starpage' }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_FILE: ${{ github.workspace }}/android/starpage-keystore-new.jks
         run: |
           set -e
 
-          if [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_PASSWORD" ] && [ -f "android/starpage-keystore-new.jks" ]; then
-            printf '%s\n%s\n%s\n%s\n' \
-              "storePassword=$ANDROID_KEYSTORE_PASSWORD" \
-              "keyPassword=$ANDROID_KEY_PASSWORD" \
-              "keyAlias=${ANDROID_KEY_ALIAS}" \
-              "storeFile=starpage-keystore-new.jks" > android/key.properties
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-            echo "Using repo keystore signing for Play Store upload."
-          elif [ -f "android/starpage-keystore-new.jks" ] && [ -f "android/key.properties" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-            echo "Using repository-provided signing for Play Store upload."
-          else
-            echo "::notice::Release signing prerequisites missing (keystore or passwords). Play Store deployment will be skipped."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
+          mkdir -p android
+          STORE_FILE_PATH="$ANDROID_STORE_FILE"
+
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ ! -f "$STORE_FILE_PATH" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE_FILE_PATH"
           fi
+
+          if [ ! -f "$STORE_FILE_PATH" ] && [ -f "${GITHUB_WORKSPACE}/android/starpage-keystore.jks" ]; then
+            STORE_FILE_PATH="${GITHUB_WORKSPACE}/android/starpage-keystore.jks"
+          fi
+
+          if [ ! -f "$STORE_FILE_PATH" ] && [ -f "${GITHUB_WORKSPACE}/android/app/upload-keystore.jks" ]; then
+            STORE_FILE_PATH="${GITHUB_WORKSPACE}/android/app/upload-keystore.jks"
+          fi
+
+          if [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ ! -f "$STORE_FILE_PATH" ]; then
+            echo "::notice::Android release signing prerequisites are missing. Play Store deployment will be skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf '%s\n%s\n%s\n%s\n' \
+            "storePassword=$ANDROID_KEYSTORE_PASSWORD" \
+            "keyPassword=$ANDROID_KEY_PASSWORD" \
+            "keyAlias=${ANDROID_KEY_ALIAS}" \
+            "storeFile=$STORE_FILE_PATH" > android/key.properties
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "Using repository keystore signing for Play Store upload."
 
       - name: Skip deployment when signing is unavailable
         if: steps.release_signing_check.outputs.ready != 'true'
@@ -91,7 +107,7 @@ jobs:
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ANDROID_KEY_ALIAS: starpage
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'starpage' }}
           ANDROID_STORE_FILE: ${{ github.workspace }}/android/starpage-keystore-new.jks
 
       - name: Verify bundle exists
@@ -115,34 +131,68 @@ jobs:
           whatsNewDirectory: 'whats-new'
           mappingFile: 'build/app/outputs/mapping/release/mapping.txt'
 
-      - name: Create Release Notes
+      - name: Create or Update Release Notes
         if: success()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const { execSync } = require('child_process');
-            
-            // Get version from pubspec.yaml
             const pubspec = fs.readFileSync('pubspec.yaml', 'utf8');
             const versionMatch = pubspec.match(/version:\s+(.+)/);
             const version = versionMatch ? versionMatch[1] : 'unknown';
-            
-            // Create release
-            github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: `android-v${version}-build${context.runNumber}`,
-              name: `Android Release ${version} (Build ${context.runNumber})`,
-              body: `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.track || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`,
-              draft: false,
-              prerelease: ${{ github.event.inputs.track != 'production' }}
-            })
+            const buildTagName = `android-v${version}-build${context.runNumber}`;
+            const legacyTagName = `android-v${version}`;
+            const releaseBody = `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.track || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`;
+            const prerelease = ${{ github.event.inputs.track != 'production' }};
+
+            let existing = null;
+            let chosenTag = buildTagName;
+
+            for (const tag of [buildTagName, legacyTagName]) {
+              try {
+                existing = await github.rest.repos.getReleaseByTag({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag,
+                });
+                chosenTag = tag;
+                break;
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+              }
+            }
+
+            if (existing) {
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: existing.data.id,
+                tag_name: chosenTag,
+                name: `Android Release ${version} (Build ${context.runNumber})`,
+                body: releaseBody,
+                draft: false,
+                prerelease,
+              });
+              console.log(`Updated existing GitHub release for ${chosenTag}`);
+            } else {
+              await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: buildTagName,
+                name: `Android Release ${version} (Build ${context.runNumber})`,
+                body: releaseBody,
+                draft: false,
+                prerelease,
+              });
+              console.log(`Created new GitHub release for ${buildTagName}`);
+            }
 
       - name: Post Deployment Status
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

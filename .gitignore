@@ -43,6 +43,10 @@ android/.kotlin/
 android/app/debug/
 android/app/profile/
 android/app/release/
+*.jks
+*.keystore
+android/*.jks
+android/*.keystore
 
 # Symbolication related
 app.*.symbols
