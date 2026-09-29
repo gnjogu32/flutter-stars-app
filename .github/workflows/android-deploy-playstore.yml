@@ -70,7 +70,12 @@ jobs:
           STORE_FILE_PATH="$ANDROID_STORE_FILE"
 
           if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ ! -f "$STORE_FILE_PATH" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE_FILE_PATH"
+            if ! echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE_FILE_PATH" 2>/dev/null; then
+              echo "::error::ANDROID_KEYSTORE_BASE64 is invalid or does not decode to a usable keystore."
+              rm -f "$STORE_FILE_PATH"
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           fi
 
           if [ ! -f "$STORE_FILE_PATH" ] && [ -f "${GITHUB_WORKSPACE}/android/starpage-keystore.jks" ]; then
@@ -83,6 +88,12 @@ jobs:
 
           if [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ ! -f "$STORE_FILE_PATH" ]; then
             echo "::notice::Android release signing prerequisites are missing. Play Store deployment will be skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! keytool -list -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::The keystore file or signing secrets do not match the configured release key."
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
