@@ -7,10 +7,10 @@ allprojects {
     }
 }
 
-// Global enforcement of NDK and SDK versions for subprojects
-gradle.projectsEvaluated {
-    rootProject.subprojects.forEach { subproject ->
-        if (subproject.extensions.findByName("android") != null) {
+// Android library plugins can access the Flutter extension while their build scripts are evaluated.
+subprojects { subproject ->
+    ["com.android.application", "com.android.library"].each { pluginId ->
+        subproject.pluginManager.withPlugin(pluginId) {
             if (subproject.extensions.findByName("flutter") == null) {
                 subproject.extensions.add("flutter", [
                     compileSdkVersion: 34,
