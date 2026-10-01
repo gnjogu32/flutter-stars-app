@@ -124,11 +124,28 @@ jobs:
       - name: Verify bundle exists
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
-          if [ ! -f "build/app/outputs/bundle/release/app-release.aab" ]; then
-            echo "App bundle was not generated at the expected path"
+          BUNDLE_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$BUNDLE_PATH" ]; then
+            echo "App bundle was not generated at the expected path: $BUNDLE_PATH"
             exit 1
           fi
-          ls -lh build/app/outputs/bundle/release/app-release.aab
+          ls -lh "$BUNDLE_PATH"
+
+      - name: Upload AAB artifact
+        if: steps.release_signing_check.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - name: Upload mapping artifact
+        if: steps.release_signing_check.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-mapping
+          path: android/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
 
       - name: Upload to Google Play
         if: steps.release_signing_check.outputs.ready == 'true'
@@ -136,11 +153,11 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
           packageName: com.starpage.app
-          releaseFiles: 'build/app/outputs/bundle/release/app-release.aab'
+          releaseFiles: 'android/app/build/outputs/bundle/release/app-release.aab'
           track: ${{ github.event.inputs.track || 'internal' }}
           status: completed
           whatsNewDirectory: 'whats-new'
-          mappingFile: 'build/app/outputs/mapping/release/mapping.txt'
+          mappingFile: 'android/app/build/outputs/mapping/release/mapping.txt'
 
       - name: Create or Update Release Notes
         if: success()
