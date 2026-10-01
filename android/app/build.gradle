@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace "com.starpage.app"
-    compileSdk 35
+    compileSdk 36
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -25,8 +25,8 @@ android {
         applicationId "com.starpage.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 17
-        versionName = "1.1.11"
+        versionCode = 20
+        versionName = "1.1.14"
     }
 
     signingConfigs {
@@ -52,34 +52,42 @@ android {
             }
 
             def keyAliasValue = envOrProperty('keyAlias', 'ANDROID_KEY_ALIAS', 'starpage')
-            def keyPasswordValue = envOrProperty('keyPassword', 'ANDROID_KEY_PASSWORD')
-            def storePasswordValue = envOrProperty('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
-            def storeFilePath = envOrProperty('storeFile', 'ANDROID_STORE_FILE', 'starpage-keystore-new.jks')
+            def keyPasswordValue = envOrProperty('keyPassword', 'ANDROID_KEY_PASSWORD', 'starpage2026')
+            def storePasswordValue = envOrProperty('storePassword', 'ANDROID_KEYSTORE_PASSWORD', 'starpage2026')
+            def storeFilePath = envOrProperty('storeFile', 'ANDROID_STORE_FILE', 'upload-keystore.jks')
 
-            if (keyAliasValue) {
+            if (keyAliasValue && keyPasswordValue && storePasswordValue && storeFilePath) {
                 keyAlias = keyAliasValue
-            }
-            if (keyPasswordValue) {
                 keyPassword = keyPasswordValue
-            }
-            if (storePasswordValue) {
                 storePassword = storePasswordValue
-            }
-            if (storeFilePath) {
-                storeFile = file(storeFilePath).isAbsolute() ? file(storeFilePath) : rootProject.file(storeFilePath)
-            }
 
-            if (signingConfigs.release.storeFile?.exists()) {
-                println "Release signing resolved: storeFile=${storeFilePath}, keyAlias=${keyAliasValue}"
+                def signingStoreFile = new File(storeFilePath)
+                if (!signingStoreFile.isAbsolute()) {
+                    signingStoreFile = new File(project.projectDir, storeFilePath)
+                    if (!signingStoreFile.exists()) {
+                        signingStoreFile = new File(rootProject.projectDir, storeFilePath)
+                    }
+                }
+                if (signingStoreFile.exists()) {
+                    storeFile = signingStoreFile
+                    println "Release signing resolved: storeFile=${signingStoreFile.absolutePath}, keyAlias=${keyAliasValue}"
+                } else {
+                    println "Warning: Release signing file not found at ${storeFilePath}; skipping release signing."
+                }
             } else {
-                println "Warning: Release signing file not found at ${storeFilePath}"
+                println "Warning: Missing Android release signing credentials; release signing will be skipped."
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (signingConfigs.release.storeFile?.exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig null
+                println "Release build is running without signing because required credentials are unavailable."
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
