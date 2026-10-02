@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gal/gal.dart';
 import 'package:intl/intl.dart';
+
 import '../models/user_model.dart';
 import '../models/post_model.dart';
 import '../services/analytics_service.dart';
@@ -241,9 +243,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error opening chat: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error opening chat: $e')));
     }
   }
 
@@ -529,7 +530,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         .where((post) {
                           // Visibility logic: 'followers' posts only visible to author and followers
                           if (post.visibility == 'followers') {
-                            final isAuthor = post.authorId == _auth.currentUser?.uid;
+                            final isAuthor =
+                                post.authorId == _auth.currentUser?.uid;
                             return isAuthor || _isFollowing;
                           }
                           return true;
@@ -661,9 +663,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? Center(
                     child: Icon(
                       Icons.add_a_photo_outlined,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.3),
+                      color: Theme.of(context).colorScheme.primary
+                          .withValues(alpha: 0.3),
                       size: 40,
                     ),
                   )
@@ -711,17 +712,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   user.displayName,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 // Username
                 if (user.username != null)
                   Text(
                     '@${user.username}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(color: Colors.grey),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(color: Colors.grey),
                   ),
                 // Talent
                 if (user.talent != null)
@@ -755,9 +754,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(width: 4),
                       Text(
                         'Joined ${DateFormat('MMMM yyyy').format(user.createdAt)}',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: Colors.grey),
                       ),
                     ],
                   ),
@@ -774,9 +772,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 4),
                         Text(
                           'Born ${DateFormat('MMMM dd, yyyy').format(user.birthday!)}',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey),
                         ),
                         if (isOwnProfile) ...[
                           const SizedBox(width: 8),
@@ -1456,14 +1453,12 @@ class _ProfilePhotoViewerState extends State<_ProfilePhotoViewer> {
       final bytes = await consolidateHttpClientResponseBytes(response);
       await Gal.putImageBytes(bytes, album: 'Starpage');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile photo saved ✓')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Profile photo saved ✓')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Save failed: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

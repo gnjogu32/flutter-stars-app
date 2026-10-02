@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -63,8 +64,7 @@ class PostService {
       }
 
       // Upload audio if present
-      if (audioFileResult != null &&
-          audioFileResult.single.path != null) {
+      if (audioFileResult != null && audioFileResult.single.path != null) {
         final audioFile = File(audioFileResult.single.path!);
         final storageRef = FirebaseStorage.instance.ref();
         final audioRef = storageRef.child(

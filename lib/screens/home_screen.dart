@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/post_model.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/trending_section.dart';
@@ -212,7 +213,8 @@ class HomeScreenState extends State<HomeScreen> {
               }
 
               final filteredPosts = _posts.where((post) {
-                final isMuted = mutedPosts.contains(post.postId) ||
+                final isMuted =
+                    mutedPosts.contains(post.postId) ||
                     mutedAuthors.contains(post.authorId) ||
                     blockedUsers.contains(post.authorId);
                 if (isMuted) return false;

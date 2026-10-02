@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,7 @@ import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+
 import '../widgets/comments_bottom_sheet.dart';
 import '../models/post_model.dart';
 import '../services/notification_service.dart';
@@ -204,8 +206,9 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
                 if (_cachedReels == null || _cachedReels!.isEmpty) {
                   _cachedReels = latestReels;
                 } else {
-                  final existingIds =
-                      _cachedReels!.map((r) => r.postId).toSet();
+                  final existingIds = _cachedReels!
+                      .map((r) => r.postId)
+                      .toSet();
                   final newItems = latestReels
                       .where((r) => !existingIds.contains(r.postId))
                       .toList();
@@ -252,9 +255,8 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
                         currentUserId: currentUserId,
                         preloadedController: _preloadedControllers[index],
                         onOpenProfile: () {
-                          final userId = (reel.originalAuthorId ??
-                                  reel.authorId)
-                              .trim();
+                          final userId =
+                              (reel.originalAuthorId ?? reel.authorId).trim();
                           if (userId.isEmpty) {
                             return;
                           }
@@ -588,15 +590,13 @@ class _ReelItemState extends State<_ReelItem>
           visibility: result.visibility,
         );
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Reposted! ✓')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Reposted! ✓')));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Error: $e')));
         }
       } finally {
         if (mounted) setState(() => _isReposting = false);
@@ -660,9 +660,8 @@ class _ReelItemState extends State<_ReelItem>
                   title: const Text('Edit Post'),
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.of(
-                      context,
-                    ).pushNamed('/edit-post', arguments: widget.post);
+                    Navigator.of(context)
+                        .pushNamed('/edit-post', arguments: widget.post);
                   },
                 ),
                 ListTile(
@@ -833,9 +832,8 @@ class _ReelItemState extends State<_ReelItem>
       );
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Downloading video...')));
     try {
       final client = HttpClient();
       final request = await client.getUrl(Uri.parse(widget.post.videoUrl!));
@@ -854,9 +852,8 @@ class _ReelItemState extends State<_ReelItem>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }

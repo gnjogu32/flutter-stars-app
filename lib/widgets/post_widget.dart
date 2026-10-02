@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,6 +8,7 @@ import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:flutter/foundation.dart';
+
 import '../models/post_model.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
@@ -18,7 +20,9 @@ import 'video_player_widget.dart';
 import 'audio_player_widget.dart';
 import 'expandable_text.dart';
 import 'comments_bottom_sheet.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'repost_dialog.dart';
 import 'post_details_sheet.dart';
 
@@ -187,7 +191,10 @@ class _PostWidgetState extends State<PostWidget>
     );
 
     if (result != null && mounted) {
-      await _repostToFeed(caption: result.caption, visibility: result.visibility);
+      await _repostToFeed(
+        caption: result.caption,
+        visibility: result.visibility,
+      );
     }
   }
 
@@ -224,9 +231,8 @@ class _PostWidgetState extends State<PostWidget>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error reposting: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error reposting: $e')));
       }
     } finally {
       if (mounted) setState(() => _isReposting = false);
@@ -260,9 +266,8 @@ class _PostWidgetState extends State<PostWidget>
             const SizedBox(height: 20),
             Text(
               'Share Post',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ListTile(
@@ -310,9 +315,8 @@ class _PostWidgetState extends State<PostWidget>
 
   Future<void> _downloadVideo() async {
     if (widget.post.videoUrl == null || widget.post.videoUrl!.isEmpty) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Downloading video...')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Downloading video...')));
     try {
       final client = HttpClient();
       final request = await client.getUrl(Uri.parse(widget.post.videoUrl!));
@@ -331,9 +335,8 @@ class _PostWidgetState extends State<PostWidget>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }
@@ -364,9 +367,8 @@ class _PostWidgetState extends State<PostWidget>
     if (confirmed == true) {
       await PostService().deletePost(widget.post);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Post deleted')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Post deleted')));
       }
     }
   }
@@ -374,18 +376,16 @@ class _PostWidgetState extends State<PostWidget>
   void _muteAuthor() async {
     await UserService().muteAuthor(widget.currentUserId, _ownerId);
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Muted $_ownerName')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Muted $_ownerName')));
     }
   }
 
   void _mutePost() async {
     await UserService().mutePost(widget.currentUserId, widget.post.postId);
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Post muted')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Post muted')));
     }
   }
 
