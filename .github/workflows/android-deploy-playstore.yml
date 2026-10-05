@@ -112,14 +112,23 @@ jobs:
         run: |
           echo "Skipping Play Store deploy because release signing is not configured."
 
+      - name: Validate Gradle wrapper
+        if: steps.release_signing_check.outputs.ready == 'true'
+        run: |
+          set -e
+          cd android
+          ls -l ./gradlew
+          ls -l ./gradle/wrapper/gradle-wrapper.jar
+          test -f ./gradlew
+          test -f ./gradle/wrapper/gradle-wrapper.properties
+          test -f ./gradle/wrapper/gradle-wrapper.jar
+          chmod +x ./gradlew
+          bash ./gradlew --version
+
       - name: Build App Bundle
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
           cd android
-          ls -l ./gradlew
-          file ./gradlew || true
-          chmod +x ./gradlew
-          bash ./gradlew --version
           bash ./gradlew app:bundleRelease --console=plain --stacktrace --info
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
