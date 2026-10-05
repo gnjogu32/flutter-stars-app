@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
@@ -211,31 +210,34 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _pickImage(ImageSource source) async {
     HapticFeedback.lightImpact();
     try {
+      final picker = ImagePicker();
       if (source == ImageSource.gallery) {
-        final pickedFiles = await FilePicker.pickFiles(type: FileType.image);
+        final pickedFiles = await picker.pickMultiImage();
         if (pickedFiles.isNotEmpty) {
           final Map<String, Uint8List> newBytes = {};
           final List<XFile> newXFiles = [];
           for (final file in pickedFiles) {
-            if (file.path == null) continue;
             if (_imageBytes.containsKey(file.path)) continue;
-            final xFile = XFile(file.path!);
-            newXFiles.add(xFile);
-            newBytes[file.path!] = await xFile.readAsBytes();
+            final bytes = await file.readAsBytes();
+            newXFiles.add(file);
+            newBytes[file.path] = bytes;
           }
-          setState(() {
-            _selectedImages.addAll(newXFiles);
-            _imageBytes.addAll(newBytes);
-          });
+          if (newXFiles.isNotEmpty) {
+            setState(() {
+              _selectedImages.addAll(newXFiles);
+              _imageBytes.addAll(newBytes);
+              _errorMessage = null;
+            });
+          }
         }
       } else {
-        final picker = ImagePicker();
         final XFile? image = await picker.pickImage(source: source);
         if (image != null) {
           final bytes = await image.readAsBytes();
           setState(() {
             _selectedImages.add(image);
             _imageBytes[image.path] = bytes;
+            _errorMessage = null;
           });
         }
       }
@@ -247,23 +249,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _pickVideo(ImageSource source) async {
     HapticFeedback.lightImpact();
     try {
-      if (source == ImageSource.gallery) {
-        final pickedVideo = await FilePicker.pickFiles(type: FileType.video);
-        if (pickedVideo.isNotEmpty && pickedVideo.single.path != null) {
-          setState(() {
-            _selectedVideo = XFile(pickedVideo.single.path!);
-            _errorMessage = null;
-          });
-        }
-      } else {
-        final picker = ImagePicker();
-        final XFile? video = await picker.pickVideo(source: source);
-        if (video != null) {
-          setState(() {
-            _selectedVideo = video;
-            _errorMessage = null;
-          });
-        }
+      final picker = ImagePicker();
+      final XFile? video = await picker.pickVideo(source: source);
+      if (video != null) {
+        setState(() {
+          _selectedVideo = video;
+          _errorMessage = null;
+        });
       }
     } catch (e) {
       setState(() => _errorMessage = 'Error picking video: $e');

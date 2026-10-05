@@ -22,6 +22,9 @@ class CommentComposerFooter extends StatelessWidget {
   final VoidCallback onPickGif;
   final int charCount;
   final bool isOverLimit;
+  final String? replyToName;
+  final String? replyToContent;
+  final VoidCallback? onCancelReply;
 
   const CommentComposerFooter({
     super.key,
@@ -33,6 +36,9 @@ class CommentComposerFooter extends StatelessWidget {
     required this.onPickGif,
     required this.charCount,
     required this.isOverLimit,
+    this.replyToName,
+    this.replyToContent,
+    this.onCancelReply,
   });
 
   @override
@@ -49,6 +55,52 @@ class CommentComposerFooter extends StatelessWidget {
             height: 1,
             color: theme.dividerColor.withValues(alpha: 0.6),
           ),
+          if (replyToName != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                border: Border(
+                  top: BorderSide(color: theme.dividerColor, width: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.reply, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Replying to $replyToName',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if ((replyToContent ?? '').isNotEmpty)
+                          Text(
+                            replyToContent!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (onCancelReply != null)
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      onPressed: onCancelReply,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                ],
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 4, 8, 6),
             child: Row(
@@ -692,6 +744,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               onPickGif: _showGifPicker,
               charCount: _commentController.text.length,
               isOverLimit: _commentController.text.length > 280,
+              replyToName: _replyTo?.authorName,
+              replyToContent: _replyTo?.content,
+              onCancelReply: _replyTo == null
+                  ? null
+                  : () => setState(() => _replyTo = null),
             ),
           ],
         ),

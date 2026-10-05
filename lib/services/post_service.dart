@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
 
 import '../models/post_model.dart';
 import 'notification_service.dart';
@@ -33,7 +32,6 @@ class PostService {
     required String? talent,
     String visibility = 'public',
     XFile? videoFile,
-    List<PlatformFile>? audioFileResult,
   }) async {
     try {
       // Validate input
@@ -60,20 +58,6 @@ class PostService {
       }
       if (imageUrls.isNotEmpty) {
         postType = 'image';
-      }
-
-      // Upload audio if present
-      if (audioFileResult != null &&
-          audioFileResult.single.path != null) {
-        final audioFile = File(audioFileResult.single.path!);
-        final storageRef = FirebaseStorage.instance.ref();
-        final audioRef = storageRef.child(
-          'posts/audios/${DateTime.now().millisecondsSinceEpoch}_${audioFileResult.single.name}',
-        );
-        final uploadTask = audioRef.putFile(audioFile);
-        final snapshot = await uploadTask.whenComplete(() {});
-        audioUrl = await snapshot.ref.getDownloadURL();
-        postType = 'audio';
       }
 
       // Upload video if present

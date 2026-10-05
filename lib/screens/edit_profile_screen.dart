@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart' as fp;
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/auth_service.dart';
@@ -106,12 +104,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickProfileImageFromGallery() async {
     try {
-      final result = await fp.FilePicker.pickFiles(type: fp.FileType.image);
-      if (result.isNotEmpty && result.single.path != null) {
-        final path = result.single.path!;
-        final bytes = await File(path).readAsBytes();
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+      );
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
         setState(() {
-          _selectedProfileImage = XFile(path);
+          _selectedProfileImage = pickedFile;
           _selectedProfileImageBytes = bytes;
           _shouldDeletePhoto = false;
         });
@@ -162,12 +161,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickCoverImageFromGallery() async {
     try {
-      final result = await fp.FilePicker.pickFiles(type: fp.FileType.image);
-      if (result.isNotEmpty && result.single.path != null) {
-        final path = result.single.path!;
-        final bytes = await File(path).readAsBytes();
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+      );
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
         setState(() {
-          _selectedCoverImage = XFile(path);
+          _selectedCoverImage = pickedFile;
           _selectedCoverImageBytes = bytes;
           _shouldDeleteCover = false;
         });

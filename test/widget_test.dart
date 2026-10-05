@@ -213,5 +213,32 @@ void main() {
       focusNode.dispose();
       controller.dispose();
     });
+
+    testWidgets('Comment composer footer shows reply preview when active', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CommentComposerFooter(
+              controller: TextEditingController(),
+              focusNode: FocusNode(),
+              isSending: false,
+              onSend: () {},
+              onAddMedia: () {},
+              onPickGif: () {},
+              charCount: 12,
+              isOverLimit: false,
+              replyToName: 'Ada',
+              replyToContent: 'This is the comment being replied to',
+              onCancelReply: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Replying to'), findsOneWidget);
+      expect(find.text('This is the comment being replied to'), findsOneWidget);
+    });
   });
 }
