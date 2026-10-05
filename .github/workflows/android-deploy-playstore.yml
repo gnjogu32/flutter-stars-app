@@ -114,7 +114,9 @@ jobs:
 
       - name: Build App Bundle
         if: steps.release_signing_check.outputs.ready == 'true'
-        run: flutter build appbundle --release
+        run: |
+          cd android
+          ./gradlew app:bundleRelease --console=plain
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
