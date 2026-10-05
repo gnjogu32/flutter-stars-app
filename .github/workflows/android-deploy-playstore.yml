@@ -116,7 +116,11 @@ jobs:
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
           cd android
-          ./gradlew app:bundleRelease --console=plain
+          ls -l ./gradlew
+          file ./gradlew || true
+          chmod +x ./gradlew
+          bash ./gradlew --version
+          bash ./gradlew app:bundleRelease --console=plain
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
