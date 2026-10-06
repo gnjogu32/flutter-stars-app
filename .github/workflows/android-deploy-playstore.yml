@@ -64,14 +64,31 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'starpage' }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_STORE_FILE: ${{ github.workspace }}/android/starpage-keystore-new.jks
+          ANDROID_STORE_FILE: ${{ github.workspace }}/android/app/upload-keystore.jks
         run: |
           set -e
 
           mkdir -p android
-          STORE_FILE_PATH="$ANDROID_STORE_FILE"
 
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ ! -f "$STORE_FILE_PATH" ]; then
+          CANDIDATE_STORE_FILES=(
+            "$ANDROID_STORE_FILE"
+            "${GITHUB_WORKSPACE}/android/upload-keystore.jks"
+            "${GITHUB_WORKSPACE}/android/app/upload-keystore.jks"
+            "${GITHUB_WORKSPACE}/android/starpage-keystore.jks"
+            "${GITHUB_WORKSPACE}/android/starpage-keystore-new.jks"
+            "${GITHUB_WORKSPACE}/android/app/release-keystore.jks"
+          )
+
+          STORE_FILE_PATH=""
+          for candidate in "${CANDIDATE_STORE_FILES[@]}"; do
+            if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+              STORE_FILE_PATH="$candidate"
+              break
+            fi
+          done
+
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -z "$STORE_FILE_PATH" ]; then
+            STORE_FILE_PATH="$ANDROID_STORE_FILE"
             if ! echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE_FILE_PATH" 2>/dev/null; then
               echo "::error::ANDROID_KEYSTORE_BASE64 is invalid or does not decode to a usable keystore."
               rm -f "$STORE_FILE_PATH"
@@ -80,25 +97,21 @@ jobs:
             fi
           fi
 
-          if [ ! -f "$STORE_FILE_PATH" ] && [ -f "${GITHUB_WORKSPACE}/android/starpage-keystore.jks" ]; then
-            STORE_FILE_PATH="${GITHUB_WORKSPACE}/android/starpage-keystore.jks"
-          fi
-
-          if [ ! -f "$STORE_FILE_PATH" ] && [ -f "${GITHUB_WORKSPACE}/android/app/upload-keystore.jks" ]; then
-            STORE_FILE_PATH="${GITHUB_WORKSPACE}/android/app/upload-keystore.jks"
-          fi
-
           if [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ ! -f "$STORE_FILE_PATH" ]; then
             echo "::notice::Android release signing prerequisites are missing. Play Store deployment will be skipped."
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if ! keytool -list -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1; then
+          if ! keytool -list -v -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/tmp/keystore_check.txt 2>&1; then
             echo "::error::The keystore file or signing secrets do not match the configured release key."
+            cat /tmp/keystore_check.txt || true
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          echo "Resolved signing keystore: $STORE_FILE_PATH"
+          keytool -list -v -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|SHA1:' || true
 
           printf '%s\n%s\n%s\n%s\n' \
             "storePassword=$ANDROID_KEYSTORE_PASSWORD" \
