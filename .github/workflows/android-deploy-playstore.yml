@@ -6,8 +6,8 @@ name: Android Deploy to Play Store
 on:
   workflow_dispatch:
     inputs:
-      track:
-        description: 'Release track'
+      tracks:
+        description: 'Release tracks'
         required: true
         default: 'internal'
         type: choice
@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   deploy-play-store:
-    name: Deploy to Google Play (${{ github.event.inputs.track || 'auto' }})
+    name: Deploy to Google Play (${{ github.event.inputs.tracks || 'auto' }})
     runs-on: ubuntu-latest
     
     steps:
@@ -184,7 +184,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
           packageName: com.starpage.app
           releaseFiles: 'android/app/build/outputs/bundle/release/app-release.aab'
-          track: ${{ github.event.inputs.track || 'internal' }}
+          tracks: ${{ github.event.inputs.tracks || 'internal' }}
           status: completed
           whatsNewDirectory: 'whats-new'
           mappingFile: 'android/app/build/outputs/mapping/release/mapping.txt'
@@ -201,8 +201,8 @@ jobs:
             const version = versionMatch ? versionMatch[1] : 'unknown';
             const buildTagName = `android-v${version}-build${context.runNumber}`;
             const legacyTagName = `android-v${version}`;
-            const releaseBody = `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.track || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`;
-            const prerelease = ${{ github.event.inputs.track != 'production' }};
+            const releaseBody = `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.tracks || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`;
+            const prerelease = ${{ (github.event.inputs.tracks || 'internal') != 'production' }};
 
             let existing = null;
             let chosenTag = buildTagName;
@@ -255,5 +255,5 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
-            const track = '${{ github.event.inputs.track || 'internal' }}';
-            console.log(`${status} Android Deployment to ${track} track: ${{ job.status }}`);
+            const releaseTrack = '${{ github.event.inputs.tracks || 'internal' }}';
+            console.log(`${status} Android Deployment to ${releaseTrack} track: ${{ job.status }}`);

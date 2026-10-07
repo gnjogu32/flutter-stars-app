@@ -7,7 +7,8 @@
     "java.import.gradle.enabled": true,
     "java.import.gradle.wrapper.enabled": true,
     "java.project.importHint": "android",
-    "java.import.gradle.java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
+    "java.home": "C:\\Program Files\\Java\\jdk-17",
+    "java.import.gradle.java.home": "C:\\Program Files\\Java\\jdk-17",
     "gradle.autoDetect": "on",
     "gradle.nestedProjects": true,
     "gradle.projects": [
@@ -24,7 +25,7 @@
     "java.configuration.runtimes": [
         {
             "name": "JavaSE-17",
-            "path": "C:\\Program Files\\Android\\Android Studio\\jbr",
+            "path": "C:\\Program Files\\Java\\jdk-17",
             "default": true
         }
     ],
