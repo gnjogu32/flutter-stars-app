@@ -23,6 +23,7 @@ on:
       - '.github/workflows/android-deploy-playstore.yml'
       - 'pubspec.yaml'
       - 'android/app/build.gradle'
+      - 'android/gradle/**'
 
 env:
   FLUTTER_VERSION: '3.44.0'
@@ -33,7 +34,7 @@ permissions:
 jobs:
   deploy-play-store:
     name: Deploy to Google Play (${{ github.event.inputs.tracks || 'auto' }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
       - name: Checkout code
@@ -56,6 +57,18 @@ jobs:
 
       - name: Get Flutter dependencies
         run: flutter pub get
+
+      - name: Generate unique Play Store version code
+        id: play_version
+        run: |
+          set -euo pipefail
+          VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
+          if (( VERSION_CODE > 2100000000 )); then
+            echo "::error::Generated Android version code exceeds the supported limit."
+            exit 1
+          fi
+          echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Using Play Store version code $VERSION_CODE for workflow run $GITHUB_RUN_NUMBER, attempt $GITHUB_RUN_ATTEMPT."
 
       - name: Prepare Android signing
         id: release_signing_check
@@ -144,7 +157,7 @@ jobs:
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
           cd android
-          bash ./gradlew app:bundleRelease --console=plain --stacktrace --info
+          bash ./gradlew app:bundleRelease --console=plain --stacktrace --info -PplayStoreVersionCode=${{ steps.play_version.outputs.code }}
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -163,7 +176,7 @@ jobs:
 
       - name: Upload AAB artifact
         if: steps.release_signing_check.outputs.ready == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: android-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
@@ -171,7 +184,7 @@ jobs:
 
       - name: Upload mapping artifact
         if: steps.release_signing_check.outputs.ready == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: android-release-mapping
           path: android/app/build/outputs/mapping/release/mapping.txt
@@ -198,10 +211,11 @@ jobs:
             const fs = require('fs');
             const pubspec = fs.readFileSync('pubspec.yaml', 'utf8');
             const versionMatch = pubspec.match(/version:\s+(.+)/);
-            const version = versionMatch ? versionMatch[1] : 'unknown';
-            const buildTagName = `android-v${version}-build${context.runNumber}`;
-            const legacyTagName = `android-v${version}`;
-            const releaseBody = `🚀 **Android App Deployed**\n\n📱 Version: ${version}\n🏪 Track: ${{ github.event.inputs.tracks || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`;
+            const version = versionMatch ? versionMatch[1].replace(/\+\d+$/, '') : 'unknown';
+            const versionCode = '${{ steps.play_version.outputs.code }}';
+            const buildTagName = `android-v${version}+${versionCode}-build${context.runNumber}`;
+            const legacyTagName = `android-v${version}+${versionCode}`;
+            const releaseBody = `🚀 **Android App Deployed**\n\n📱 Version: ${version}+${versionCode}\n🏪 Track: ${{ github.event.inputs.tracks || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`;
             const prerelease = ${{ (github.event.inputs.tracks || 'internal') != 'production' }};
 
             let existing = null;
@@ -229,7 +243,7 @@ jobs:
                 repo: context.repo.repo,
                 release_id: existing.data.id,
                 tag_name: chosenTag,
-                name: `Android Release ${version} (Build ${context.runNumber})`,
+                name: `Android Release ${version}+${versionCode} (Run ${context.runNumber})`,
                 body: releaseBody,
                 draft: false,
                 prerelease,
@@ -240,7 +254,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 tag_name: buildTagName,
-                name: `Android Release ${version} (Build ${context.runNumber})`,
+                name: `Android Release ${version}+${versionCode} (Run ${context.runNumber})`,
                 body: releaseBody,
                 draft: false,
                 prerelease,

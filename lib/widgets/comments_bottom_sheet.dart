@@ -12,6 +12,14 @@ import '../services/media_service.dart';
 import '../utils/mention_utils.dart';
 import '../utils/auth_guard.dart';
 import '../utils/time_utils.dart';
+import '../screens/profile_screen.dart';
+
+void _openCommentAuthorProfile(BuildContext context, String userId) {
+  if (userId.isEmpty) return;
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
+  );
+}
 
 class CommentComposerFooter extends StatelessWidget {
   final TextEditingController controller;
@@ -1059,14 +1067,18 @@ class _CommentItem extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundImage: comment.authorImageUrl != null
-                      ? CachedNetworkImageProvider(comment.authorImageUrl!)
-                      : null,
-                  child: comment.authorImageUrl == null
-                      ? const Icon(Icons.person, size: 18)
-                      : null,
+                GestureDetector(
+                  onTap: () =>
+                      _openCommentAuthorProfile(context, comment.authorId),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundImage: comment.authorImageUrl != null
+                        ? CachedNetworkImageProvider(comment.authorImageUrl!)
+                        : null,
+                    child: comment.authorImageUrl == null
+                        ? const Icon(Icons.person, size: 18)
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1075,10 +1087,16 @@ class _CommentItem extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            comment.authorName,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          GestureDetector(
+                            onTap: () => _openCommentAuthorProfile(
+                              context,
+                              comment.authorId,
+                            ),
+                            child: Text(
+                              comment.authorName,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -1362,14 +1380,17 @@ class _ReplyItem extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 12,
-              backgroundImage: reply.authorImageUrl != null
-                  ? CachedNetworkImageProvider(reply.authorImageUrl!)
-                  : null,
-              child: reply.authorImageUrl == null
-                  ? const Icon(Icons.person, size: 12)
-                  : null,
+            GestureDetector(
+              onTap: () => _openCommentAuthorProfile(context, reply.authorId),
+              child: CircleAvatar(
+                radius: 12,
+                backgroundImage: reply.authorImageUrl != null
+                    ? CachedNetworkImageProvider(reply.authorImageUrl!)
+                    : null,
+                child: reply.authorImageUrl == null
+                    ? const Icon(Icons.person, size: 12)
+                    : null,
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -1379,10 +1400,16 @@ class _ReplyItem extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          reply.authorName,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
+                        child: GestureDetector(
+                          onTap: () => _openCommentAuthorProfile(
+                            context,
+                            reply.authorId,
+                          ),
+                          child: Text(
+                            reply.authorName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
