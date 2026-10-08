@@ -240,5 +240,129 @@ void main() {
       expect(find.textContaining('Replying to'), findsOneWidget);
       expect(find.text('This is the comment being replied to'), findsOneWidget);
     });
+
+    testWidgets('Right and Left swipe navigates between screens/tabs in TabBarView', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DefaultTabController(
+            length: 3,
+            child: Scaffold(
+              appBar: AppBar(
+                title: const Text('Swipe Navigation Test'),
+                bottom: const TabBar(
+                  tabs: [
+                    Tab(text: 'Stars'),
+                    Tab(text: 'Trending'),
+                    Tab(text: 'Posts'),
+                  ],
+                ),
+              ),
+              body: const TabBarView(
+                children: [
+                  Center(child: Text('Stars Screen Content')),
+                  Center(child: Text('Trending Screen Content')),
+                  Center(child: Text('Posts Screen Content')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Verify Initial Screen (Stars Screen) is visible
+      expect(find.text('Stars Screen Content'), findsOneWidget);
+      expect(find.text('Trending Screen Content'), findsNothing);
+      expect(find.text('Posts Screen Content'), findsNothing);
+
+      // Swipe Left (drag right-to-left) to navigate to the Next Screen (Trending)
+      await tester.drag(find.byType(TabBarView), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      // Verify Screen 2 (Trending Screen) is now visible
+      expect(find.text('Stars Screen Content'), findsNothing);
+      expect(find.text('Trending Screen Content'), findsOneWidget);
+      expect(find.text('Posts Screen Content'), findsNothing);
+
+      // Swipe Left again to navigate to Screen 3 (Posts Screen)
+      await tester.drag(find.byType(TabBarView), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      // Verify Screen 3 (Posts Screen) is now visible
+      expect(find.text('Trending Screen Content'), findsNothing);
+      expect(find.text('Posts Screen Content'), findsOneWidget);
+
+      // Swipe Right (drag left-to-right) to navigate back to Screen 2 (Trending Screen)
+      await tester.drag(find.byType(TabBarView), const Offset(500, 0));
+      await tester.pumpAndSettle();
+
+      // Verify Screen 2 (Trending Screen) is visible again
+      expect(find.text('Trending Screen Content'), findsOneWidget);
+      expect(find.text('Posts Screen Content'), findsNothing);
+
+      // Swipe Right again to navigate back to Screen 1 (Stars Screen)
+      await tester.drag(find.byType(TabBarView), const Offset(500, 0));
+      await tester.pumpAndSettle();
+
+      // Verify Screen 1 (Stars Screen) is visible again
+      expect(find.text('Stars Screen Content'), findsOneWidget);
+    });
+
+    testWidgets('Horizontal swipe navigates between home screens in PageView', (
+      WidgetTester tester,
+    ) async {
+      final controller = PageController(initialPage: 0);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PageView(
+              controller: controller,
+              children: const [
+                Center(child: Text('Home Screen')),
+                Center(child: Text('Vistas Short Videos')),
+                Center(child: Text('Discover Screen')),
+                Center(child: Text('Messages Screen')),
+                Center(child: Text('Notifications Screen')),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Verify Home Screen initially displayed
+      expect(find.text('Home Screen'), findsOneWidget);
+      expect(find.text('Vistas Short Videos'), findsNothing);
+
+      // Swipe Left to navigate to Vistas / Short Videos
+      await tester.drag(find.byType(PageView), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home Screen'), findsNothing);
+      expect(find.text('Vistas Short Videos'), findsOneWidget);
+
+      // Swipe Left to navigate to Discover Screen
+      await tester.drag(find.byType(PageView), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vistas Short Videos'), findsNothing);
+      expect(find.text('Discover Screen'), findsOneWidget);
+
+      // Swipe Right to navigate back to Vistas / Short Videos
+      await tester.drag(find.byType(PageView), const Offset(500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discover Screen'), findsNothing);
+      expect(find.text('Vistas Short Videos'), findsOneWidget);
+
+      // Swipe Right to navigate back to Home Screen
+      await tester.drag(find.byType(PageView), const Offset(500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home Screen'), findsOneWidget);
+
+      controller.dispose();
+    });
   });
 }

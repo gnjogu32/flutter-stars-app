@@ -24,6 +24,7 @@ class MainApp extends StatefulWidget {
 
 class MainAppState extends State<MainApp> {
   late int _selectedIndex;
+  late final PageController _pageController;
   late final List<Widget> _screens;
   final ValueNotifier<bool> _homeTabActive = ValueNotifier(true);
   final ValueNotifier<bool> _reelsTabActive = ValueNotifier(false);
@@ -33,11 +34,15 @@ class MainAppState extends State<MainApp> {
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
   final GlobalKey<ReelsScreenState> _reelsKey = GlobalKey<ReelsScreenState>();
 
-  void setSelectedIndex(int index, {bool refresh = false}) {
+  void setSelectedIndex(
+    int index, {
+    bool refresh = false,
+    bool isFromPageSwipe = false,
+  }) {
     final wasHome = _selectedIndex == 0;
     final wasReels = _selectedIndex == 1;
 
-    if (index == 0 && wasHome && !refresh) {
+    if (index == 0 && wasHome && !refresh && !isFromPageSwipe) {
       _homeKey.currentState?.scrollToTop();
       return;
     }
@@ -49,6 +54,12 @@ class MainAppState extends State<MainApp> {
       _selectedIndex = index;
     });
 
+    if (!isFromPageSwipe &&
+        _pageController.hasClients &&
+        _pageController.page?.round() != index) {
+      _pageController.jumpToPage(index);
+    }
+
     if (index == 1 && (refresh || wasReels)) {
       _reelsKey.currentState?.refreshReels();
     }
@@ -58,6 +69,7 @@ class MainAppState extends State<MainApp> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: _selectedIndex);
     _homeTabActive.value = _selectedIndex == 0;
     _reelsTabActive.value = _selectedIndex == 1;
     _discoverTabActive.value = _selectedIndex == 2;
@@ -76,6 +88,7 @@ class MainAppState extends State<MainApp> {
 
   @override
   void dispose() {
+    _pageController.dispose();
     _homeTabActive.dispose();
     _reelsTabActive.dispose();
     _discoverTabActive.dispose();
@@ -85,7 +98,21 @@ class MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: PageView(
+        controller: _pageController,
+        physics: const BouncingScrollPhysics(),
+        onPageChanged: (index) async {
+          const protectedTabs = {3, 4};
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if (protectedTabs.contains(index) && currentUser == null) {
+            _pageController.jumpToPage(_selectedIndex);
+            await AuthGuard.show(context);
+            return;
+          }
+          setSelectedIndex(index, isFromPageSwipe: true);
+        },
+        children: _screens,
+      ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 0.0),
         child: SizedBox(

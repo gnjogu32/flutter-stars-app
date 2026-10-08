@@ -4,44 +4,32 @@ This document outlines the technical specifics of the modernized build toolchain
 
 ## Current Toolchain State
 
-- **AGP:** 9.2.1 (Experimental)
-- **Kotlin:** 2.2.20
-- **Gradle:** 9.4.1
+- **AGP:** 8.11.1
+- **Kotlin Gradle Plugin:** 2.3.0
+- **Gradle:** 8.14.3
 - **Target/Compile SDK:** 36
 - **JDK/JVM Target:** 17 (Strictly enforced)
 - **NDK:** 28.2.13676358 (Strictly enforced)
 
 ## Core Build Logic
 
-The project uses a highly customized root `android/build.gradle.kts` to bridge the gap between AGP 9.x assumptions and legacy Flutter plugins.
+The Android project currently uses Groovy Gradle files: plugin versions are in `android/settings.gradle`, the wrapper version is in `android/gradle/wrapper/gradle-wrapper.properties`, and app settings are in `android/app/build.gradle`.
 
-### 1. Forced Kotlin Plugin Application
-Many plugins (e.g., `firebase_storage`, `file_picker`) detect AGP >= 9 and skip applying the `kotlin-android` plugin, assuming AGP's "Built-in Kotlin" will handle it. However, since we have `android.builtInKotlin=false` for broader compatibility, we must force the plugin application in the root build script:
+Flutter 3.44 runs with `android.builtInKotlin=false`; the app and some Flutter plugins still apply the Kotlin Gradle Plugin. Do not enable AGP 9 built-in Kotlin until Flutter and all Android plugins in the dependency graph have completed the migration. Java and Kotlin compilation target JVM 17.
 
-```kotlin
-allprojects {
-    if (project.name != "android") {
-        plugins.withId("com.android.library") {
-            if (!project.plugins.hasPlugin("kotlin-android") && ...) {
-                project.plugins.apply("kotlin-android")
-            }
-        }
-    }
-}
-```
-
-### 2. JVM 17 Enforcement
-To prevent mismatches between Java and Kotlin compilation tasks, JVM 17 is enforced across all subprojects:
-
-```kotlin
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
-}
-```
+The Play Store workflow can override the default version code with `-PplayStoreVersionCode=<code>`; ordinary local builds continue to use the fallback in `android/app/build.gradle`.
 
 ## Common Tasks
+
+### Verify the Android release bundle
+
+Use JDK 17 and run the Android Gradle task directly. The resulting bundle is written to `android/app/build/outputs/bundle/release/app-release.aab`.
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-17"
+cd android
+.\gradlew.bat app:bundleRelease
+```
 
 ### Build Release APK
 Use the standard Flutter command. The custom redirection ensures the artifact is placed in the root `build/` folder.
