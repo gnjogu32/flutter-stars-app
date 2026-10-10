@@ -1,4 +1,4 @@
-﻿name: Flutter Tests & Linting
+name: Flutter Tests & Linting
 
 on:
   push:

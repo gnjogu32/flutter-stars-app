@@ -1,4 +1,4 @@
-﻿name: Android Integration Tests (Emulator)
+name: Android Integration Tests (Emulator)
 
 on:
   push:

@@ -364,5 +364,68 @@ void main() {
 
       controller.dispose();
     });
+
+    testWidgets('Video playback remains active and visible above comment bottom sheet overlay', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Stack(
+                children: [
+                  // Simulated Video Player background screen
+                  const Center(child: Text('Active Video Stream Playing')),
+                  Positioned(
+                    bottom: 20,
+                    right: 20,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => DraggableScrollableSheet(
+                            initialChildSize: 0.7,
+                            minChildSize: 0.5,
+                            maxChildSize: 0.95,
+                            expand: false,
+                            builder: (context, scrollController) => Container(
+                              color: Colors.black87,
+                              child: const Column(
+                                children: [
+                                  Text('Comments Header'),
+                                  Text('Comment 1: Great video!'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('Open Comments'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Verify Video Player background stream is displayed initially
+      expect(find.text('Active Video Stream Playing'), findsOneWidget);
+      expect(find.text('Comments Header'), findsNothing);
+
+      // Open the comment sheet overlay
+      await tester.tap(find.text('Open Comments'));
+      await tester.pumpAndSettle();
+
+      // Verify that the Video Stream remains mounted and visible in the upper background portion
+      expect(find.text('Active Video Stream Playing'), findsOneWidget);
+
+      // Verify that the Comment overlay sheet is displayed simultaneously
+      expect(find.text('Comments Header'), findsOneWidget);
+      expect(find.text('Comment 1: Great video!'), findsOneWidget);
+    });
   });
 }
