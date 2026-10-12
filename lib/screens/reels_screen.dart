@@ -15,6 +15,7 @@ import '../models/post_model.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import '../services/analytics_service.dart';
+import '../services/video_handover_manager.dart';
 import '../utils/screen_awake_controller.dart';
 import '../utils/auth_guard.dart';
 import '../utils/constants.dart';
@@ -127,6 +128,8 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
           );
           _preloadedControllers[idx] = controller;
           controller.initialize().then((_) {
+            controller.setLooping(true);
+            VideoHandoverManager().registerHandover(post.postId, controller);
             if (mounted) {
               setState(() {});
             }

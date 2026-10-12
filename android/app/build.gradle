@@ -88,6 +88,9 @@ android {
                 signingConfig null
                 println "Release build is running without signing because required credentials are unavailable."
             }
+            ndk {
+                debugSymbolLevel = 'FULL'
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/post_model.dart';
 import 'full_screen_video_player.dart';
 import '../utils/screen_awake_controller.dart';
+import '../services/video_handover_manager.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
@@ -79,13 +80,15 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   }
 
   Future<void> _initializeController() async {
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-    try {
-      await _controller.initialize();
+    final cacheKey = widget.post?.postId ?? widget.videoUrl;
+    final cached = VideoHandoverManager().get(cacheKey);
+
+    if (cached != null && cached.value.isInitialized) {
+      _controller = cached;
       if (mounted) {
         setState(() {
           _isInitialized = true;
-          _controller.setLooping(true);
+          _controller.setLooping(widget.looping);
           _controller.setVolume(_isMuted ? 0 : 1);
           if (widget.autoPlay) {
             _controller.play();
@@ -94,18 +97,37 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
             _acquireWakelock();
           }
         });
-
-        _controller.addListener(() {
-          if (_controller.value.position >= _controller.value.duration &&
-              !_controller.value.isLooping &&
-              _controller.value.isPlaying == false) {
-            widget.onVideoEnd?.call();
-            _releaseWakelock();
-          }
-        });
       }
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Error loading video');
+      return;
+    }
+
+    _controller = await VideoHandoverManager().getOrCreateController(
+      cacheKey,
+      widget.videoUrl,
+      autoInitialize: true,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isInitialized = _controller.value.isInitialized;
+        _controller.setLooping(widget.looping);
+        _controller.setVolume(_isMuted ? 0 : 1);
+        if (widget.autoPlay && _isInitialized) {
+          _controller.play();
+          _showOverlay = false;
+          _dispatchPlayEvent();
+          _acquireWakelock();
+        }
+      });
+
+      _controller.addListener(() {
+        if (_controller.value.position >= _controller.value.duration &&
+            !_controller.value.isLooping &&
+            _controller.value.isPlaying == false) {
+          widget.onVideoEnd?.call();
+          _releaseWakelock();
+        }
+      });
     }
   }
 
@@ -172,6 +194,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
       _controller.play();
       _dispatchPlayEvent();
       _acquireWakelock();
+
+      VideoHandoverManager().registerHandover(widget.post!.postId, _controller);
 
       final currentPosition = _controller.value.position;
       if (mounted) {

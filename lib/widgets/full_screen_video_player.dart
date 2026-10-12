@@ -14,6 +14,7 @@ import '../services/share_service.dart';
 import '../services/user_service.dart';
 import '../services/post_service.dart';
 import '../services/analytics_service.dart';
+import '../services/video_handover_manager.dart';
 import '../utils/constants.dart';
 import '../utils/auth_guard.dart';
 import '../widgets/expandable_text.dart';
@@ -273,8 +274,25 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
     }
 
     if (widget.post.videoUrl == null) return;
-    _controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.post.videoUrl!),
+
+    // Check VideoHandoverManager for pre-cached or preloaded controller
+    final cached = VideoHandoverManager().get(widget.post.postId);
+    if (cached != null && cached.value.isInitialized) {
+      _controller = cached;
+      _usingInherited = true;
+      _isInitialized = true;
+      if (widget.autoPlay && mounted) {
+        _controller.play();
+        _acquireWakelock();
+      }
+      if (mounted) setState(() {});
+      return;
+    }
+
+    _controller = await VideoHandoverManager().getOrCreateController(
+      widget.post.postId,
+      widget.post.videoUrl!,
+      autoInitialize: true,
     );
     try {
       await _controller.initialize();
