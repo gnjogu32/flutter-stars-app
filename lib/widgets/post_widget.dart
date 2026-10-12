@@ -1199,13 +1199,6 @@ class _PostWidgetState extends State<PostWidget>
                                   ),
                                 ),
                               ),
-                                placeholder: (context, url) => const SizedBox(
-                                  height: 220,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                ),
-                              ),
                               if (_showLikeHeart)
                                 ScaleTransition(
                                   scale: Tween<double>(begin: 0.0, end: 1.2)

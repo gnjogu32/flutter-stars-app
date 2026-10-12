@@ -365,12 +365,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
               onLongPress: _togglePlay,
               child: RepaintBoundary(child: VideoPlayer(_controller)),
             ),
-              behavior: HitTestBehavior.opaque,
-              onTap: _handleTap,
-              onDoubleTap: widget.onDoubleTap,
-              onLongPress: _togglePlay,
-              child: RepaintBoundary(child: VideoPlayer(_controller)),
-            ),
 
           ValueListenableBuilder(
             valueListenable: _controller,

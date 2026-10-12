@@ -252,7 +252,7 @@ class HomeScreenState extends State<HomeScreen>
               }
 
               return ListView.builder(
-                cacheExtent: 3500.0,
+                scrollCacheExtent: 3500.0,
                 itemCount: filteredPosts.length + 1 + (_hasMore ? 1 : 0),
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
