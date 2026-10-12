@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
 import '../widgets/post_widget.dart';
+import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
 
@@ -233,7 +234,7 @@ class HomeScreenState extends State<HomeScreen>
 
               if (filteredPosts.isEmpty) {
                 if (_isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const PostFeedSkeleton(count: 3);
                 }
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
@@ -251,8 +252,7 @@ class HomeScreenState extends State<HomeScreen>
               }
 
               return ListView.builder(
-                // ignore: deprecated_member_use
-                cacheExtent: 3000.0, // Increased for smoother scrolling
+                cacheExtent: 3500.0,
                 itemCount: filteredPosts.length + 1 + (_hasMore ? 1 : 0),
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
@@ -272,8 +272,8 @@ class HomeScreenState extends State<HomeScreen>
 
                   if (postIndex == filteredPosts.length) {
                     return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Center(child: CircularProgressIndicator()),
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: PostSkeleton(),
                     );
                   }
 

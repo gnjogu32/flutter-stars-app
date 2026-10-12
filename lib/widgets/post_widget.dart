@@ -1110,11 +1110,11 @@ class _PostWidgetState extends State<PostWidget>
                 key: ValueKey('feed_video_${widget.post.postId}'),
                 onVisibilityChanged: (info) {
                   if (!mounted) return;
-                  if (info.visibleFraction > 0.8) {
+                  if (info.visibleFraction > 0.85) {
                     if (widget.autoPlayEnabled && widget.isTabVisible) {
                       _videoKey.currentState?.play();
                     }
-                  } else {
+                  } else if (info.visibleFraction < 0.2) {
                     _videoKey.currentState?.pause();
                   }
                 },
@@ -1123,13 +1123,18 @@ class _PostWidgetState extends State<PostWidget>
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: VideoPlayerWidget(
-                        key: _videoKey,
-                        videoUrl: widget.post.videoUrl!,
-                        post: widget.post,
-                        currentUserId: widget.currentUserId,
-                        autoPlay: false,
-                        onDoubleTap: _handleDoubleTap,
+                      child: Container(
+                        color: theme.brightness == Brightness.dark
+                            ? const Color(0xFF181A20)
+                            : const Color(0xFFEFEFF4),
+                        child: VideoPlayerWidget(
+                          key: _videoKey,
+                          videoUrl: widget.post.videoUrl!,
+                          post: widget.post,
+                          currentUserId: widget.currentUserId,
+                          autoPlay: false,
+                          onDoubleTap: _handleDoubleTap,
+                        ),
                       ),
                     ),
                     if (_showLikeHeart)
@@ -1171,13 +1176,29 @@ class _PostWidgetState extends State<PostWidget>
                         child: Container(
                           width: double.infinity,
                           constraints: const BoxConstraints(maxHeight: 420),
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: theme.brightness == Brightness.dark
+                              ? const Color(0xFF181A20)
+                              : const Color(0xFFEFEFF4),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
                               CachedNetworkImage(
                                 imageUrl: widget.post.imageUrls.first,
                                 fit: BoxFit.contain,
+                                memCacheWidth: 800,
+                                memCacheHeight: 800,
+                                placeholder: (context, url) => Container(
+                                  height: 220,
+                                  color: theme.brightness == Brightness.dark
+                                      ? const Color(0xFF181A20)
+                                      : const Color(0xFFEFEFF4),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
                                 placeholder: (context, url) => const SizedBox(
                                   height: 220,
                                   child: Center(

@@ -331,33 +331,40 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Loading / Placeholder Layer
-          if (!_isInitialized)
-            Container(
-              color: Colors.black,
-              width: double.infinity,
-              height: double.infinity,
-              child: widget.post != null && widget.post!.imageUrls.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: widget.post!.imageUrls.first,
-                      fit: widget.fit,
-                      placeholder: (context, url) => const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white24,
-                        ),
-                      ),
-                    )
-                  : const Center(
+          // Background Poster Image / Surface Layer (Always present to prevent white flashes & black freeze screens)
+          Container(
+            color: const Color(0xFF14161C),
+            width: double.infinity,
+            height: double.infinity,
+            child: widget.post != null && widget.post!.imageUrls.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: widget.post!.imageUrls.first,
+                    fit: widget.fit,
+                    memCacheWidth: 800,
+                    memCacheHeight: 800,
+                    placeholder: (context, url) => const Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white24,
                       ),
                     ),
-            ),
+                  )
+                : const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white24,
+                    ),
+                  ),
+          ),
 
           if (_isInitialized)
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _handleTap,
+              onDoubleTap: widget.onDoubleTap,
+              onLongPress: _togglePlay,
+              child: RepaintBoundary(child: VideoPlayer(_controller)),
+            ),
               behavior: HitTestBehavior.opaque,
               onTap: _handleTap,
               onDoubleTap: widget.onDoubleTap,
