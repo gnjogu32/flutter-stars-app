@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
@@ -252,7 +253,7 @@ class HomeScreenState extends State<HomeScreen>
               }
 
               return ListView.builder(
-                scrollCacheExtent: 3500.0,
+                scrollCacheExtent: const ScrollCacheExtent.pixels(3500.0),
                 itemCount: filteredPosts.length + 1 + (_hasMore ? 1 : 0),
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
