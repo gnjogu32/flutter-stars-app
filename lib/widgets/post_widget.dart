@@ -880,6 +880,7 @@ class _PostWidgetState extends State<PostWidget>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     if (widget.isImmersive) {
       return _buildImmersivePost(context);
@@ -887,10 +888,10 @@ class _PostWidgetState extends State<PostWidget>
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: isDark ? const Color(0xFF13151B) : const Color(0xFFFAFAFC),
         border: Border(
           bottom: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.5),
+            color: theme.dividerColor.withValues(alpha: 0.3),
             width: 0.5,
           ),
         ),

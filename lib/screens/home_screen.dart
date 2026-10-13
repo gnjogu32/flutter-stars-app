@@ -154,7 +154,10 @@ class HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F1116) : const Color(0xFFF2F2F7),
       body: NestedScrollView(
         controller: _scrollController,
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -218,7 +221,8 @@ class HomeScreenState extends State<HomeScreen>
               }
 
               final filteredPosts = _posts.where((post) {
-                final isMuted = mutedPosts.contains(post.postId) ||
+                final isMuted =
+                    mutedPosts.contains(post.postId) ||
                     mutedAuthors.contains(post.authorId) ||
                     blockedUsers.contains(post.authorId);
                 if (isMuted) return false;

@@ -69,6 +69,7 @@ class MyApp extends StatelessWidget {
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
+      scaffoldBackgroundColor: const Color(0xFFF2F2F7),
       textTheme: const TextTheme(
         bodyLarge: TextStyle(fontWeight: FontWeight.w500),
         bodyMedium: TextStyle(fontWeight: FontWeight.w500),
