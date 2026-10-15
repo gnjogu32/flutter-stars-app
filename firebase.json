@@ -22,6 +22,10 @@
         "destination": "/delete-account.html"
       },
       {
+        "source": "/child-safety",
+        "destination": "/child-safety.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -37,6 +41,11 @@
       {
         "source": "/delete-account.html",
         "destination": "/delete-account",
+        "type": 301
+      },
+      {
+        "source": "/child-safety.html",
+        "destination": "/child-safety",
         "type": 301
       }
     ],
