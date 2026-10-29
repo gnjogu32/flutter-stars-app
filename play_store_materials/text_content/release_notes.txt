@@ -1,34 +1,21 @@
-🚀 Welcome to Starpage v1.1.9!
+🚀 Welcome to Starpage v1.1.18!
 
-This update brings professional content control and enhanced performance to our creative community.
+This update brings professional content control, enhanced video reels, and seamless social features to our creator community.
 
-✨ NEW IN THIS VERSION
+✨ WHAT'S NEW IN THIS VERSION:
 
-🔒 Post Visibility Controls
+🔒 Advanced Post Privacy Controls
 • Take full control of your creative reach.
-• Choose between "Public" (anyone can see) and "Followers Only" for your posts and reposts.
-• Manage your privacy with ease while showcasing your talent.
+• Easily switch between "Public" (everyone) and "Followers Only" visibility for posts and reposts.
 
-🎥 Enhanced Video Experience
-• Implemented a seamless thumbnail-first loading strategy.
-• Enjoy flicker-free video playback across all feeds.
-• Optimized preloading for a smooth, continuous browsing flow.
+🎥 Enhanced Video Reels & Instant Loading
+• Thumbnail-first loading strategy for flicker-free video playback.
+• Optimized video handover across feeds and full-screen reel view.
 
-⚡ Performance & UX
-• Integrated Haptic Feedback for a premium, tactile social experience.
-• Real-time linear progress indicators for media uploads in comments.
-• Smoother vertical scrolling and optimized pagination.
+⚡ Smooth Social & Performance Upgrades
+• Tactile Haptic Feedback for media interactions.
+• Real-time progress indicators for comment uploads and direct messaging.
+• Refined Discovery hub with synchronized talent filters and trending hashtags.
 
-✅ IMPROVEMENTS
-• Modernized build toolchain for improved app stability.
-• Refined Discovery hub with synchronized talent filters.
-• Silent background error handling for a cleaner UI experience.
-
----
-
-Thank you for being part of Starpage! We're excited to see your creativity.
-
-Support & Feedback: support@starpage.me
+Thank you for being part of Starpage! Send feedback or suggestions to support@starpage.me.
 Official Site: https://starpage.me
-
-Follow our journey on social media @StarPageApp

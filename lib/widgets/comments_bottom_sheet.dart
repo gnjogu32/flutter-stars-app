@@ -9,6 +9,7 @@ import '../models/user_model.dart';
 import '../services/comment_service.dart';
 import '../services/user_service.dart';
 import '../services/media_service.dart';
+import '../services/content_moderation_service.dart';
 import '../utils/mention_utils.dart';
 import '../utils/auth_guard.dart';
 import '../utils/time_utils.dart';
@@ -1362,6 +1363,21 @@ class _ReplyItem extends StatelessWidget {
                 );
               },
             ),
+            if (!isAuthor)
+              ListTile(
+                leading: const Icon(Icons.flag_outlined),
+                title: const Text('Report Comment'),
+                onTap: () {
+                  Navigator.pop(context);
+                  ContentModerationService.showReportDialog(
+                    context,
+                    contentType: ModerationContentType.comment,
+                    targetId: comment.commentId,
+                    targetAuthorId: comment.authorId,
+                    targetAuthorName: comment.authorName,
+                  );
+                },
+              ),
           ],
         ),
       ),

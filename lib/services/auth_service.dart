@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import 'push_notification_service.dart';
 
@@ -78,11 +79,72 @@ class AuthService {
     }
   }
 
+  // Sign in with Google
+  Future<UserModel?> signInWithGoogle() async {
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User canceled sign in
+        return null;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await _firebaseAuth.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user == null) return null;
+
+      // Check if user already exists in Firestore
+      final DocumentSnapshot doc = await _firebaseFirestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      UserModel userModel;
+
+      if (doc.exists) {
+        userModel = UserModel.fromFirestoreDoc(doc);
+      } else {
+        // Create new user record in Firestore for first-time Google sign-in
+        final String displayName =
+            user.displayName ?? googleUser.displayName ?? 'Starpage User';
+        userModel = UserModel(
+          uid: user.uid,
+          email: user.email ?? googleUser.email,
+          displayName: displayName,
+          profileImageUrl: user.photoURL,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await _firebaseFirestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userModel.toJson());
+      }
+
+      await PushNotificationService.syncTokenForCurrentUser();
+      return userModel;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Logout
   Future<void> logout() async {
     try {
       // Fire token cleanup in background — don't block sign-out on network calls
       PushNotificationService.clearToken().ignore();
+      await GoogleSignIn().signOut().catchError((_) => null);
       await _firebaseAuth.signOut();
     } catch (e) {
       rethrow;

@@ -12,6 +12,7 @@ import '../models/post_model.dart';
 import '../services/analytics_service.dart';
 import '../services/chat_service.dart';
 import '../services/user_service.dart';
+import '../services/content_moderation_service.dart';
 import '../widgets/post_widget.dart';
 import '../widgets/post_details_sheet.dart';
 import '../widgets/video_grid_thumbnail.dart';
@@ -432,9 +433,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 return PopupMenuButton<String>(
                   enabled: !_isLoadingBlock,
                   onSelected: (val) {
-                    if (val == 'block') _toggleBlock(user);
+                    if (val == 'block') {
+                      _toggleBlock(user);
+                    } else if (val == 'report') {
+                      ContentModerationService.showReportDialog(
+                        context,
+                        contentType: ModerationContentType.user,
+                        targetId: user.uid,
+                        targetAuthorId: user.uid,
+                        targetAuthorName: user.displayName,
+                      );
+                    }
                   },
                   itemBuilder: (ctx) => [
+                    PopupMenuItem(
+                      value: 'report',
+                      child: const Row(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 20),
+                          SizedBox(width: 8),
+                          Text('Report User'),
+                        ],
+                      ),
+                    ),
                     PopupMenuItem(
                       value: 'block',
                       child: _isLoadingBlock
@@ -447,11 +468,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                             )
-                          : Text(
-                              _isBlocked ? 'Unblock User' : 'Block User',
-                              style: TextStyle(
-                                color: _isBlocked ? Colors.blue : Colors.red,
-                              ),
+                          : Row(
+                              children: [
+                                Icon(
+                                  Icons.block,
+                                  size: 20,
+                                  color: _isBlocked ? Colors.blue : Colors.red,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isBlocked ? 'Unblock User' : 'Block User',
+                                  style: TextStyle(
+                                    color: _isBlocked ? Colors.blue : Colors.red,
+                                  ),
+                                ),
+                              ],
                             ),
                     ),
                   ],

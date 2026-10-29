@@ -1,62 +1,30 @@
-Starpage is a social platform built for creators, artists, performers, and communities to share content, grow their audience, and connect through creativity.
+Starpage is a social networking app for creators who want to share their work and connect with others. Create short video and photo posts, discover creators, and join conversations about art, music, dance, comedy, photography, writing, and more.
 
-Whether you create photos, videos, music, writing, or visual art, Starpage helps you express yourself, discover talent, and build meaningful connections in a modern social experience.
+DISCOVER CREATORS AND POSTS
+• Browse videos, photos, and creator posts in the Home and Discover feeds.
+• Explore talent categories and search for creators, hashtags, and topics.
+• Follow creators whose work you enjoy and find new posts from the community.
 
-Key features
+CREATE AND SHARE
+• Publish video, photo, and text posts to showcase your interests and talent.
+• Choose Public or Followers Only visibility for your posts.
+• Like, comment on, mention, and repost content to join the conversation.
 
-Share your creativity
-• Post photos, videos, and captions
-• Showcase your work in a clean, content-first feed
-• Repost standout content with your own caption
-• Build a profile that reflects your style and talent
+CONNECT WITH THE COMMUNITY
+• Send direct messages to creators and friends.
+• Share photos and videos in conversations.
+• Receive notifications about likes, comments, mentions, and messages.
 
-Discover creators and trending content
-• Explore fresh content across feeds and discovery surfaces
-• Search for creators, posts, and topics
-• Browse engaging short-form visual content
-• Stay connected to what is trending in the community
+CREATOR INSIGHTS
+• Review post activity, including views, likes, comments, shares, and reposts.
+• Manage your profile, followers, saved posts, and other account preferences.
 
-Build your community
-• Follow creators you love
-• Grow your audience over time
-• Like, comment, and interact with posts
-• Strengthen real engagement with followers
+Whether you create videos, take photos, make art, write, dance, or simply enjoy discovering new work, Starpage gives you a place to share and connect.
 
-Private and real-time social features
-• Send direct messages
-• Get real-time notifications for likes, comments, follows, and messages
-• Stay updated without missing important activity
-• Enjoy smooth social interactions across the app
+Download Starpage to explore creator posts, publish your own work, and build connections around the things you enjoy.
 
-More control over your content
-• Choose who can view your posts and reposts
-• Share publicly or limit visibility to followers only
-• Manage your content with more confidence
-• Balance reach and privacy for every post
-
-Personalized creator identity
-• Customize your profile
-• Add a bio and profile photo
-• Highlight your creative focus
-• Show your follower and following activity
-
-Why Starpage
-• Built for creators and creative communities
-• Fast, responsive, and easy to use
-• Designed for discovery, expression, and connection
-• Real-time features that keep conversations active
-• A growing platform focused on talent and community
-
-Perfect for
-• Content creators
-• Artists and photographers
-• Musicians and performers
-• Writers and bloggers
-• Creative communities
-• Anyone who wants to share, discover, and connect
-
-Download Starpage and join a vibrant social experience where creativity meets community.
-
+CONNECT & SUPPORT
+Website: https://starpage.me
 Support: support@starpage.me
 Privacy Policy: https://starpage.me/privacy
 Terms of Service: https://starpage.me/terms

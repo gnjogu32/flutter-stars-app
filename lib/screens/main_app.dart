@@ -9,6 +9,7 @@ import 'discover_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
 import 'reels_screen.dart';
+import '../widgets/app_walkthrough.dart';
 
 class MainApp extends StatefulWidget {
   final int initialIndex;
@@ -84,6 +85,15 @@ class MainAppState extends State<MainApp> {
       const MessagesScreen(),
       const NotificationsScreen(),
     ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await AppWalkthrough.showIfNeeded(
+        context,
+        onSelectTab: (index) => setSelectedIndex(index),
+        onCreatePost: () => Navigator.of(context).pushNamed('/create-post'),
+      );
+    });
   }
 
   @override
@@ -119,6 +129,7 @@ class MainAppState extends State<MainApp> {
           height: 65,
           width: 65,
           child: FloatingActionButton(
+            tooltip: 'Create a new post',
             onPressed: () {
               HapticFeedback.lightImpact();
               Navigator.of(context).pushNamed('/create-post');

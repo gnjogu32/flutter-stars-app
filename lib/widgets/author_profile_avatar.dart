@@ -10,7 +10,12 @@ class AuthorProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    User? user;
+    try {
+      user = FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      user = null;
+    }
     if (user == null) {
       return const SizedBox.shrink();
     }
@@ -33,24 +38,32 @@ class AuthorProfileAvatar extends StatelessWidget {
 
         final userData = UserModel.fromFirestoreDoc(snapshot.data!);
 
-        return GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => ProfileScreen(userId: userData.uid),
+        return Semantics(
+          button: true,
+          label: 'Your profile avatar (${userData.displayName})',
+          hint: 'Double tap to open your profile screen',
+          child: Tooltip(
+            message: 'View profile (${userData.displayName})',
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(userId: userData.uid),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundImage: userData.profileImageUrl != null
+                      ? CachedNetworkImageProvider(userData.profileImageUrl!)
+                      : null,
+                  child: userData.profileImageUrl == null
+                      ? const Icon(Icons.person, size: 22)
+                      : null,
+                ),
               ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CircleAvatar(
-              radius: 20,
-              backgroundImage: userData.profileImageUrl != null
-                  ? CachedNetworkImageProvider(userData.profileImageUrl!)
-                  : null,
-              child: userData.profileImageUrl == null
-                  ? const Icon(Icons.person, size: 22)
-                  : null,
             ),
           ),
         );

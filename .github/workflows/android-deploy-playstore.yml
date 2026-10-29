@@ -1,7 +1,5 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Android Deploy to Play Store
-# Verification trigger: no functional workflow change.
-# CI verification trigger: 2026-08-13
 
 on:
   workflow_dispatch:
@@ -20,11 +18,10 @@ on:
     branches:
       - main
     paths:
-      - 'lib/**'
-      - 'assets/**'
-      - 'pubspec.yaml'
-      - 'android/**'
       - '.github/workflows/android-deploy-playstore.yml'
+      - 'pubspec.yaml'
+      - 'android/app/build.gradle'
+      - 'android/gradle/**'
 
 env:
   FLUTTER_VERSION: '3.44.0'
@@ -48,6 +45,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -134,6 +132,7 @@ jobs:
             "storeFile=$STORE_FILE_PATH" > android/key.properties
 
           echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "store_file_path=$STORE_FILE_PATH" >> "$GITHUB_OUTPUT"
           echo "Using repository keystore signing for Play Store upload."
 
       - name: Skip deployment when signing is unavailable
@@ -157,22 +156,26 @@ jobs:
       - name: Build App Bundle
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
-          cd android
-          bash ./gradlew app:bundleRelease --console=plain --stacktrace --info -PplayStoreVersionCode=${{ steps.play_version.outputs.code }}
+          flutter build appbundle --release --build-number=${{ steps.play_version.outputs.code }}
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'starpage' }}
-          ANDROID_STORE_FILE: ${{ github.workspace }}/android/starpage-keystore-new.jks
+          ANDROID_STORE_FILE: ${{ steps.release_signing_check.outputs.store_file_path }}
 
       - name: Verify bundle exists
+        id: bundle_check
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
-          BUNDLE_PATH="android/app/build/outputs/bundle/release/app-release.aab"
-          if [ ! -f "$BUNDLE_PATH" ]; then
-            echo "App bundle was not generated at the expected path: $BUNDLE_PATH"
+          if [ -f "build/app/outputs/bundle/release/app-release.aab" ]; then
+            BUNDLE_PATH="build/app/outputs/bundle/release/app-release.aab"
+          elif [ -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
+            BUNDLE_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+          else
+            echo "::error::App bundle was not generated at an expected path."
             exit 1
           fi
+          echo "bundle_path=$BUNDLE_PATH" >> "$GITHUB_OUTPUT"
           ls -lh "$BUNDLE_PATH"
 
       - name: Upload AAB artifact
@@ -180,7 +183,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-release-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: ${{ steps.bundle_check.outputs.bundle_path }}
           if-no-files-found: error
 
       - name: Upload mapping artifact
@@ -197,14 +200,14 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
           packageName: com.starpage.app
-          releaseFiles: 'android/app/build/outputs/bundle/release/app-release.aab'
+          releaseFiles: ${{ steps.bundle_check.outputs.bundle_path }}
           tracks: ${{ github.event.inputs.tracks || 'internal' }}
           status: completed
           whatsNewDirectory: 'whats-new'
           mappingFile: 'android/app/build/outputs/mapping/release/mapping.txt'
 
       - name: Create or Update Release Notes
-        if: success()
+        if: success() && steps.release_signing_check.outputs.ready == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

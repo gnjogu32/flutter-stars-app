@@ -107,6 +107,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  Future<void> _googleSignUp() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final authService = context.read<AuthService>();
+      final user = await authService.signInWithGoogle();
+
+      if (mounted && user != null) {
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Google Sign-In failed: ${e.toString()}';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
@@ -276,6 +304,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator()
                     : const Text('Sign Up'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Divider
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade400)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.grey.shade400)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Google Sign-Up Button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _googleSignUp,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: Image.network(
+                  'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                  height: 20,
+                  width: 20,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.g_mobiledata,
+                    size: 24,
+                    color: Colors.red,
+                  ),
+                ),
+                label: const Text(
+                  'Sign up with Google',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             const SizedBox(height: 16),

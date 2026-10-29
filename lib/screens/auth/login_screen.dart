@@ -80,6 +80,37 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _googleLogin() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final authService = context.read<AuthService>();
+      final user = await authService.signInWithGoogle();
+      if (!mounted) return;
+      if (user != null) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainApp()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Google Sign-In failed: ${e.toString()}';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final showKeyboardPrompt = MediaQuery.viewInsetsOf(context).bottom > 0;
@@ -200,6 +231,55 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator()
                     : const Text('Login'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Divider
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade400)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.grey.shade400)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Google Sign-In Button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _googleLogin,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: Image.network(
+                  'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                  height: 20,
+                  width: 20,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.g_mobiledata,
+                    size: 24,
+                    color: Colors.red,
+                  ),
+                ),
+                label: const Text(
+                  'Continue with Google',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             const SizedBox(height: 16),

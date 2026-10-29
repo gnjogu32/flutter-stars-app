@@ -11,6 +11,7 @@ import '../models/post_model.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
 import '../services/share_service.dart';
+import '../services/content_moderation_service.dart';
 import '../utils/time_utils.dart';
 import '../utils/auth_guard.dart';
 import '../screens/profile_screen.dart';
@@ -389,11 +390,13 @@ class _PostWidgetState extends State<PostWidget>
     }
   }
 
-  void _reportPost() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Post reported. Thank you for keeping Starpage safe.'),
-      ),
+  void _reportPost() {
+    ContentModerationService.showReportDialog(
+      context,
+      contentType: ModerationContentType.post,
+      targetId: widget.post.postId,
+      targetAuthorId: widget.post.authorId,
+      targetAuthorName: widget.post.authorName,
     );
   }
 
@@ -480,28 +483,35 @@ class _PostWidgetState extends State<PostWidget>
               _buildBarItem(
                 icon: isLiked ? Icons.favorite : Icons.favorite_border,
                 label: '$likeCount',
+                tooltip: isLiked
+                    ? 'Unlike post ($likeCount likes)'
+                    : 'Like post ($likeCount likes)',
                 color: isLiked ? Colors.red : null,
                 onTap: _toggleLike,
               ),
               _buildBarItem(
                 icon: Icons.comment_outlined,
                 label: '$commentCount',
+                tooltip: 'Comments ($commentCount comments)',
                 onTap: () => _openCommentsSheet(autoFocus: false),
               ),
               _buildBarItem(
                 icon: Icons.repeat,
                 label: '$repostCount',
+                tooltip: 'Repost post ($repostCount reposts)',
                 onTap: _confirmRepost,
               ),
               _buildBarItem(
                 icon: _isSaved ? Icons.bookmark : Icons.bookmark_border,
                 label: '',
+                tooltip: _isSaved ? 'Remove bookmark' : 'Bookmark post',
                 color: _isSaved ? Colors.amber : null,
                 onTap: _toggleSave,
               ),
               _buildBarItem(
                 icon: Icons.share_outlined,
                 label: '',
+                tooltip: 'Share post',
                 onTap: _showShareDialog,
               ),
             ],
@@ -833,36 +843,45 @@ class _PostWidgetState extends State<PostWidget>
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    String? tooltip,
     Color? color,
   }) {
     final theme = Theme.of(context);
+    final semanticText = tooltip ?? (label.isNotEmpty ? label : 'Action button');
     return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: color ?? theme.colorScheme.onSurfaceVariant,
-                ),
-                if (label.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+      child: Semantics(
+        button: true,
+        label: semanticText,
+        child: Tooltip(
+          message: semanticText,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
                       color: color ?? theme.colorScheme.onSurfaceVariant,
                     ),
-                  ),
-                ],
-              ],
+                    if (label.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        label,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: color ?? theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),

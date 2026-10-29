@@ -21,6 +21,7 @@ import '../utils/auth_guard.dart';
 import '../utils/constants.dart';
 import '../services/share_service.dart';
 import '../services/user_service.dart';
+import '../services/content_moderation_service.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/repost_dialog.dart';
 import 'profile_screen.dart';
@@ -716,9 +717,12 @@ class _ReelItemState extends State<_ReelItem>
                   onTap: () {
                     Navigator.pop(context);
                     if (mounted) {
-                      final messenger = ScaffoldMessenger.of(context);
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Post reported.')),
+                      ContentModerationService.showReportDialog(
+                        context,
+                        contentType: ModerationContentType.post,
+                        targetId: widget.post.postId,
+                        targetAuthorId: widget.post.authorId,
+                        targetAuthorName: ownerName,
                       );
                     }
                   },

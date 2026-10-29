@@ -15,6 +15,7 @@ import '../services/user_service.dart';
 import '../services/post_service.dart';
 import '../services/analytics_service.dart';
 import '../services/video_handover_manager.dart';
+import '../services/content_moderation_service.dart';
 import '../utils/constants.dart';
 import '../utils/auth_guard.dart';
 import '../widgets/expandable_text.dart';
@@ -534,9 +535,12 @@ class _ImmersiveVideoItemState extends State<_ImmersiveVideoItem>
                   onTap: () {
                     Navigator.pop(context);
                     if (mounted) {
-                      final messenger = ScaffoldMessenger.of(context);
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Post reported.')),
+                      ContentModerationService.showReportDialog(
+                        context,
+                        contentType: ModerationContentType.post,
+                        targetId: widget.post.postId,
+                        targetAuthorId: widget.post.authorId,
+                        targetAuthorName: ownerName,
                       );
                     }
                   },

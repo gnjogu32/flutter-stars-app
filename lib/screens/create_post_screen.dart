@@ -7,6 +7,8 @@ import 'package:video_player/video_player.dart';
 import '../services/post_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../services/review_service.dart';
+import '../services/content_moderation_service.dart';
 import '../utils/mention_utils.dart';
 import '../models/user_model.dart';
 
@@ -307,6 +309,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       if (currentUser == null) {
         throw Exception('You must be logged in to create a post');
       }
+
+      final moderation = ContentModerationService().validateTextContent(
+        _contentController.text,
+      );
+      if (!moderation.isAllowed) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = moderation.flaggedReason ??
+              'Content flagged by safety filter. Please review your text.';
+        });
+        return;
+      }
+
       final userData = await _userService.getUser(currentUser.uid);
       if (userData == null) {
         throw Exception('Your profile info was not found.');
@@ -327,7 +342,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Post created successfully! 🎉')),
         );
+        ReviewService().incrementActionCount();
         Navigator.pop(context);
+        ReviewService().promptReviewIfEligible(context);
       }
     } catch (e) {
       setState(() => _errorMessage = e.toString());

@@ -163,6 +163,33 @@ service cloud.firestore {
                        request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead', 'readAt']);
       allow delete: if isOwner(userId);
     }
+
+    // User reports are append-only for reporters; only admins can review them.
+    match /reports/{reportId} {
+      allow create: if isAuthenticated() &&
+                       request.resource.data.keys().hasAll([
+                         'reportId', 'reporterId', 'contentType', 'targetId',
+                         'targetAuthorId', 'reason', 'details', 'status', 'createdAt'
+                       ]) &&
+                       request.resource.data.keys().hasOnly([
+                         'reportId', 'reporterId', 'contentType', 'targetId',
+                         'targetAuthorId', 'reason', 'details', 'status', 'createdAt'
+                       ]) &&
+                       request.resource.data.reportId == reportId &&
+                       request.resource.data.reporterId == request.auth.uid &&
+                       request.resource.data.contentType in ['post', 'comment', 'user', 'message'] &&
+                       validateString(request.resource.data.targetId, 1, 200) &&
+                       validateString(request.resource.data.targetAuthorId, 1, 200) &&
+                       request.resource.data.reason in [
+                         'spam', 'harassment', 'hate_speech', 'explicit',
+                         'violence', 'copyright', 'other'
+                       ] &&
+                       request.resource.data.details is string &&
+                       request.resource.data.details.size() <= 1000 &&
+                       request.resource.data.status == 'pending' &&
+                       request.resource.data.createdAt == request.time;
+      allow read, update, delete: if isAdmin();
+    }
     
     // Default deny for anything else
     match /{document=**} {

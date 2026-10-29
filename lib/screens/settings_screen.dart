@@ -3,9 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../services/review_service.dart';
 import '../models/user_model.dart';
+import '../widgets/app_walkthrough.dart';
 import 'activity_management_screen.dart';
 import 'analytics_dashboard_screen.dart';
+import 'main_app.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -210,11 +213,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     _buildSectionHeader(context, 'About'),
                     ListTile(
+                      leading: const Icon(Icons.explore_outlined),
+                      title: const Text('App walkthrough'),
+                      subtitle: const Text('See how to explore Starpage'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        final navigator = Navigator.of(context);
+                        AppWalkthrough.show(
+                          context,
+                          onSelectTab: (index) {
+                            navigator.pop();
+                            navigator.pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => MainApp(initialIndex: index),
+                              ),
+                            );
+                          },
+                          onCreatePost: () {
+                            navigator.pop();
+                            navigator.pushNamed('/create-post');
+                          },
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.star_rate_outlined),
+                      title: const Text('Rate Starpage'),
+                      subtitle: const Text('Leave us a rating or feedback'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        ReviewService().showRatingDialog(context);
+                      },
+                    ),
+                    ListTile(
                       leading: const Icon(Icons.info_outline),
                       title: const Text('Starpage Version'),
-                      trailing: Text(
-                        '1.1.9+13',
-                        style: const TextStyle(color: Colors.grey),
+                      trailing: const Text(
+                        '1.1.18+24',
+                        style: TextStyle(color: Colors.grey),
                       ),
                     ),
 

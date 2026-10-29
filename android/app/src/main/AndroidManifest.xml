@@ -1,8 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" package="com.starpage.app">
-    <!-- Explicitly remove AD_ID if selecting No on Play Console -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
-
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.starpage.app">
     <!-- Required permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -10,6 +6,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Match Play Console's declaration that this app uses Advertising ID. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!-- Required for push notifications on Android 13+ -->

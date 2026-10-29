@@ -1,149 +1,134 @@
-# Play Store Text Content - FINAL VERSION
+# App Store & Play Store Text Content - ASO OPTIMIZED VERSION
 
-Ready to copy/paste into Google Play Store
+Ready to copy/paste into Google Play Console and Apple App Store Connect
 
 ---
 
-## 1. SHORT DESCRIPTION (80 characters max)
+## 1. APP STORE & PLAY STORE TITLES & SUBTITLES
 
-**FINAL VERSION:**
+**Google Play Title (30 chars max):**
+`Starpage: Short Video & Reels` (30/30)
+
+**Apple App Store Title (30 chars max):**
+`Starpage: Short Video & Reels` (30/30)
+
+**Apple App Store Subtitle (30 chars max):**
+`Reels, Short Video & Creators` (29/30)
+
+---
+
+## 2. SHORT DESCRIPTION (80 characters max - Google Play)
+
+**ASO OPTIMIZED VERSION:**
 ```
-Discover trending content and connect with creators
+Create short videos, discover creators, and connect through posts and chat.
 ```
 
 **Stats:**
-- ✅ Character count: 52/80
-- ✅ Action-oriented
-- ✅ Clear value proposition
-- ✅ Memorable tagline
-
-**Why it works:**
-- Starts with action verb (Discover)
-- Mentions main benefit
-- Highlights community aspect
+- ✅ Character count: 75/80
+- ✅ Uses relevant terms naturally ("short videos", "creators", "posts", "chat")
+- ✅ Clear, feature-based value proposition
 
 ---
 
-## 2. FULL DESCRIPTION (4000 characters max)
+## 3. FULL DESCRIPTION (4000 characters max - Google Play & App Store)
 
-**FINAL VERSION:**
+**ASO OPTIMIZED VERSION:**
 ```
-Starpage is the social media platform for creators, trendsetters, and community lovers. Share your creativity, discover what's trending, and connect with millions of creators worldwide.
+Starpage is a social networking app for creators who want to share their work and connect with others. Create short video and photo posts, discover creators, and join conversations about art, music, dance, comedy, photography, writing, and more.
 
-✨ EXPLORE
-Discover trending content from around the world. Stay updated with the latest posts, trends, and creative ideas from creators you love.
+DISCOVER CREATORS AND POSTS
+• Browse videos, photos, and creator posts in the Home and Discover feeds.
+• Explore talent categories and search for creators, hashtags, and topics.
+• Follow creators whose work you enjoy and find new posts from the community.
 
-👥 FOLLOW
-Build your community. Follow your favorite creators and never miss their latest posts. Get personalized feeds based on your interests.
+CREATE AND SHARE
+• Publish video, photo, and text posts to showcase your interests and talent.
+• Choose Public or Followers Only visibility for your posts.
+• Like, comment on, mention, and repost content to join the conversation.
 
-❤️ ENGAGE
-Like, comment, and share your thoughts. Be part of the conversation and support the creators you admire.
+CONNECT WITH THE COMMUNITY
+• Send direct messages to creators and friends.
+• Share photos and videos in conversations.
+• Receive notifications about likes, comments, mentions, and messages.
 
-💬 CONNECT
-Direct message creators and friends. Have private conversations, collaborate, and build meaningful relationships within the community.
+CREATOR INSIGHTS
+• Review post activity, including views, likes, comments, shares, and reposts.
+• Manage your profile, followers, saved posts, and other account preferences.
 
-🔔 STAY UPDATED
-Real-time notifications keep you in the loop. Never miss important updates from creators you follow or conversations you're part of.
+Whether you create videos, take photos, make art, write, dance, or simply enjoy discovering new work, Starpage gives you a place to share and connect.
 
-👤 EXPRESS YOURSELF
-Create your unique profile and showcase your creativity. Customize your profile picture, bio, and content to reflect who you are.
+Download Starpage to explore creator posts, publish your own work, and build connections around the things you enjoy.
 
-🌟 WHY STARPAGE?
-
-✓ Lightning-fast performance
-✓ Clean, intuitive interface
-✓ Safe and moderated community
-✓ Regular feature updates
-✓ Privacy-focused design
-✓ No algorithm suppression of your content
-
-PERFECT FOR:
-• Content creators and influencers
-• Social media enthusiasts
-• People discovering new trends
-• Creative communities
-• Anyone who loves sharing and connecting
-
-🚀 JOIN THE COMMUNITY
-Starpage is more than an app—it's a movement. We believe everyone has something valuable to share. Whether you're a photographer, writer, artist, dancer, or just someone with ideas to share, Starpage is your platform.
-
-Our mission: Create a space where creativity meets community, where your voice matters, and where genuine connections happen.
-
-📞 SUPPORT & FEEDBACK
-Have feedback or issues? We'd love to hear from you!
-Email: support@starpage.me
-Privacy: privacy@starpage.me
-
-VERSION: 1.0.0
-Last Updated: January 2026
+CONNECT & SUPPORT
+Website: https://starpage.me
+Support: support@starpage.me
+Privacy Policy: https://starpage.me/privacy
+Terms of Service: https://starpage.me/terms
 ```
 
 **Stats:**
-- ✅ Character count: 1,652/4000
-- ✅ Emojis for visual appeal
-- ✅ Clear section breaks
-- ✅ Benefits-focused (not just features)
-- ✅ Call-to-action
-- ✅ Contact information
-
-**Why it works:**
-- Uses emojis for visual engagement
-- Organized with clear sections
-- Highlights benefits before features
-- Includes emotional appeal
-- Provides contact info
-- Shows company values
+- ✅ Within Google Play's 4,000-character limit
+- ✅ Uses readable sections and bullets
+- ✅ Includes relevant search terms in natural, user-focused copy
+- ✅ Front-loaded above-the-fold value proposition
+- ✅ Clear calls-to-action & contact info
 
 ---
 
-## 3. RELEASE NOTES
+## 4. APP STORE KEYWORD FIELD (100 characters max - iOS)
 
-**FINAL VERSION (Initial Release):**
+**ASO OPTIMIZED FIELD:**
 ```
-🎉 Welcome to Starpage v1.0.0!
-
-YOUR CREATIVE PLATFORM IS HERE
-Express yourself, discover trends, and connect with creators worldwide.
-
-✨ KEY FEATURES:
-✓ Explore trending content from creators everywhere
-✓ Follow your favorite creators and get a personalized feed
-✓ Like, comment, and engage with the community
-✓ Direct message creators and build relationships
-✓ Real-time notifications for instant updates
-✓ Create a stunning profile to showcase your work
-✓ Search and discover new trends and creators
-✓ Fast, intuitive, and easy-to-use interface
-
-🔒 BUILT WITH YOU IN MIND:
-✓ Privacy-focused design protecting your data
-✓ Safe community with moderation
-✓ No content suppression algorithm
-✓ Secure authentication
-✓ Regular updates and improvements
-
-🙏 THANK YOU
-Thank you for being part of our launch! We're excited to build this community with you. Your feedback helps us improve—send suggestions to feedback@starpage.me
-
-👋 LET'S GO
-Download Starpage now and start creating, discovering, and connecting!
-
-Version 1.0.0
+reels,short,video,creator,social,media,trending,viral,music,art,chat,feed,share,network,community,posts
 ```
-
-**Tips for future releases:**
-- Always start with emoji celebration 🎉
-- List new features with ✓ checkmarks
-- Include bug fixes and improvements
-- Add thank you note
-- Keep under 500 characters
+- ✅ Character count: 97/100
+- ✅ Comma-separated, no spaces, maximum indexing coverage
 
 ---
 
-## 4. PRIVACY POLICY (Required - FINAL VERSION)
+## 5. APP STORE PROMOTIONAL TEXT (170 characters max - iOS)
+
+```
+Discover short videos and creative posts, share your work, and connect with creators through follows, comments, and direct messages.
+```
+- ✅ Character count: 128/170
+
+---
+
+## 6. RELEASE NOTES (Google Play & App Store)
+
+**VERSION 1.1.18:**
+```
+🚀 Welcome to Starpage v1.1.18!
+
+This update brings professional content control, enhanced video reels, and seamless social features to our creator community.
+
+✨ WHAT'S NEW IN THIS VERSION:
+
+🔒 Advanced Post Privacy Controls
+• Take full control of your creative reach.
+• Easily switch between "Public" (everyone) and "Followers Only" visibility for posts and reposts.
+
+🎥 Enhanced Video Reels & Instant Loading
+• Thumbnail-first loading strategy for flicker-free video playback.
+• Optimized video handover across feeds and full-screen reel view.
+
+⚡ Smooth Social & Performance Upgrades
+• Tactile Haptic Feedback for media interactions.
+• Real-time progress indicators for comment uploads and direct messaging.
+• Refined Discovery hub with synchronized talent filters and trending hashtags.
+
+Thank you for being part of Starpage! Send feedback or suggestions to support@starpage.me.
+Official Site: https://starpage.me
+```
+
+---
+
+## 7. PRIVACY POLICY (Required - FINAL VERSION)
 
 **Save as:** `privacy-policy.md` or `privacy.html`
-**Host at:** `yoursite.com/privacy` (publicly accessible URL)
+**Host at:** `https://starpage.me/privacy` (publicly accessible URL)
 
 ```markdown
 # Starpage Privacy Policy
