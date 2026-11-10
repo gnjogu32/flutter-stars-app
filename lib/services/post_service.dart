@@ -31,6 +31,8 @@ class PostService {
     required Map<String, Uint8List> imageBytes, // Pre-loaded bytes
     required String? talent,
     String visibility = 'public',
+    String allowCommentsFrom = 'everyone',
+    bool isQna = false,
     XFile? videoFile,
   }) async {
     try {
@@ -128,6 +130,8 @@ class PostService {
         postType: postType,
         hashtags: hashtags,
         visibility: visibility,
+        allowCommentsFrom: allowCommentsFrom,
+        isQna: isQna,
         createdAt: now,
         updatedAt: now,
       );

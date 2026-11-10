@@ -651,6 +651,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     itemBuilder: (context, index) => _CommentItem(
                       comment: comments[index],
                       currentUserId: widget.currentUserId,
+                      postAuthorId: widget.postAuthorId,
                       isExpanded: _expandedCommentIds.contains(
                         comments[index].commentId,
                       ),
@@ -958,6 +959,7 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
 class _CommentItem extends StatelessWidget {
   final CommentModel comment;
   final String currentUserId;
+  final String postAuthorId;
   final Function(CommentModel) onReply;
   final CommentService commentService;
   final bool isExpanded;
@@ -966,6 +968,7 @@ class _CommentItem extends StatelessWidget {
   const _CommentItem({
     required this.comment,
     required this.currentUserId,
+    required this.postAuthorId,
     required this.onReply,
     required this.commentService,
     required this.isExpanded,
@@ -974,7 +977,9 @@ class _CommentItem extends StatelessWidget {
 
   void _showActionMenu(BuildContext context, CommentModel comment) {
     final isAuthor = currentUserId == comment.authorId;
+    final isPostAuthor = currentUserId == postAuthorId;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: isDark ? const Color(0xFF1A1D23) : null,
@@ -982,6 +987,44 @@ class _CommentItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isPostAuthor) ...[
+              ListTile(
+                leading: Icon(
+                  comment.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(comment.isPinned ? 'Unpin Comment' : 'Pin Comment'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await commentService.pinComment(
+                      postId: comment.postId,
+                      commentId: comment.commentId,
+                      isPinned: !comment.isPinned,
+                      postAuthorId: postAuthorId,
+                      currentUserId: currentUserId,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            comment.isPinned
+                                ? 'Comment unpinned'
+                                : 'Comment pinned by author',
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
             if (isAuthor) ...[
               ListTile(
                 leading: const Icon(Icons.edit),
@@ -991,11 +1034,13 @@ class _CommentItem extends StatelessWidget {
                   _triggerEdit(context, comment);
                 },
               ),
+            ],
+            if (isAuthor || isPostAuthor) ...[
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text(
-                  'Delete Comment',
-                  style: TextStyle(color: Colors.red),
+                title: Text(
+                  isAuthor ? 'Delete Comment' : 'Remove Comment (Creator)',
+                  style: const TextStyle(color: Colors.red),
                 ),
                 onTap: () async {
                   Navigator.pop(context);
@@ -1065,6 +1110,29 @@ class _CommentItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (comment.isPinned) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 48, bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.push_pin,
+                      size: 13,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Pinned by Author',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1100,6 +1168,27 @@ class _CommentItem extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (comment.authorId == postAuthorId) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Creator',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                            ),
+                          ],
                           const SizedBox(width: 8),
                           Text(
                             TimeUtils.formatShorthand(comment.createdAt),

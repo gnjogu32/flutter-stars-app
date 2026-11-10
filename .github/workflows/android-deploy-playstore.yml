@@ -7,21 +7,22 @@ on:
       tracks:
         description: 'Release tracks'
         required: true
-        default: 'internal'
+        default: 'production'
         type: choice
         options:
+          - production
           - internal
           - alpha
           - beta
-          - production
   push:
     branches:
       - main
     paths:
-      - '.github/workflows/android-deploy-playstore.yml'
+      - 'lib/**'
+      - 'assets/**'
       - 'pubspec.yaml'
-      - 'android/app/build.gradle'
-      - 'android/gradle/**'
+      - 'android/**'
+      - '.github/workflows/android-deploy-playstore.yml'
 
 env:
   FLUTTER_VERSION: '3.44.0'
@@ -76,11 +77,18 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'starpage' }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          PLAY_STORE_SERVICE_ACCOUNT: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
           ANDROID_STORE_FILE: ${{ github.workspace }}/android/app/upload-keystore.jks
         run: |
           set -e
 
           mkdir -p android
+
+          if [ -z "${PLAY_STORE_SERVICE_ACCOUNT:-}" ]; then
+            echo "::notice::PLAY_STORE_SERVICE_ACCOUNT secret is missing or empty. Play Store deployment will be skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           CANDIDATE_STORE_FILES=(
             "$ANDROID_STORE_FILE"
@@ -186,12 +194,29 @@ jobs:
           path: ${{ steps.bundle_check.outputs.bundle_path }}
           if-no-files-found: error
 
-      - name: Upload mapping artifact
+      - name: Verify mapping file exists
+        id: mapping_check
         if: steps.release_signing_check.outputs.ready == 'true'
+        run: |
+          MAPPING_PATH=""
+          if [ -f "build/app/outputs/mapping/release/mapping.txt" ]; then
+            MAPPING_PATH="build/app/outputs/mapping/release/mapping.txt"
+          elif [ -f "android/app/build/outputs/mapping/release/mapping.txt" ]; then
+            MAPPING_PATH="android/app/build/outputs/mapping/release/mapping.txt"
+          fi
+          echo "mapping_path=$MAPPING_PATH" >> "$GITHUB_OUTPUT"
+          if [ -n "$MAPPING_PATH" ]; then
+            echo "Found mapping file at $MAPPING_PATH"
+          else
+            echo "No mapping file found; obfuscation mapping will be omitted."
+          fi
+
+      - name: Upload mapping artifact
+        if: steps.release_signing_check.outputs.ready == 'true' && steps.mapping_check.outputs.mapping_path != ''
         uses: actions/upload-artifact@v4
         with:
           name: android-release-mapping
-          path: android/app/build/outputs/mapping/release/mapping.txt
+          path: ${{ steps.mapping_check.outputs.mapping_path }}
           if-no-files-found: warn
 
       - name: Upload to Google Play
@@ -201,10 +226,10 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
           packageName: com.starpage.app
           releaseFiles: ${{ steps.bundle_check.outputs.bundle_path }}
-          tracks: ${{ github.event.inputs.tracks || 'internal' }}
+          tracks: ${{ github.event.inputs.tracks || 'production' }}
           status: completed
           whatsNewDirectory: 'whats-new'
-          mappingFile: 'android/app/build/outputs/mapping/release/mapping.txt'
+          mappingFile: ${{ steps.mapping_check.outputs.mapping_path }}
 
       - name: Create or Update Release Notes
         if: success() && steps.release_signing_check.outputs.ready == 'true'
@@ -219,8 +244,9 @@ jobs:
             const versionCode = '${{ steps.play_version.outputs.code }}';
             const buildTagName = `android-v${version}+${versionCode}-build${context.runNumber}`;
             const legacyTagName = `android-v${version}+${versionCode}`;
-            const releaseBody = `🚀 **Android App Deployed**\n\n📱 Version: ${version}+${versionCode}\n🏪 Track: ${{ github.event.inputs.tracks || 'internal' }}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`;
-            const prerelease = ${{ (github.event.inputs.tracks || 'internal') != 'production' }};
+            const releaseTrack = '${{ github.event.inputs.tracks || 'production' }}';
+            const releaseBody = `🚀 **Android App Deployed**\n\n📱 Version: ${version}+${versionCode}\n🏪 Track: ${releaseTrack}\n👤 By: ${{ github.actor }}\n⏰ Time: ${new Date().toISOString()}`;
+            const prerelease = releaseTrack !== 'production';
 
             let existing = null;
             let chosenTag = buildTagName;

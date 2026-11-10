@@ -17,6 +17,7 @@ class CommentModel {
   final DateTime updatedAt;
   final bool isEdited;
   final DateTime? editedAt;
+  final bool isPinned;
 
   CommentModel({
     required this.commentId,
@@ -35,6 +36,7 @@ class CommentModel {
     required this.updatedAt,
     this.isEdited = false,
     this.editedAt,
+    this.isPinned = false,
   });
 
   // Convert CommentModel to JSON for Firestore
@@ -56,6 +58,7 @@ class CommentModel {
       'updatedAt': updatedAt,
       'isEdited': isEdited,
       'editedAt': editedAt,
+      'isPinned': isPinned,
     };
   }
 
@@ -76,20 +79,25 @@ class CommentModel {
       replyToName: json['replyToName'],
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
-          : DateTime.parse(
-              json['createdAt'] ?? DateTime.now().toIso8601String(),
-            ),
+          : (json['createdAt'] is DateTime
+              ? json['createdAt'] as DateTime
+              : DateTime.parse(
+                  json['createdAt']?.toString() ?? DateTime.now().toIso8601String(),
+                )),
       updatedAt: json['updatedAt'] is Timestamp
           ? (json['updatedAt'] as Timestamp).toDate()
-          : DateTime.parse(
-              json['updatedAt'] ?? DateTime.now().toIso8601String(),
-            ),
+          : (json['updatedAt'] is DateTime
+              ? json['updatedAt'] as DateTime
+              : DateTime.parse(
+                  json['updatedAt']?.toString() ?? DateTime.now().toIso8601String(),
+                )),
       isEdited: json['isEdited'] ?? false,
       editedAt: json['editedAt'] is Timestamp
           ? (json['editedAt'] as Timestamp).toDate()
           : json['editedAt'] != null
           ? DateTime.parse(json['editedAt'])
           : null,
+      isPinned: json['isPinned'] ?? false,
     );
   }
 
@@ -111,6 +119,7 @@ class CommentModel {
     DateTime? updatedAt,
     bool? isEdited,
     DateTime? editedAt,
+    bool? isPinned,
   }) {
     return CommentModel(
       commentId: commentId ?? this.commentId,
@@ -129,6 +138,7 @@ class CommentModel {
       updatedAt: updatedAt ?? this.updatedAt,
       isEdited: isEdited ?? this.isEdited,
       editedAt: editedAt ?? this.editedAt,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 

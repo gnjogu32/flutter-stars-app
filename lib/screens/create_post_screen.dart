@@ -32,6 +32,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   XFile? _selectedVideo;
   String? _selectedTalent;
   String _visibility = 'public'; // 'public' or 'followers'
+  String _allowCommentsFrom = 'everyone'; // 'everyone', 'followers', 'none'
+  bool _isQna = false;
   bool _isLoading = false;
   String? _errorMessage;
   List<UserModel> _mentionableUsers = const [];
@@ -336,6 +338,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         imageBytes: Map.from(_imageBytes),
         talent: _selectedTalent,
         visibility: _visibility,
+        allowCommentsFrom: _allowCommentsFrom,
+        isQna: _isQna,
         videoFile: _selectedVideo,
       );
       if (mounted) {
@@ -562,12 +566,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: _showVisibilityPicker,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                      horizontal: 10,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
@@ -588,11 +592,101 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           size: 16,
                           color: theme.colorScheme.primary,
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Text(
                           _visibility == 'public' ? 'Public' : 'Followers',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _showCommentControlPicker,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.dividerColor.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _allowCommentsFrom == 'everyone'
+                              ? Icons.comment_outlined
+                              : _allowCommentsFrom == 'followers'
+                                  ? Icons.people_outline
+                                  : Icons.comments_disabled_outlined,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _allowCommentsFrom == 'everyone'
+                              ? 'Comments'
+                              : _allowCommentsFrom == 'followers'
+                                  ? 'Followers'
+                                  : 'Off',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    setState(() => _isQna = !_isQna);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _isQna
+                          ? theme.colorScheme.primaryContainer
+                          : theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _isQna
+                            ? theme.colorScheme.primary
+                            : theme.dividerColor.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.question_answer_outlined,
+                          size: 16,
+                          color: _isQna
+                              ? theme.colorScheme.onPrimaryContainer
+                              : theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Q&A',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: _isQna
+                                ? theme.colorScheme.onPrimaryContainer
+                                : theme.colorScheme.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -782,6 +876,65 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 Navigator.pop(context);
               },
               trailing: _visibility == 'followers'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCommentControlPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Who can comment on this post?',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.public),
+              title: const Text('Everyone'),
+              subtitle: const Text('Anyone who sees this post can comment'),
+              onTap: () {
+                setState(() => _allowCommentsFrom = 'everyone');
+                Navigator.pop(context);
+              },
+              trailing: _allowCommentsFrom == 'everyone'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('Followers Only'),
+              subtitle: const Text('Only your followers can comment'),
+              onTap: () {
+                setState(() => _allowCommentsFrom = 'followers');
+                Navigator.pop(context);
+              },
+              trailing: _allowCommentsFrom == 'followers'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+            ),
+            ListTile(
+              leading: const Icon(Icons.comments_disabled_outlined),
+              title: const Text('No One'),
+              subtitle: const Text('Turn off comments for this post'),
+              onTap: () {
+                setState(() => _allowCommentsFrom = 'none');
+                Navigator.pop(context);
+              },
+              trailing: _allowCommentsFrom == 'none'
                   ? const Icon(Icons.check, color: Colors.green)
                   : null,
             ),

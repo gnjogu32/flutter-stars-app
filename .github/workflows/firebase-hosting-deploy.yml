@@ -91,8 +91,6 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           projectId: 'starpage-ed409'
           channelId: live
-        env:
-          FIREBASE_CLI_EXPERIMENTS: webframeworks
 
       - name: Skip Firebase Hosting deployment without credentials
         if: steps.firebase-sa-check.outputs.ready != 'true'

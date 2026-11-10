@@ -12,6 +12,7 @@ class CommentThreadWidget extends StatefulWidget {
   final CommentModel comment;
   final String currentUserId;
   final String postId;
+  final String? postAuthorId;
   final VoidCallback onDelete;
   final void Function(CommentModel, String)? onReply;
 
@@ -20,6 +21,7 @@ class CommentThreadWidget extends StatefulWidget {
     required this.comment,
     required this.currentUserId,
     required this.postId,
+    this.postAuthorId,
     required this.onDelete,
     this.onReply,
   });
@@ -186,7 +188,10 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
 
   void _showActionMenu(CommentModel comment, bool isReply) {
     final isAuthor = widget.currentUserId == comment.authorId;
+    final isPostAuthor = widget.postAuthorId != null &&
+        widget.currentUserId == widget.postAuthorId;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -195,6 +200,45 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isPostAuthor && !isReply) ...[
+              ListTile(
+                leading: Icon(
+                  comment.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(comment.isPinned ? 'Unpin Comment' : 'Pin Comment'),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(context);
+                  try {
+                    await _commentService.pinComment(
+                      postId: widget.postId,
+                      commentId: comment.commentId,
+                      isPinned: !comment.isPinned,
+                      postAuthorId: widget.postAuthorId!,
+                      currentUserId: widget.currentUserId,
+                    );
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            comment.isPinned
+                                ? 'Comment unpinned'
+                                : 'Comment pinned by author',
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
             if (isAuthor) ...[
               ListTile(
                 leading: const Icon(Icons.edit),
@@ -208,11 +252,13 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
                   }
                 },
               ),
+            ],
+            if (isAuthor || isPostAuthor) ...[
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
+                title: Text(
+                  isAuthor ? 'Delete' : 'Remove Comment (Creator)',
+                  style: const TextStyle(color: Colors.red),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -290,6 +336,29 @@ class _CommentThreadWidgetState extends State<CommentThreadWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.comment.isPinned) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 44, bottom: 4),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.push_pin,
+                  size: 13,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Pinned by Author',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         GestureDetector(
           onLongPress: () => _showActionMenu(widget.comment, false),
           behavior: HitTestBehavior.opaque,

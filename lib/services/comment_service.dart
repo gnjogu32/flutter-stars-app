@@ -99,7 +99,7 @@ class CommentService {
     }
   }
 
-  // Get comments for a post with pagination
+  // Get comments for a post with pagination (pinned comment at top)
   Stream<List<CommentModel>> getCommentsByPost(String postId) {
     return _firestore
         .collection('comments')
@@ -108,11 +108,58 @@ class CommentService {
         .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => CommentModel.fromJson(doc.data()))
-              .toList(),
-        );
+              .toList();
+          list.sort((a, b) {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return b.createdAt.compareTo(a.createdAt);
+          });
+          return list;
+        });
+  }
+
+  // Pin or unpin a comment (post author only)
+  Future<void> pinComment({
+    required String postId,
+    required String commentId,
+    required bool isPinned,
+    required String postAuthorId,
+    required String currentUserId,
+  }) async {
+    try {
+      if (currentUserId != postAuthorId) {
+        throw Exception('Only the post author can pin comments.');
+      }
+
+      final batch = _firestore.batch();
+
+      if (isPinned) {
+        final currentlyPinned = await _firestore
+            .collection('comments')
+            .where('postId', isEqualTo: postId)
+            .where('isPinned', isEqualTo: true)
+            .get();
+
+        for (final doc in currentlyPinned.docs) {
+          batch.update(doc.reference, {'isPinned': false});
+        }
+      }
+
+      final commentRef = _firestore.collection('comments').doc(commentId);
+      batch.update(commentRef, {'isPinned': isPinned});
+
+      final postRef = _firestore.collection('posts').doc(postId);
+      batch.update(postRef, {
+        'pinnedCommentId': isPinned ? commentId : null,
+      });
+
+      await batch.commit();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // Get replies for a comment with limit (client-side sorting)

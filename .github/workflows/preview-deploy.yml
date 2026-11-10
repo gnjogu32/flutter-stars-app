@@ -42,8 +42,6 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           projectId: 'starpage-ed409'
           channelId: 'pr-${{ github.event.number }}'
-        env:
-          FIREBASE_CLI_EXPERIMENTS: webframeworks
         continue-on-error: true
 
       - name: Skip preview deployment without credentials

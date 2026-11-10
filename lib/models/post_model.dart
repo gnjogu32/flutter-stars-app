@@ -24,6 +24,9 @@ class PostModel {
   final int videoViewCount;
   final List<String> hashtags;
   final String visibility; // 'public' or 'followers'
+  final String? pinnedCommentId;
+  final String allowCommentsFrom; // 'everyone', 'followers', 'none'
+  final bool isQna;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -51,6 +54,9 @@ class PostModel {
     this.videoViewCount = 0,
     this.hashtags = const [],
     this.visibility = 'public',
+    this.pinnedCommentId,
+    this.allowCommentsFrom = 'everyone',
+    this.isQna = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -81,6 +87,9 @@ class PostModel {
       'videoViewCount': videoViewCount,
       'hashtags': hashtags,
       'visibility': visibility,
+      'pinnedCommentId': pinnedCommentId,
+      'allowCommentsFrom': allowCommentsFrom,
+      'isQna': isQna,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -113,16 +122,23 @@ class PostModel {
       videoViewCount: json['videoViewCount'] ?? 0,
       hashtags: List<String>.from(json['hashtags'] ?? []),
       visibility: json['visibility'] ?? 'public',
+      pinnedCommentId: json['pinnedCommentId'],
+      allowCommentsFrom: json['allowCommentsFrom'] ?? 'everyone',
+      isQna: json['isQna'] ?? false,
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
-          : DateTime.parse(
-              json['createdAt'] ?? DateTime.now().toIso8601String(),
-            ),
+          : (json['createdAt'] is DateTime
+              ? json['createdAt'] as DateTime
+              : DateTime.parse(
+                  json['createdAt']?.toString() ?? DateTime.now().toIso8601String(),
+                )),
       updatedAt: json['updatedAt'] is Timestamp
           ? (json['updatedAt'] as Timestamp).toDate()
-          : DateTime.parse(
-              json['updatedAt'] ?? DateTime.now().toIso8601String(),
-            ),
+          : (json['updatedAt'] is DateTime
+              ? json['updatedAt'] as DateTime
+              : DateTime.parse(
+                  json['updatedAt']?.toString() ?? DateTime.now().toIso8601String(),
+                )),
     );
   }
 
@@ -156,16 +172,23 @@ class PostModel {
       videoViewCount: data['videoViewCount'] ?? 0,
       hashtags: List<String>.from(data['hashtags'] ?? []),
       visibility: data['visibility'] ?? 'public',
+      pinnedCommentId: data['pinnedCommentId'],
+      allowCommentsFrom: data['allowCommentsFrom'] ?? 'everyone',
+      isQna: data['isQna'] ?? false,
       createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
-          : DateTime.parse(
-              data['createdAt'] ?? DateTime.now().toIso8601String(),
-            ),
+          : (data['createdAt'] is DateTime
+              ? data['createdAt'] as DateTime
+              : DateTime.parse(
+                  data['createdAt']?.toString() ?? DateTime.now().toIso8601String(),
+                )),
       updatedAt: data['updatedAt'] is Timestamp
           ? (data['updatedAt'] as Timestamp).toDate()
-          : DateTime.parse(
-              data['updatedAt'] ?? DateTime.now().toIso8601String(),
-            ),
+          : (data['updatedAt'] is DateTime
+              ? data['updatedAt'] as DateTime
+              : DateTime.parse(
+                  data['updatedAt']?.toString() ?? DateTime.now().toIso8601String(),
+                )),
     );
   }
 
@@ -192,6 +215,9 @@ class PostModel {
     int? videoViewCount,
     List<String>? hashtags,
     String? visibility,
+    String? pinnedCommentId,
+    String? allowCommentsFrom,
+    bool? isQna,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -219,6 +245,9 @@ class PostModel {
       videoViewCount: videoViewCount ?? this.videoViewCount,
       hashtags: hashtags ?? this.hashtags,
       visibility: visibility ?? this.visibility,
+      pinnedCommentId: pinnedCommentId ?? this.pinnedCommentId,
+      allowCommentsFrom: allowCommentsFrom ?? this.allowCommentsFrom,
+      isQna: isQna ?? this.isQna,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
