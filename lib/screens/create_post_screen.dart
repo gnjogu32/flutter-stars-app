@@ -318,7 +318,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       if (!moderation.isAllowed) {
         setState(() {
           _isLoading = false;
-          _errorMessage = moderation.flaggedReason ??
+          _errorMessage =
+              moderation.flaggedReason ??
               'Content flagged by safety filter. Please review your text.';
         });
         return;
@@ -545,7 +546,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   .withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: theme.dividerColor.withValues(alpha: 0.2),
+                                color: theme.dividerColor.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
                             ),
                             child: Row(
@@ -591,7 +594,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   .withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: theme.dividerColor.withValues(alpha: 0.2),
+                                color: theme.dividerColor.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
                             ),
                             child: Row(
@@ -606,7 +611,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  _visibility == 'public' ? 'Public' : 'Followers',
+                                  _visibility == 'public'
+                                      ? 'Public'
+                                      : 'Followers',
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.primary,
                                     fontWeight: FontWeight.w600,
@@ -629,7 +636,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   .withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: theme.dividerColor.withValues(alpha: 0.2),
+                                color: theme.dividerColor.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
                             ),
                             child: Row(
@@ -639,8 +648,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   _allowCommentsFrom == 'everyone'
                                       ? Icons.comment_outlined
                                       : _allowCommentsFrom == 'followers'
-                                          ? Icons.people_outline
-                                          : Icons.comments_disabled_outlined,
+                                      ? Icons.people_outline
+                                      : Icons.comments_disabled_outlined,
                                   size: 16,
                                   color: theme.colorScheme.primary,
                                 ),
@@ -649,8 +658,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   _allowCommentsFrom == 'everyone'
                                       ? 'Comments'
                                       : _allowCommentsFrom == 'followers'
-                                          ? 'Followers'
-                                          : 'Off',
+                                      ? 'Followers'
+                                      : 'Off',
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.primary,
                                     fontWeight: FontWeight.w600,
@@ -674,7 +683,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               color: _isQna
                                   ? theme.colorScheme.primaryContainer
                                   : theme.colorScheme.surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
+                                        .withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: _isQna
@@ -713,37 +722,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ],
             ),
           ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.question_answer_outlined,
-                          size: 16,
-                          color: _isQna
-                              ? theme.colorScheme.onPrimaryContainer
-                              : theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Q&A',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: _isQna
-                                ? theme.colorScheme.onPrimaryContainer
-                                : theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const Divider(height: 1),
-
           // Full Screen Typing Area
           Expanded(
             child: TextField(
