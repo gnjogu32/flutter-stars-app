@@ -510,7 +510,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           // Extra padding for transparent AppBar
           SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight),
 
-          // Talent Picker Header
+          // Talent & Post Settings Controls Header
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
@@ -528,146 +528,191 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: GestureDetector(
-                    onTap: _showTalentPicker,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: theme.dividerColor.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _selectedTalent ?? 'Choose category',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: _selectedTalent == null
-                                  ? theme.hintColor
-                                  : theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _showTalentPicker,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: theme.dividerColor.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.category_outlined,
+                                  size: 16,
+                                  color: _selectedTalent == null
+                                      ? theme.hintColor
+                                      : theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _selectedTalent ?? 'Category',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: _selectedTalent == null
+                                        ? theme.hintColor
+                                        : theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                Icon(
+                                  Icons.arrow_drop_down,
+                                  size: 18,
+                                  color: theme.hintColor,
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            size: 18,
-                            color: theme.hintColor,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _showVisibilityPicker,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: theme.dividerColor.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _visibility == 'public'
-                              ? Icons.public
-                              : Icons.people_outline,
-                          size: 16,
-                          color: theme.colorScheme.primary,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _visibility == 'public' ? 'Public' : 'Followers',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _showVisibilityPicker,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: theme.dividerColor.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _visibility == 'public'
+                                      ? Icons.public
+                                      : Icons.people_outline,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _visibility == 'public' ? 'Public' : 'Followers',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _showCommentControlPicker,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: theme.dividerColor.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _allowCommentsFrom == 'everyone'
+                                      ? Icons.comment_outlined
+                                      : _allowCommentsFrom == 'followers'
+                                          ? Icons.people_outline
+                                          : Icons.comments_disabled_outlined,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _allowCommentsFrom == 'everyone'
+                                      ? 'Comments'
+                                      : _allowCommentsFrom == 'followers'
+                                          ? 'Followers'
+                                          : 'Off',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _isQna = !_isQna);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isQna
+                                  ? theme.colorScheme.primaryContainer
+                                  : theme.colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _isQna
+                                    ? theme.colorScheme.primary
+                                    : theme.dividerColor.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.question_answer_outlined,
+                                  size: 16,
+                                  color: _isQna
+                                      ? theme.colorScheme.onPrimaryContainer
+                                      : theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Q&A',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: _isQna
+                                        ? theme.colorScheme.onPrimaryContainer
+                                        : theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _showCommentControlPicker,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: theme.dividerColor.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _allowCommentsFrom == 'everyone'
-                              ? Icons.comment_outlined
-                              : _allowCommentsFrom == 'followers'
-                                  ? Icons.people_outline
-                                  : Icons.comments_disabled_outlined,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _allowCommentsFrom == 'everyone'
-                              ? 'Comments'
-                              : _allowCommentsFrom == 'followers'
-                                  ? 'Followers'
-                                  : 'Off',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() => _isQna = !_isQna);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _isQna
-                          ? theme.colorScheme.primaryContainer
-                          : theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _isQna
-                            ? theme.colorScheme.primary
-                            : theme.dividerColor.withValues(alpha: 0.2),
+              ],
+            ),
+          ),
                       ),
                     ),
                     child: Row(
