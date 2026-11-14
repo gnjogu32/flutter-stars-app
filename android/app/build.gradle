@@ -52,9 +52,9 @@ android {
             }
 
             def keyAliasValue = envOrProperty('keyAlias', 'ANDROID_KEY_ALIAS', 'starpage')
-            def keyPasswordValue = envOrProperty('keyPassword', 'ANDROID_KEY_PASSWORD', 'starpage2026')
-            def storePasswordValue = envOrProperty('storePassword', 'ANDROID_KEYSTORE_PASSWORD', 'starpage2026')
-            def storeFilePath = envOrProperty('storeFile', 'ANDROID_STORE_FILE', 'upload-keystore.jks')
+            def keyPasswordValue = envOrProperty('keyPassword', 'ANDROID_KEY_PASSWORD')
+            def storePasswordValue = envOrProperty('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
+            def storeFilePath = envOrProperty('storeFile', 'ANDROID_STORE_FILE')
 
             if (keyAliasValue && keyPasswordValue && storePasswordValue && storeFilePath) {
                 keyAlias = keyAliasValue

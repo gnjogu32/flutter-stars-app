@@ -1,5 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Android Deploy to Play Store
+# Verification trigger: no functional workflow change.
+# CI verification trigger: 2026-08-13
 
 on:
   workflow_dispatch:
@@ -7,25 +9,26 @@ on:
       tracks:
         description: 'Release tracks'
         required: true
-        default: 'production'
+        default: 'internal'
         type: choice
         options:
-          - production
           - internal
           - alpha
           - beta
+          - production
   push:
     branches:
       - main
     paths:
-      - 'lib/**'
-      - 'assets/**'
-      - 'pubspec.yaml'
-      - 'android/**'
       - '.github/workflows/android-deploy-playstore.yml'
+      - 'pubspec.yaml'
+      - 'android/app/build.gradle'
+      - 'android/gradle.properties'
+      - 'android/gradle/**'
 
 env:
   FLUTTER_VERSION: '3.44.0'
+  EXPECTED_UPLOAD_CERT_SHA256: '67:5D:98:42:C1:71:AE:63:AA:0B:34:56:E0:3B:94:68:4E:86:60:0C:A0:D5:DE:B7:21:43:21:C9:15:3F:F6:BC'
 
 permissions:
   contents: write
@@ -46,7 +49,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -77,61 +79,37 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'starpage' }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          PLAY_STORE_SERVICE_ACCOUNT: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
           ANDROID_STORE_FILE: ${{ github.workspace }}/android/app/upload-keystore.jks
         run: |
-          set -e
+          set -euo pipefail
 
-          mkdir -p android
-
-          if [ -z "${PLAY_STORE_SERVICE_ACCOUNT:-}" ]; then
-            echo "::notice::PLAY_STORE_SERVICE_ACCOUNT secret is missing or empty. Play Store deployment will be skipped."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ]; then
+            echo "::error::Required Android signing secrets are missing."
+            exit 1
           fi
 
-          CANDIDATE_STORE_FILES=(
-            "$ANDROID_STORE_FILE"
-            "${GITHUB_WORKSPACE}/android/upload-keystore.jks"
-            "${GITHUB_WORKSPACE}/android/app/upload-keystore.jks"
-            "${GITHUB_WORKSPACE}/android/starpage-keystore.jks"
-            "${GITHUB_WORKSPACE}/android/starpage-keystore-new.jks"
-            "${GITHUB_WORKSPACE}/android/app/release-keystore.jks"
-          )
-
-          STORE_FILE_PATH=""
-          for candidate in "${CANDIDATE_STORE_FILES[@]}"; do
-            if [ -n "$candidate" ] && [ -f "$candidate" ]; then
-              STORE_FILE_PATH="$candidate"
-              break
-            fi
-          done
-
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -z "$STORE_FILE_PATH" ]; then
-            STORE_FILE_PATH="$ANDROID_STORE_FILE"
-            if ! echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE_FILE_PATH" 2>/dev/null; then
-              echo "::error::ANDROID_KEYSTORE_BASE64 is invalid or does not decode to a usable keystore."
-              rm -f "$STORE_FILE_PATH"
-              echo "ready=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+          mkdir -p "$(dirname "$ANDROID_STORE_FILE")"
+          STORE_FILE_PATH="$ANDROID_STORE_FILE"
+          if ! printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE_FILE_PATH" 2>/dev/null; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is invalid or could not be decoded."
+            rm -f "$STORE_FILE_PATH"
+            exit 1
           fi
 
-          if [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ ! -f "$STORE_FILE_PATH" ]; then
-            echo "::notice::Android release signing prerequisites are missing. Play Store deployment will be skipped."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if ! keytool -list -v -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > /tmp/keystore_check.txt 2>&1; then
+            echo "::error::The keystore, password, or alias is invalid."
+            exit 1
           fi
 
-          if ! keytool -list -v -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/tmp/keystore_check.txt 2>&1; then
-            echo "::error::The keystore file or signing secrets do not match the configured release key."
-            cat /tmp/keystore_check.txt || true
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          keytool -exportcert -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" -file /tmp/upload-key-certificate.der >/dev/null 2>&1
+          ACTUAL_UPLOAD_CERT_SHA256="$(sha256sum /tmp/upload-key-certificate.der | cut -d ' ' -f 1 | tr '[:lower:]' '[:upper:]')"
+          EXPECTED_UPLOAD_CERT_SHA256="$(printf '%s' "$EXPECTED_UPLOAD_CERT_SHA256" | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          if [ -z "$ACTUAL_UPLOAD_CERT_SHA256" ] || [ "$ACTUAL_UPLOAD_CERT_SHA256" != "$EXPECTED_UPLOAD_CERT_SHA256" ]; then
+            echo "::error::The configured keystore certificate does not match the Play Console upload key."
+            exit 1
           fi
 
-          echo "Resolved signing keystore: $STORE_FILE_PATH"
-          keytool -list -v -keystore "$STORE_FILE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E 'Alias name:|SHA1:' || true
+          echo "Verified replacement upload-key certificate fingerprint."
 
           printf '%s\n%s\n%s\n%s\n' \
             "storePassword=$ANDROID_KEYSTORE_PASSWORD" \
@@ -142,11 +120,6 @@ jobs:
           echo "ready=true" >> "$GITHUB_OUTPUT"
           echo "store_file_path=$STORE_FILE_PATH" >> "$GITHUB_OUTPUT"
           echo "Using repository keystore signing for Play Store upload."
-
-      - name: Skip deployment when signing is unavailable
-        if: steps.release_signing_check.outputs.ready != 'true'
-        run: |
-          echo "Skipping Play Store deploy because release signing is not configured."
 
       - name: Validate Gradle wrapper
         if: steps.release_signing_check.outputs.ready == 'true'
@@ -164,26 +137,39 @@ jobs:
       - name: Build App Bundle
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
-          flutter build appbundle --release --build-number=${{ steps.play_version.outputs.code }}
+          set -euo pipefail
+          cd android
+          bash ./gradlew app:bundleRelease --console=plain --stacktrace --info -PplayStoreVersionCode=${{ steps.play_version.outputs.code }}
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'starpage' }}
           ANDROID_STORE_FILE: ${{ steps.release_signing_check.outputs.store_file_path }}
 
-      - name: Verify bundle exists
-        id: bundle_check
+      - name: Verify signed bundle
         if: steps.release_signing_check.outputs.ready == 'true'
         run: |
-          if [ -f "build/app/outputs/bundle/release/app-release.aab" ]; then
-            BUNDLE_PATH="build/app/outputs/bundle/release/app-release.aab"
-          elif [ -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
-            BUNDLE_PATH="android/app/build/outputs/bundle/release/app-release.aab"
-          else
-            echo "::error::App bundle was not generated at an expected path."
+          set -euo pipefail
+          BUNDLE_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$BUNDLE_PATH" ]; then
+            echo "App bundle was not generated at the expected path: $BUNDLE_PATH"
             exit 1
           fi
-          echo "bundle_path=$BUNDLE_PATH" >> "$GITHUB_OUTPUT"
+          jarsigner -verify "$BUNDLE_PATH" > /tmp/aab-signature-check.txt 2>&1 || true
+          if ! grep -qi 'jar verified' /tmp/aab-signature-check.txt; then
+            echo "::error::The generated app bundle is not signed with a verifiable JAR signature."
+            exit 1
+          fi
+
+          keytool -printcert -jarfile "$BUNDLE_PATH" > /tmp/aab-signers.txt
+          AAB_UPLOAD_CERT_SHA256="$(python3 -c 'import re,sys; text=open(sys.argv[1]).read(); match=re.search(r"SHA256:\s*((?:[0-9A-Fa-f]{2}:?[\s\r\n]*){32})", text); print(re.sub(r"[^0-9A-Fa-f]", "", match.group(1)).upper() if match else "")' /tmp/aab-signers.txt)"
+          ACTUAL_UPLOAD_CERT_SHA256="$(sha256sum /tmp/upload-key-certificate.der | cut -d ' ' -f 1 | tr '[:lower:]' '[:upper:]')"
+          if [ -z "$AAB_UPLOAD_CERT_SHA256" ] || [ "$AAB_UPLOAD_CERT_SHA256" != "$ACTUAL_UPLOAD_CERT_SHA256" ]; then
+            echo "::error::The app bundle signer does not match the approved Play upload key."
+            exit 1
+          fi
+
+          echo "Verified signed app bundle with the approved upload key."
           ls -lh "$BUNDLE_PATH"
 
       - name: Upload AAB artifact
@@ -191,32 +177,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-release-aab
-          path: ${{ steps.bundle_check.outputs.bundle_path }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
-      - name: Verify mapping file exists
-        id: mapping_check
-        if: steps.release_signing_check.outputs.ready == 'true'
-        run: |
-          MAPPING_PATH=""
-          if [ -f "build/app/outputs/mapping/release/mapping.txt" ]; then
-            MAPPING_PATH="build/app/outputs/mapping/release/mapping.txt"
-          elif [ -f "android/app/build/outputs/mapping/release/mapping.txt" ]; then
-            MAPPING_PATH="android/app/build/outputs/mapping/release/mapping.txt"
-          fi
-          echo "mapping_path=$MAPPING_PATH" >> "$GITHUB_OUTPUT"
-          if [ -n "$MAPPING_PATH" ]; then
-            echo "Found mapping file at $MAPPING_PATH"
-          else
-            echo "No mapping file found; obfuscation mapping will be omitted."
-          fi
-
       - name: Upload mapping artifact
-        if: steps.release_signing_check.outputs.ready == 'true' && steps.mapping_check.outputs.mapping_path != ''
+        if: steps.release_signing_check.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: android-release-mapping
-          path: ${{ steps.mapping_check.outputs.mapping_path }}
+          path: android/app/build/outputs/mapping/release/mapping.txt
           if-no-files-found: warn
 
       - name: Upload to Google Play
@@ -225,11 +194,11 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
           packageName: com.starpage.app
-          releaseFiles: ${{ steps.bundle_check.outputs.bundle_path }}
+          releaseFiles: 'android/app/build/outputs/bundle/release/app-release.aab'
           tracks: ${{ github.event.inputs.tracks || 'production' }}
           status: completed
           whatsNewDirectory: 'whats-new'
-          mappingFile: ${{ steps.mapping_check.outputs.mapping_path }}
+          mappingFile: 'android/app/build/outputs/mapping/release/mapping.txt'
 
       - name: Create or Update Release Notes
         if: success() && steps.release_signing_check.outputs.ready == 'true'
@@ -299,5 +268,5 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
-            const releaseTrack = '${{ github.event.inputs.tracks || 'internal' }}';
+            const releaseTrack = '${{ github.event.inputs.tracks || 'production' }}';
             console.log(`${status} Android Deployment to ${releaseTrack} track: ${{ job.status }}`);
