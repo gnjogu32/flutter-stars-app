@@ -188,7 +188,10 @@ class _PostWidgetState extends State<PostWidget>
     );
 
     if (result != null && mounted) {
-      await _repostToFeed(caption: result.caption, visibility: result.visibility);
+      await _repostToFeed(
+        caption: result.caption,
+        visibility: result.visibility,
+      );
     }
   }
 
@@ -288,7 +291,7 @@ class _PostWidgetState extends State<PostWidget>
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline),
-              title: const Text('Share to WhatsApp'),
+              title: const Text('Open WhatsApp'),
               onTap: () {
                 Navigator.pop(context);
                 ShareService.shareViaWhatsApp(widget.post);
@@ -296,7 +299,7 @@ class _PostWidgetState extends State<PostWidget>
             ),
             ListTile(
               leading: const Icon(Icons.tag),
-              title: const Text('Share to X / Twitter'),
+              title: const Text('Post on X / Twitter'),
               onTap: () {
                 Navigator.pop(context);
                 ShareService.shareViaTwitter(widget.post);
@@ -668,7 +671,8 @@ class _PostWidgetState extends State<PostWidget>
                                     Icon(
                                       Icons.question_answer,
                                       size: 12,
-                                      color: theme.colorScheme.onPrimaryContainer,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -676,8 +680,9 @@ class _PostWidgetState extends State<PostWidget>
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color:
-                                            theme.colorScheme.onPrimaryContainer,
+                                        color: theme
+                                            .colorScheme
+                                            .onPrimaryContainer,
                                       ),
                                     ),
                                   ],
@@ -897,7 +902,8 @@ class _PostWidgetState extends State<PostWidget>
     Color? color,
   }) {
     final theme = Theme.of(context);
-    final semanticText = tooltip ?? (label.isNotEmpty ? label : 'Action button');
+    final semanticText =
+        tooltip ?? (label.isNotEmpty ? label : 'Action button');
     return Expanded(
       child: Semantics(
         button: true,

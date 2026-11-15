@@ -1,63 +1,61 @@
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/post_model.dart';
 import '../utils/constants.dart';
 
 class ShareService {
+  static String _postShareText(PostModel post) {
+    final postUrl = AppConstants.postUrl(post.postId);
+    return '''
+Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
+
+"${post.content}"
+
+View on ${AppConstants.appName}: $postUrl''';
+  }
+
+  static Future<void> _shareText(String text, {String? subject}) async {
+    try {
+      await SharePlus.instance.share(ShareParams(text: text, subject: subject));
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: text));
+    }
+  }
+
   /// Share post via native OS share dialog
   static Future<void> sharePost(PostModel post) async {
-    final postUrl = AppConstants.postUrl(post.postId);
-    final text =
-        '''
-Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
-
-"${post.content}"
-
-View on ${AppConstants.appName}: $postUrl''';
-
-    try {
-      // ignore: deprecated_member_use
-      await Share.share(
-        text,
-        subject: 'Post by ${post.authorName} on ${AppConstants.appName}',
-      );
-    } catch (_) {
-      // Fallback to clipboard if native share sheet is unavailable
-      await Clipboard.setData(ClipboardData(text: text));
-    }
+    await _shareText(
+      _postShareText(post),
+      subject: 'Post by ${post.authorName} on ${AppConstants.appName}',
+    );
   }
 
-  /// Share post via WhatsApp / Social Messaging
+  /// Open WhatsApp's share composer, falling back to the native share sheet.
   static Future<void> shareViaWhatsApp(PostModel post) async {
-    final postUrl = AppConstants.postUrl(post.postId);
-    final text =
-        '''
-Check out this post by ${post.authorName}${post.talent != null ? ' (${post.talent})' : ''}:
-
-"${post.content}"
-
-View on ${AppConstants.appName}: $postUrl''';
-
+    final text = _postShareText(post);
     try {
-      // ignore: deprecated_member_use
-      await Share.share(text);
+      final uri = Uri.https('wa.me', '/', {'text': text});
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
     } catch (_) {
-      await Clipboard.setData(ClipboardData(text: text));
+      // Fall through to the system share sheet if WhatsApp cannot be opened.
     }
+    await _shareText(text);
   }
 
-  /// Share post via Twitter / X
+  /// Open X's post composer, falling back to the native share sheet.
   static Future<void> shareViaTwitter(PostModel post) async {
     final postUrl = AppConstants.postUrl(post.postId);
     final text =
         'Check out this post by ${post.authorName}: "${post.content}" on #${AppConstants.appName} ⭐ $postUrl';
 
     try {
-      // ignore: deprecated_member_use
-      await Share.share(text);
+      final uri = Uri.https('twitter.com', '/intent/tweet', {'text': text});
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
     } catch (_) {
-      await Clipboard.setData(ClipboardData(text: text));
+      // Fall through to the system share sheet if X cannot be opened.
     }
+    await _shareText(text);
   }
 
   /// Copy post link and summary to clipboard

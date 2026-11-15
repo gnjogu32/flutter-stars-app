@@ -300,7 +300,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline),
-              title: const Text('Share to WhatsApp'),
+              title: const Text('Open WhatsApp'),
               onTap: () {
                 Navigator.pop(context);
                 ShareService.shareViaWhatsApp(widget.post);
@@ -308,7 +308,7 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
             ),
             ListTile(
               leading: const Icon(Icons.tag),
-              title: const Text('Share to X / Twitter'),
+              title: const Text('Post on X / Twitter'),
               onTap: () {
                 Navigator.pop(context);
                 ShareService.shareViaTwitter(widget.post);
