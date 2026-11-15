@@ -283,7 +283,8 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
             ),
             ListTile(
               leading: const Icon(Icons.share_outlined),
-              title: const Text('Share to...'),
+              title: const Text('Share via Apps...'),
+              subtitle: const Text('WhatsApp, Messages, Instagram, X, etc.'),
               onTap: () {
                 Navigator.pop(context);
                 ShareService.sharePost(widget.post);
@@ -298,8 +299,24 @@ class _VideoInteractionsSidebarState extends State<VideoInteractionsSidebar> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: const Text('Share to WhatsApp'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.shareViaWhatsApp(widget.post);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.tag),
+              title: const Text('Share to X / Twitter'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareService.shareViaTwitter(widget.post);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.repeat),
-              title: const Text('Repost'),
+              title: const Text('Repost on Starpage'),
               onTap: () {
                 Navigator.pop(context);
                 _openRepost();
