@@ -270,4 +270,3 @@ jobs:
             const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
             const releaseTrack = '${{ github.event.inputs.tracks || 'production' }}';
             console.log(`${status} Android Deployment to ${releaseTrack} track: ${{ job.status }}`);
-            console.log(`${status} Android Deployment to ${releaseTrack} track: ${{ job.status }}`);
