@@ -7,6 +7,7 @@ import '../widgets/post_widget.dart';
 import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
+import 'discover_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueNotifier<bool>? tabActiveNotifier;
@@ -17,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   @override
   bool get wantKeepAlive => true;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -25,6 +26,7 @@ class HomeScreenState extends State<HomeScreen>
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
+  late final TabController _tabController;
 
   final List<PostModel> _posts = [];
   bool _isLoading = false;
@@ -35,6 +37,10 @@ class HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _isTabVisible = widget.tabActiveNotifier?.value ?? true;
     widget.tabActiveNotifier?.addListener(_onTabActiveChanged);
     _loadPosts();
@@ -107,6 +113,7 @@ class HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _tabController.dispose();
     widget.tabActiveNotifier?.removeListener(_onTabActiveChanged);
     _scrollController.dispose();
     super.dispose();
@@ -151,6 +158,152 @@ class HomeScreenState extends State<HomeScreen>
     }
   }
 
+  List<PostModel> _getForYouPosts(
+    List<String> mutedPosts,
+    List<String> mutedAuthors,
+    List<String> blockedUsers,
+    List<String> following,
+    String currentUserId,
+  ) {
+    return _posts.where((post) {
+      final isMuted =
+          mutedPosts.contains(post.postId) ||
+          mutedAuthors.contains(post.authorId) ||
+          blockedUsers.contains(post.authorId);
+      if (isMuted) return false;
+
+      if (post.visibility == 'followers') {
+        final isAuthor = post.authorId == currentUserId;
+        final isFollowing = following.contains(post.authorId);
+        return isAuthor || isFollowing;
+      }
+
+      return true;
+    }).toList();
+  }
+
+  List<PostModel> _getFollowingPosts(
+    List<String> mutedPosts,
+    List<String> mutedAuthors,
+    List<String> blockedUsers,
+    List<String> following,
+    String currentUserId,
+  ) {
+    return _posts.where((post) {
+      final isMuted =
+          mutedPosts.contains(post.postId) ||
+          mutedAuthors.contains(post.authorId) ||
+          blockedUsers.contains(post.authorId);
+      if (isMuted) return false;
+
+      final isAuthor = post.authorId == currentUserId;
+      final isFollowing = following.contains(post.authorId);
+      return isAuthor || isFollowing;
+    }).toList();
+  }
+
+  List<PostModel> _getTrendingPosts(
+    List<String> mutedPosts,
+    List<String> mutedAuthors,
+    List<String> blockedUsers,
+    List<String> following,
+    String currentUserId,
+  ) {
+    final list = _getForYouPosts(
+      mutedPosts,
+      mutedAuthors,
+      blockedUsers,
+      following,
+      currentUserId,
+    );
+    list.sort((a, b) {
+      final scoreA = a.likeCount * 2 + a.commentCount * 3 + a.repostCount * 2;
+      final scoreB = b.likeCount * 2 + b.commentCount * 3 + b.repostCount * 2;
+      if (scoreA != scoreB) {
+        return scoreB.compareTo(scoreA);
+      }
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    return list;
+  }
+
+  Widget _buildPostListView({
+    required List<PostModel> posts,
+    required String currentUserId,
+    required bool autoPlayEnabled,
+    bool showTrendingHeader = false,
+    String emptyMessage = 'No posts yet. Follow talented stars to see their work!',
+  }) {
+    if (posts.isEmpty) {
+      if (_isLoading) {
+        return const PostFeedSkeleton(count: 3);
+      }
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: constraints.maxHeight,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    emptyMessage,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final headerCount = showTrendingHeader ? 1 : 0;
+
+    return RefreshIndicator(
+      key: showTrendingHeader ? _refreshKey : null,
+      onRefresh: _refresh,
+      child: ListView.builder(
+        scrollCacheExtent: const ScrollCacheExtent.pixels(3500.0),
+        itemCount: posts.length + headerCount + (_hasMore ? 1 : 0),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        addAutomaticKeepAlives: true,
+        addRepaintBoundaries: true,
+        itemBuilder: (context, index) {
+          if (showTrendingHeader && index == 0) {
+            return TrendingStreamSection(
+              currentUserId: currentUserId,
+              autoPlayEnabled: autoPlayEnabled,
+              isTabVisible: _isTabVisible,
+            );
+          }
+
+          final postIndex = index - headerCount;
+
+          if (postIndex == posts.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: PostSkeleton(),
+            );
+          }
+
+          return PostWidget(
+            key: ValueKey(posts[postIndex].postId),
+            post: posts[postIndex],
+            currentUserId: currentUserId,
+            isTabVisible: _isTabVisible,
+            autoPlayEnabled: autoPlayEnabled,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -177,122 +330,105 @@ class HomeScreenState extends State<HomeScreen>
             centerTitle: true,
             floating: true,
             snap: true,
+            pinned: true,
             elevation: 0,
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorSize: TabBarIndicatorSize.label,
+              tabs: const [
+                Tab(text: 'For You'),
+                Tab(text: 'Following'),
+                Tab(text: 'Trending'),
+                Tab(text: 'Discover'),
+              ],
+            ),
           ),
         ],
-        body: RefreshIndicator(
-          key: _refreshKey,
-          onRefresh: _refresh,
-          child: StreamBuilder<DocumentSnapshot>(
-            stream: _firestore
-                .collection('users')
-                .doc(_auth.currentUser?.uid ?? 'guest')
-                .snapshots(),
-            builder: (context, userSnapshot) {
-              if (userSnapshot.hasError) {
-                debugPrint('User snapshot error: ${userSnapshot.error}');
-              }
+        body: StreamBuilder<DocumentSnapshot>(
+          stream: _firestore
+              .collection('users')
+              .doc(_auth.currentUser?.uid ?? 'guest')
+              .snapshots(),
+          builder: (context, userSnapshot) {
+            if (userSnapshot.hasError) {
+              debugPrint('User snapshot error: ${userSnapshot.error}');
+            }
 
-              final List<String> mutedPosts;
-              final List<String> mutedAuthors;
-              final List<String> blockedUsers;
-              final List<String> following;
-              final bool autoPlayEnabled;
-              final String currentUserId = _auth.currentUser?.uid ?? 'guest';
+            final List<String> mutedPosts;
+            final List<String> mutedAuthors;
+            final List<String> blockedUsers;
+            final List<String> following;
+            final bool autoPlayEnabled;
+            final String currentUserId = _auth.currentUser?.uid ?? 'guest';
 
-              if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                final userData =
-                    userSnapshot.data!.data() as Map<String, dynamic>;
-                mutedPosts = List<String>.from(userData['mutedPosts'] ?? []);
-                mutedAuthors = List<String>.from(
-                  userData['mutedAuthors'] ?? [],
-                );
-                blockedUsers = List<String>.from(
-                  userData['blockedUsers'] ?? [],
-                );
-                following = List<String>.from(userData['following'] ?? []);
-                autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
-              } else {
-                mutedPosts = [];
-                mutedAuthors = [];
-                blockedUsers = [];
-                following = [];
-                autoPlayEnabled = true;
-              }
-
-              final filteredPosts = _posts.where((post) {
-                final isMuted =
-                    mutedPosts.contains(post.postId) ||
-                    mutedAuthors.contains(post.authorId) ||
-                    blockedUsers.contains(post.authorId);
-                if (isMuted) return false;
-
-                // Visibility logic: 'followers' posts only visible to author and followers
-                if (post.visibility == 'followers') {
-                  final isAuthor = post.authorId == currentUserId;
-                  final isFollowing = following.contains(post.authorId);
-                  return isAuthor || isFollowing;
-                }
-
-                return true;
-              }).toList();
-
-              if (filteredPosts.isEmpty) {
-                if (_isLoading) {
-                  return const PostFeedSkeleton(count: 3);
-                }
-                return LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(
-                      height: constraints.maxHeight,
-                      child: const Center(
-                        child: Text(
-                          'No posts yet. Follow talented stars to see their work!',
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                scrollCacheExtent: const ScrollCacheExtent.pixels(3500.0),
-                itemCount: filteredPosts.length + 1 + (_hasMore ? 1 : 0),
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                addAutomaticKeepAlives: true,
-                addRepaintBoundaries: true,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return TrendingStreamSection(
-                      currentUserId: _auth.currentUser?.uid ?? '',
-                      autoPlayEnabled: autoPlayEnabled,
-                      isTabVisible: _isTabVisible,
-                    );
-                  }
-
-                  final postIndex = index - 1;
-
-                  if (postIndex == filteredPosts.length) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: PostSkeleton(),
-                    );
-                  }
-
-                  return PostWidget(
-                    key: ValueKey(filteredPosts[postIndex].postId),
-                    post: filteredPosts[postIndex],
-                    currentUserId: _auth.currentUser?.uid ?? '',
-                    isTabVisible: _isTabVisible,
-                    autoPlayEnabled: autoPlayEnabled,
-                  );
-                },
+            if (userSnapshot.hasData && userSnapshot.data!.exists) {
+              final userData =
+                  userSnapshot.data!.data() as Map<String, dynamic>;
+              mutedPosts = List<String>.from(userData['mutedPosts'] ?? []);
+              mutedAuthors = List<String>.from(
+                userData['mutedAuthors'] ?? [],
               );
-            },
-          ),
+              blockedUsers = List<String>.from(
+                userData['blockedUsers'] ?? [],
+              );
+              following = List<String>.from(userData['following'] ?? []);
+              autoPlayEnabled = userData['autoPlayEnabled'] ?? true;
+            } else {
+              mutedPosts = [];
+              mutedAuthors = [];
+              blockedUsers = [];
+              following = [];
+              autoPlayEnabled = true;
+            }
+
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildPostListView(
+                  posts: _getForYouPosts(
+                    mutedPosts,
+                    mutedAuthors,
+                    blockedUsers,
+                    following,
+                    currentUserId,
+                  ),
+                  currentUserId: currentUserId,
+                  autoPlayEnabled: autoPlayEnabled,
+                  showTrendingHeader: true,
+                ),
+                _buildPostListView(
+                  posts: _getFollowingPosts(
+                    mutedPosts,
+                    mutedAuthors,
+                    blockedUsers,
+                    following,
+                    currentUserId,
+                  ),
+                  currentUserId: currentUserId,
+                  autoPlayEnabled: autoPlayEnabled,
+                  emptyMessage:
+                      'No posts from creators you follow yet.\nFollow talented stars to see their work here!',
+                ),
+                _buildPostListView(
+                  posts: _getTrendingPosts(
+                    mutedPosts,
+                    mutedAuthors,
+                    blockedUsers,
+                    following,
+                    currentUserId,
+                  ),
+                  currentUserId: currentUserId,
+                  autoPlayEnabled: autoPlayEnabled,
+                  emptyMessage: 'No trending posts right now.',
+                ),
+                DiscoverScreen(
+                  tabActiveNotifier: widget.tabActiveNotifier,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
