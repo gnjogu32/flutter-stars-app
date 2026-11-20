@@ -158,7 +158,11 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.videoUrl != widget.videoUrl) {
       _releaseWakelock();
-      _controller.dispose();
+      try {
+        if (!_ignoreVisibilityPause) {
+          _controller.dispose();
+        }
+      } catch (_) {}
       _isInitialized = false;
       _initializeController();
     }
@@ -325,12 +329,21 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     }
   }
 
+  bool get _isControllerValid {
+    if (!_isInitialized) return false;
+    try {
+      return _controller.value.isInitialized && !_controller.value.hasError;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final double ratio =
         widget.aspectRatio ??
-        (_isInitialized ? _controller.value.aspectRatio : 16 / 9);
+        (_isControllerValid ? _controller.value.aspectRatio : 16 / 9);
 
     if (_error != null) {
       return AspectRatio(
@@ -389,7 +402,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
                   ),
           ),
 
-          if (_isInitialized) ...[
+          if (_isControllerValid) ...[
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _handleTap,
