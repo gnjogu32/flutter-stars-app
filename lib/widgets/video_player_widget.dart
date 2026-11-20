@@ -83,22 +83,26 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     final cacheKey = widget.post?.postId ?? widget.videoUrl;
     final cached = VideoHandoverManager().get(cacheKey);
 
-    if (cached != null && cached.value.isInitialized) {
-      _controller = cached;
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-          _controller.setLooping(widget.looping);
-          _controller.setVolume(_isMuted ? 0 : 1);
-          if (widget.autoPlay) {
-            _controller.play();
-            _showOverlay = false;
-            _dispatchPlayEvent();
-            _acquireWakelock();
+    if (cached != null) {
+      try {
+        if (cached.value.isInitialized) {
+          _controller = cached;
+          if (mounted) {
+            setState(() {
+              _isInitialized = true;
+              _controller.setLooping(widget.looping);
+              _controller.setVolume(_isMuted ? 0 : 1);
+              if (widget.autoPlay) {
+                _controller.play();
+                _showOverlay = false;
+                _dispatchPlayEvent();
+                _acquireWakelock();
+              }
+            });
           }
-        });
-      }
-      return;
+          return;
+        }
+      } catch (_) {}
     }
 
     _controller = await VideoHandoverManager().getOrCreateController(
@@ -108,24 +112,42 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     );
 
     if (mounted) {
-      setState(() {
-        _isInitialized = _controller.value.isInitialized;
-        _controller.setLooping(widget.looping);
-        _controller.setVolume(_isMuted ? 0 : 1);
-        if (widget.autoPlay && _isInitialized) {
-          _controller.play();
-          _showOverlay = false;
-          _dispatchPlayEvent();
-          _acquireWakelock();
-        }
-      });
+      try {
+        setState(() {
+          _isInitialized = _controller.value.isInitialized;
+          _controller.setLooping(widget.looping);
+          _controller.setVolume(_isMuted ? 0 : 1);
+          if (widget.autoPlay && _isInitialized) {
+            _controller.play();
+            _showOverlay = false;
+            _dispatchPlayEvent();
+            _acquireWakelock();
+          }
+        });
+      } catch (_) {}
 
       _controller.addListener(() {
-        if (_controller.value.position >= _controller.value.duration &&
-            !_controller.value.isLooping &&
-            _controller.value.isPlaying == false) {
-          widget.onVideoEnd?.call();
-          _releaseWakelock();
+        if (!mounted || !_isInitialized) return;
+        try {
+          if (_controller.value.hasError) {
+            setState(() {
+              _isInitialized = false;
+              _error = 'Video playback error';
+            });
+            return;
+          }
+          if (_controller.value.position >= _controller.value.duration &&
+              !_controller.value.isLooping &&
+              _controller.value.isPlaying == false) {
+            widget.onVideoEnd?.call();
+            _releaseWakelock();
+          }
+        } catch (_) {
+          if (mounted) {
+            setState(() {
+              _isInitialized = false;
+            });
+          }
         }
       });
     }
@@ -144,6 +166,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
 
   @override
   void dispose() {
+    _isInitialized = false;
     WidgetsBinding.instance.removeObserver(this);
     _indicatorTimer?.cancel();
     _releaseWakelock();
@@ -233,25 +256,29 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
           )
           .then((_) {
             if (mounted) {
-              _controller.setVolume(0.0);
-              _controller.pause();
+              try {
+                _controller.setVolume(0.0);
+                _controller.pause();
+              } catch (_) {}
               _releaseWakelock();
               Future.delayed(const Duration(milliseconds: 400), () {
                 if (mounted) {
                   _ignoreVisibilityPause = false;
                   _isMuted = true;
-                  if (_controller.value.isPlaying) {
-                    _controller.pause();
-                    _controller.setVolume(0.0);
-                    _releaseWakelock();
-                  }
+                  try {
+                    if (_controller.value.isPlaying) {
+                      _controller.pause();
+                      _controller.setVolume(0.0);
+                      _releaseWakelock();
+                    }
+                  } catch (_) {}
                   setState(() {});
                 }
               });
             } else {
-              // The background widget was disposed while FullScreen was open!
-              // We must dispose the controller now as we are the last ones with a reference.
-              _controller.dispose();
+              try {
+                _controller.dispose();
+              } catch (_) {}
             }
           });
     } else {
@@ -260,21 +287,26 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
   }
 
   void pause() {
-    if (_ignoreVisibilityPause) return;
-    if (_isInitialized && _controller.value.isPlaying) {
-      _controller.pause();
-      if (mounted) setState(() => _showOverlay = true);
-      _releaseWakelock();
-    }
+    if (_ignoreVisibilityPause || !_isInitialized) return;
+    try {
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+        if (mounted) setState(() => _showOverlay = true);
+        _releaseWakelock();
+      }
+    } catch (_) {}
   }
 
   void play() {
-    if (_isInitialized && !_controller.value.isPlaying) {
-      _controller.play();
-      if (mounted) setState(() => _showOverlay = false);
-      _dispatchPlayEvent();
-      _acquireWakelock();
-    }
+    if (!_isInitialized) return;
+    try {
+      if (!_controller.value.isPlaying) {
+        _controller.play();
+        if (mounted) setState(() => _showOverlay = false);
+        _dispatchPlayEvent();
+        _acquireWakelock();
+      }
+    } catch (_) {}
   }
 
   void _dispatchPlayEvent() {
@@ -357,126 +389,144 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget>
                   ),
           ),
 
-          if (_isInitialized)
+          if (_isInitialized) ...[
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _handleTap,
               onDoubleTap: widget.onDoubleTap,
               onLongPress: _togglePlay,
-              child: RepaintBoundary(child: VideoPlayer(_controller)),
+              child: RepaintBoundary(
+                child: Builder(
+                  builder: (context) {
+                    try {
+                      if (_controller.value.isInitialized &&
+                          !_controller.value.hasError) {
+                        return VideoPlayer(_controller);
+                      }
+                    } catch (_) {}
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
             ),
 
-          ValueListenableBuilder(
-            valueListenable: _controller,
-            builder: (context, VideoPlayerValue value, child) {
-              if (value.isBuffering) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.white70),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-          if (_showPlayPauseIndicator)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
+            ValueListenableBuilder(
+              valueListenable: _controller,
+              builder: (context, VideoPlayerValue value, child) {
+                if (value.isBuffering) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white70),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
-          if (widget.showControls &&
-              _showOverlay &&
-              !_controller.value.isPlaying)
-            Center(
-              child: IconButton(
-                icon: const Icon(
-                  Icons.play_circle_outline,
-                  color: Colors.white70,
-                  size: 60,
-                ),
-                onPressed: _handleTap,
-              ),
-            ),
-          if (widget.showControls && _showOverlay)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  VideoProgressIndicator(
-                    _controller,
-                    allowScrubbing: true,
-                    colors: const VideoProgressColors(
-                      playedColor: Colors.red,
-                      bufferedColor: Colors.white24,
-                      backgroundColor: Colors.white12,
-                    ),
+            if (_showPlayPauseIndicator)
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                  child: Icon(
+                    _controller.value.isPlaying
+                        ? Icons.pause
+                        : Icons.play_arrow,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+              ),
+            if (widget.showControls &&
+                _showOverlay &&
+                !_controller.value.isPlaying)
+              Center(
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.play_circle_outline,
+                    color: Colors.white70,
+                    size: 60,
+                  ),
+                  onPressed: _handleTap,
+                ),
+              ),
+            if (widget.showControls && _showOverlay)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    VideoProgressIndicator(
+                      _controller,
+                      allowScrubbing: true,
+                      colors: const VideoProgressColors(
+                        playedColor: Colors.red,
+                        bufferedColor: Colors.white24,
+                        backgroundColor: Colors.white12,
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        ValueListenableBuilder(
-                          valueListenable: _controller,
-                          builder: (context, VideoPlayerValue value, child) =>
-                              Text(
-                                _formatDuration(value.position),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        children: [
+                          ValueListenableBuilder(
+                            valueListenable: _controller,
+                            builder:
+                                (context, VideoPlayerValue value, child) => Text(
+                                  _formatDuration(value.position),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
                                 ),
-                              ),
-                        ),
-                        const Text(
-                          ' / ',
-                          style: TextStyle(color: Colors.white30, fontSize: 10),
-                        ),
-                        Text(
-                          _formatDuration(_controller.value.duration),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
                           ),
-                        ),
-                        const Spacer(),
-                      ],
+                          const Text(
+                            ' / ',
+                            style: TextStyle(
+                              color: Colors.white30,
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            _formatDuration(_controller.value.duration),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                          ),
+                          const Spacer(),
+                        ],
+                      ),
                     ),
+                  ],
+                ),
+              ),
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => setMuted(!_isMuted),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
                   ),
-                ],
-              ),
-            ),
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: GestureDetector(
-              onTap: () => setMuted(!_isMuted),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _isMuted ? Icons.volume_off : Icons.volume_up,
-                  color: Colors.white,
-                  size: 20,
+                  child: Icon(
+                    _isMuted ? Icons.volume_off : Icons.volume_up,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

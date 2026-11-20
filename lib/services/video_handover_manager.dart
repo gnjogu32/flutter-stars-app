@@ -26,9 +26,17 @@ class VideoHandoverManager {
     if (key.isEmpty) return null;
     final controller = _activeControllers[key];
     if (controller != null) {
-      _updateLru(key);
+      try {
+        final _ = controller.value;
+        _updateLru(key);
+        return controller;
+      } catch (_) {
+        _activeControllers.remove(key);
+        _lruKeys.remove(key);
+        return null;
+      }
     }
-    return controller;
+    return null;
   }
 
   /// Get and remove controller from the handover map (transferring ownership).
