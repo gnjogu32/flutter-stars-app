@@ -7,7 +7,6 @@ import '../widgets/post_widget.dart';
 import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
-import 'discover_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueNotifier<bool>? tabActiveNotifier;
