@@ -33,7 +33,6 @@ class HomeScreenState extends State<HomeScreen>
   bool _hasMore = true;
   DocumentSnapshot? _lastDocument;
   bool _isTabVisible = true;
-  String _selectedTalentCategory = 'All';
 
   @override
   void initState() {
@@ -302,64 +301,6 @@ class HomeScreenState extends State<HomeScreen>
           );
         },
       ),
-    );
-  }
-
-  Widget _buildDiscoverTab({
-    required List<PostModel> posts,
-    required String currentUserId,
-    required bool autoPlayEnabled,
-  }) {
-    final filteredPosts = _selectedTalentCategory == 'All'
-        ? posts
-        : posts.where((p) => p.talent == _selectedTalentCategory).toList();
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                'All',
-                'Art',
-                'Music',
-                'Writing',
-                'Dance',
-                'Photography',
-                'Fashion',
-                'Comedy',
-                'Acting',
-                'Sports',
-                'Gaming',
-              ].map((talent) {
-                final isSelected = _selectedTalentCategory == talent;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6.0),
-                  child: FilterChip(
-                    label: Text(talent, style: const TextStyle(fontSize: 12)),
-                    selected: isSelected,
-                    onSelected: (val) {
-                      setState(() {
-                        _selectedTalentCategory = talent;
-                      });
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        Expanded(
-          child: _buildPostListView(
-            posts: filteredPosts,
-            currentUserId: currentUserId,
-            autoPlayEnabled: autoPlayEnabled,
-            emptyMessage: 'No posts in $_selectedTalentCategory category yet.',
-          ),
-        ),
-      ],
     );
   }
 
