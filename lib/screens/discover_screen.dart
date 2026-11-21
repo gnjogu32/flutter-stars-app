@@ -12,6 +12,7 @@ import '../widgets/video_grid_thumbnail.dart';
 import 'profile_screen.dart';
 import 'hashtag_feed_screen.dart';
 import '../services/trending_service.dart';
+import '../widgets/search_lens_overlay.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final ValueNotifier<bool>? tabActiveNotifier;
@@ -156,11 +157,16 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: TextField(
                     controller: _searchController,
+                    readOnly: true,
+                    onTap: () => SearchLensOverlay.show(context),
                     decoration: InputDecoration(
                       hintText: _tabController.index == 0
                           ? 'Search talented stars...'
                           : 'Search posts or #hashtags...',
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () => SearchLensOverlay.show(context),
+                      ),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),

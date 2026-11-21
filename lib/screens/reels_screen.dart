@@ -24,6 +24,7 @@ import '../services/user_service.dart';
 import '../services/content_moderation_service.dart';
 import '../widgets/expandable_text.dart';
 import '../widgets/repost_dialog.dart';
+import '../widgets/search_lens_overlay.dart';
 import 'profile_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
@@ -272,18 +273,33 @@ class ReelsScreenState extends State<ReelsScreen> with WidgetsBindingObserver {
                     },
                   ),
                   Positioned(
-                    top: MediaQuery.of(context).padding.top + 12,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Text(
-                        'Vistas',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
+                    top: MediaQuery.of(context).padding.top + 6,
+                    left: 16,
+                    right: 16,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 40),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'Vistas',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.search, color: Colors.white),
+                            tooltip: 'Search lens suggestions',
+                            onPressed: () => SearchLensOverlay.show(context),
+                          ),
+                        ],
                       ),
                     ),
                   ),

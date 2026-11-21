@@ -7,6 +7,7 @@ import '../widgets/post_widget.dart';
 import '../widgets/post_skeleton.dart';
 import '../widgets/trending_section.dart';
 import '../widgets/author_profile_avatar.dart';
+import '../widgets/search_lens_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueNotifier<bool>? tabActiveNotifier;
@@ -37,7 +38,7 @@ class HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -386,20 +387,24 @@ class HomeScreenState extends State<HomeScreen>
               ],
             ),
             centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.search),
+                tooltip: 'Search lens suggestions',
+                onPressed: () => SearchLensOverlay.show(context),
+              ),
+            ],
             floating: true,
             snap: true,
             pinned: true,
             elevation: 0,
             bottom: TabBar(
               controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
               indicatorSize: TabBarIndicatorSize.label,
               tabs: const [
                 Tab(text: 'For You'),
                 Tab(text: 'Following'),
                 Tab(text: 'Trending'),
-                Tab(text: 'Discover'),
               ],
             ),
           ),
@@ -480,17 +485,6 @@ class HomeScreenState extends State<HomeScreen>
                   currentUserId: currentUserId,
                   autoPlayEnabled: autoPlayEnabled,
                   emptyMessage: 'No trending posts right now.',
-                ),
-                _buildDiscoverTab(
-                  posts: _getForYouPosts(
-                    mutedPosts,
-                    mutedAuthors,
-                    blockedUsers,
-                    following,
-                    currentUserId,
-                  ),
-                  currentUserId: currentUserId,
-                  autoPlayEnabled: autoPlayEnabled,
                 ),
               ],
             );
