@@ -21,10 +21,10 @@ on:
       - main
     paths:
       - '.github/workflows/android-deploy-playstore.yml'
+      - 'lib/**'
+      - 'assets/**'
       - 'pubspec.yaml'
-      - 'android/app/build.gradle'
-      - 'android/gradle.properties'
-      - 'android/gradle/**'
+      - 'android/**'
 
 env:
   FLUTTER_VERSION: '3.44.0'
