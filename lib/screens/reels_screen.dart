@@ -914,16 +914,26 @@ class _ReelItemState extends State<_ReelItem>
     });
   }
 
+  bool get _isControllerValid {
+    if (!_isInitialized) return false;
+    try {
+      return _videoController.value.isInitialized && !_videoController.value.hasError;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   void dispose() {
+    _isInitialized = false;
     WidgetsBinding.instance.removeObserver(this);
     _progressTimer?.cancel();
     _heartAnimationController.dispose();
     _releaseWakelock();
-    // If the controller was preloaded, the parent (ReelsScreenState) will dispose it.
-    // However, if we created it locally in _initializeVideo, we MUST dispose it.
-    if (widget.preloadedController == null && _isInitialized) {
-      _videoController.dispose();
+    if (widget.preloadedController == null) {
+      try {
+        _videoController.dispose();
+      } catch (_) {}
     }
     super.dispose();
   }
@@ -943,20 +953,24 @@ class _ReelItemState extends State<_ReelItem>
         if (visible != _isPageVisible) {
           setState(() => _isPageVisible = visible);
           if (visible) {
-            if (widget.isActive &&
-                _isInitialized &&
-                !_videoController.value.isPlaying) {
-              _videoController.setVolume(_isMuted ? 0.0 : 1.0);
-              _videoController.play();
-              _acquireWakelock();
-              setState(() => _showProgress = true);
-              _startProgressTimer();
+            if (widget.isActive && _isControllerValid) {
+              try {
+                if (!_videoController.value.isPlaying) {
+                  _videoController.setVolume(_isMuted ? 0.0 : 1.0);
+                  _videoController.play();
+                  _acquireWakelock();
+                  setState(() => _showProgress = true);
+                  _startProgressTimer();
+                }
+              } catch (_) {}
             }
           } else {
-            if (_isInitialized) {
-              _videoController.setVolume(0);
-              _videoController.pause();
-              _releaseWakelock();
+            if (_isControllerValid) {
+              try {
+                _videoController.setVolume(0);
+                _videoController.pause();
+                _releaseWakelock();
+              } catch (_) {}
             }
           }
         }
@@ -991,7 +1005,7 @@ class _ReelItemState extends State<_ReelItem>
             fit: StackFit.expand,
             children: [
               // Seamless Handover Layer: Show placeholder while initializing
-              if (!_isInitialized || !_videoController.value.isInitialized)
+              if (!_isControllerValid)
                 Container(
                   color: Colors.black,
                   width: double.infinity,
@@ -1015,26 +1029,38 @@ class _ReelItemState extends State<_ReelItem>
                         ),
                 ),
 
-              if (_isInitialized && _videoController.value.isInitialized)
+              if (_isControllerValid)
                 GestureDetector(
                   onDoubleTap: _handleDoubleTap,
                   onTap: () {
+                    if (!_isControllerValid) return;
                     setState(() {
                       _showProgress = true;
-                      if (_videoController.value.isPlaying) {
-                        _videoController.pause();
-                        _releaseWakelock();
-                      } else {
-                        _videoController.play();
-                        _acquireWakelock();
-                        _startProgressTimer();
-                      }
+                      try {
+                        if (_videoController.value.isPlaying) {
+                          _videoController.pause();
+                          _releaseWakelock();
+                        } else {
+                          _videoController.play();
+                          _acquireWakelock();
+                          _startProgressTimer();
+                        }
+                      } catch (_) {}
                     });
                   },
                   child: Center(
                     child: AspectRatio(
                       aspectRatio: _videoController.value.aspectRatio,
-                      child: VideoPlayer(_videoController),
+                      child: Builder(
+                        builder: (context) {
+                          try {
+                            if (_isControllerValid) {
+                              return VideoPlayer(_videoController);
+                            }
+                          } catch (_) {}
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     ),
                   ),
                 ),

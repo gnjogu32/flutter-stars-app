@@ -22,6 +22,29 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 bool _servicesInitialized = false;
 
 Future<void> _initializeAppServices() async {
+  if (_servicesInitialized) {
+    return;
+  }
+
+  try {
+    await PushNotificationService.initialize(navigatorKey: navigatorKey);
+    _servicesInitialized = true;
+  } catch (e) {
+    debugPrint('PushNotificationService async init warning: $e');
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Set up error handling to catch late initialization errors
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('CRITICAL FLUTTER ERROR: ${details.exception}');
+  };
+
+  TimeUtils.init();
+
   if (Firebase.apps.isEmpty) {
     try {
       await Firebase.initializeApp(
@@ -34,31 +57,11 @@ Future<void> _initializeAppServices() async {
     }
   }
 
-  if (_servicesInitialized) {
-    return;
-  }
-
-  await PushNotificationService.initialize(navigatorKey: navigatorKey);
-  _servicesInitialized = true;
-}
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Set up error handling to catch late initialization errors
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    debugPrint('CRITICAL FLUTTER ERROR: ${details.exception}');
-  };
-
-  try {
-    await _initializeAppServices().timeout(const Duration(seconds: 15));
-  } catch (e) {
-    debugPrint('Initialization error or timeout: $e');
-  }
-
-  TimeUtils.init();
+  // Instant UI frame render without blocking main thread
   runApp(const MyApp());
+
+  // Non-blocking background service initialization
+  _initializeAppServices().ignore();
 }
 
 class MyApp extends StatelessWidget {
@@ -212,8 +215,23 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        precacheImage(const AssetImage('assets/icon.png'), context);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +240,6 @@ class AuthWrapper extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Avoid visible delay: route immediately using cached auth state.
           if (currentUser != null) {
             return const MainApp();
           }
