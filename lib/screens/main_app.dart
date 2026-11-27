@@ -25,6 +25,7 @@ class MainApp extends StatefulWidget {
 
 class MainAppState extends State<MainApp> {
   late int _selectedIndex;
+  int _previousIndex = 0;
   late final PageController _pageController;
   late final List<Widget> _screens;
   final ValueNotifier<bool> _homeTabActive = ValueNotifier(true);
@@ -34,6 +35,10 @@ class MainAppState extends State<MainApp> {
   final ChatService _chatService = ChatService();
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
   final GlobalKey<ReelsScreenState> _reelsKey = GlobalKey<ReelsScreenState>();
+  final GlobalKey<MessagesScreenState> _messagesKey =
+      GlobalKey<MessagesScreenState>();
+  final GlobalKey<NotificationsScreenState> _notificationsKey =
+      GlobalKey<NotificationsScreenState>();
 
   void setSelectedIndex(
     int index, {
@@ -42,12 +47,39 @@ class MainAppState extends State<MainApp> {
   }) {
     final wasHome = _selectedIndex == 0;
     final wasReels = _selectedIndex == 1;
+    final wasMessages = _selectedIndex == 3;
+    final wasNotifications = _selectedIndex == 4;
 
     if (index == 0 && wasHome && !refresh && !isFromPageSwipe) {
       _homeKey.currentState?.scrollToTop();
       return;
     }
 
+    if (index == 3 && wasMessages && !refresh && !isFromPageSwipe) {
+      final state = _messagesKey.currentState;
+      if (state != null &&
+          state.scrollController.hasClients &&
+          state.scrollController.position.pixels > 50) {
+        state.scrollToTop();
+      } else {
+        setSelectedIndex(_previousIndex);
+      }
+      return;
+    }
+
+    if (index == 4 && wasNotifications && !refresh && !isFromPageSwipe) {
+      final state = _notificationsKey.currentState;
+      if (state != null &&
+          state.scrollController.hasClients &&
+          state.scrollController.position.pixels > 50) {
+        state.scrollToTop();
+      } else {
+        setSelectedIndex(_previousIndex);
+      }
+      return;
+    }
+
+    _previousIndex = _selectedIndex;
     _homeTabActive.value = index == 0;
     _reelsTabActive.value = index == 1;
     _discoverTabActive.value = index == 2;
@@ -82,8 +114,8 @@ class MainAppState extends State<MainApp> {
         tabActiveNotifier: _discoverTabActive,
         initialTabIndex: widget.initialSubIndex,
       ),
-      const MessagesScreen(),
-      const NotificationsScreen(),
+      MessagesScreen(key: _messagesKey),
+      NotificationsScreen(key: _notificationsKey),
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {

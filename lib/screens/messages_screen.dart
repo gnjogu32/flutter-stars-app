@@ -16,16 +16,27 @@ class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
 
   @override
-  State<MessagesScreen> createState() => _MessagesScreenState();
+  State<MessagesScreen> createState() => MessagesScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen> {
+class MessagesScreenState extends State<MessagesScreen> {
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController scrollController = ScrollController();
   bool _isSearching = false;
   final Set<String> _deletingConversationIds = <String>{};
+
+  void scrollToTop() {
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -44,6 +55,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     _searchFocusNode.removeListener(_handleFocusChanged);
     _searchFocusNode.dispose();
     _searchController.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 
@@ -258,6 +270,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     if (mounted) setState(() {});
                   },
                   child: ListView.builder(
+                    controller: scrollController,
                     physics: const BouncingScrollPhysics(),
                     itemCount: conversations.length,
                     itemBuilder: (context, index) {
